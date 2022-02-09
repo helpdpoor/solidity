@@ -1,0 +1,7 @@
+Initial staking contract was modified.
+1. Possibility to set arbitrary erc20 token for yield added.
+2. Workaround for fixing LP tokens rate volatility (to avoid changing of yield amount when LP token rate is changed)
+3. Possibility to upgrade and downgrade vaults (downgrade with tax)
+
+
+Using market indexes for treating LP rate volatility works fine. The only thing that should be taken into account - when using marketing indexes interest is compound. If the APR for LP vault will be 100% after year of deposit users will get yield = ~1.7 * initialAmount instead of 1 * initialAmount for simple interest
