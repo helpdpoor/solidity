@@ -53,7 +53,7 @@ contract LiquidationContract is CollateralContract {
             borrowedUsdAmount += (
                 _borrowings[borrowingIndex].amount + _borrowings[borrowingIndex].accumulatedFee
                 + _getBorrowingFee(borrowingIndex)
-            ) * _borrowingProfiles[i].usdRate;
+            ) * getUsdRate(_borrowingProfiles[i].contractAddress);
 
             _updateBorrowingFee(borrowingIndex);
             _borrowingProfiles[i].totalLiquidated += _borrowings[borrowingIndex].amount
@@ -141,7 +141,7 @@ contract LiquidationContract is CollateralContract {
         uint256 liquidatorsPart;
         uint256 collateralProfileIndex = _collaterals[collateralIndex]
             .collateralProfileIndex;
-        uint256 usdRate = _collateralProfiles[collateralProfileIndex].usdRate;
+        uint256 usdRate = getUsdRate(_collateralProfiles[collateralProfileIndex].contractAddress);
         uint256 amount = liquidationUsdAmount / usdRate;
         address contractAddress = _collateralProfiles[collateralProfileIndex].contractAddress;
         _collaterals[collateralIndex].liquidated = true;

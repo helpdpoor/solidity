@@ -20,18 +20,18 @@ contract AdminContract is StorageContract {
     /**
      * @dev Function for replenishing assets balance, both native currency and erc20 tokens.
      */
-    function adminReplenish (
-        address tokenAddress, uint256 amount
-    ) external payable onlyOwner returns (bool) {
-        if (tokenAddress != address(0)) {
-            require(msg.value == 0, '4');
-            require(amount > 0, '5');
-            _takeAsset(tokenAddress, msg.sender, amount);
-        } else {
-            amount = msg.value;
-            require(amount > 0, '6');
-        }
-        _adminReplenish[tokenAddress] += amount;
-        return true;
-    }
+//    function adminReplenish (
+//        address tokenAddress, uint256 amount
+//    ) external payable onlyOwner returns (bool) {
+//        if (tokenAddress != address(0)) {
+//            require(msg.value == 0, '4');
+//            require(amount > 0, '5');
+//            _takeAsset(tokenAddress, msg.sender, amount);
+//        } else {
+//            amount = msg.value;
+//            require(amount > 0, '6');
+//        }
+//        _adminReplenish[tokenAddress] += amount;
+//        return true;
+//    }
 }

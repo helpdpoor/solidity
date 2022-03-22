@@ -36,6 +36,7 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
                 amount
             );
         }
+        _updateAllBorrowingFees(msg.sender);
         _collateralProfiles[collateralProfileIndex].total += amount;
         uint256 collateralIndex = _usersCollateralIndexes[msg.sender][collateralProfileIndex];
         if (collateralIndex == 0 || _collaterals[collateralIndex].liquidated) {
@@ -52,7 +53,8 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
 
     function withdrawCollateral (
         uint256 collateralProfileIndex, uint256 amount
-    ) external returns (bool) {
+    ) public returns (bool) {
+        require(amount > 0, '22');
         require(collateralProfileIndex > 0 && collateralProfileIndex
             <= _collateralProfilesNumber, '27');
         require(_collateralProfiles[collateralProfileIndex].active,
@@ -61,10 +63,10 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
             '19');
         require(getAvailableCollateralAmount(msg.sender, collateralProfileIndex) >= amount,
             '30');
-
-        _collateralProfiles[collateralProfileIndex].total -= amount;
         uint256 collateralIndex = _usersCollateralIndexes[msg.sender][collateralProfileIndex];
         require(!_collaterals[collateralIndex].liquidated, '31');
+        _updateAllBorrowingFees(msg.sender);
+        _collateralProfiles[collateralProfileIndex].total -= amount;
         _collaterals[collateralIndex].amount -= amount;
 
         _sendAsset(
@@ -76,29 +78,13 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
         return true;
     }
 
-    function withdrawWholeCollateral (
+    function withdrawCollateralAvailable (
         uint256 collateralProfileIndex
     ) external returns (bool) {
-        require(collateralProfileIndex > 0 && collateralProfileIndex
-            <= _collateralProfilesNumber, '27');
-        require(_collateralProfiles[collateralProfileIndex].active,
-            '28');
-        require(_collateralProfiles[collateralProfileIndex].collateralType != 3,
-            '19');
-        uint256 amount = getAvailableCollateralAmount(msg.sender, collateralProfileIndex);
-
-        uint256 collateralIndex = _usersCollateralIndexes[msg.sender][collateralProfileIndex];
-        require(!_collaterals[collateralIndex].liquidated, '31');
-        _collateralProfiles[collateralProfileIndex].total -= amount;
-        _collaterals[collateralIndex].amount -= amount;
-
-        _sendAsset(
-            _collateralProfiles[collateralProfileIndex].contractAddress,
-            msg.sender,
-            amount
+        uint256 amount = getAvailableCollateralAmount(
+            msg.sender, collateralProfileIndex
         );
-
-        return true;
+        return withdrawCollateral(collateralProfileIndex, amount);
     }
 
     function depositNetna (
@@ -114,6 +100,7 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
         } else {
             _addNewCollateral(userAddress, nEtnaProfileIndex, amount, 0);
         }
+        _collateralProfiles[nEtnaProfileIndex].total += amount;
         return true;
     }
 
@@ -130,6 +117,7 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
         require(collateralIndex > 0, '66');
         require(_collaterals[collateralIndex].amount >= amount, '29');
         _collaterals[collateralIndex].amount -= amount;
+        _collateralProfiles[nEtnaProfileIndex].total -= amount;
         _sendAsset(
             address(_nEtnaContract),
             address(_nftCollateralContract),
@@ -139,7 +127,10 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
     }
 
     function _addNewCollateral (
-        address userAddress, uint256 collateralProfileIndex, uint256 amount, uint256 prevCollateral
+        address userAddress,
+        uint256 collateralProfileIndex,
+        uint256 amount,
+        uint256 prevCollateral
     ) internal returns (bool) {
         _collateralsNumber ++;
         _collaterals[_collateralsNumber].userAddress = userAddress;
@@ -147,7 +138,10 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
         _collaterals[_collateralsNumber].amount = amount;
         _collaterals[_collateralsNumber].prevCollateral = prevCollateral;
         _usersCollateralIndexes[userAddress][collateralProfileIndex] = _collateralsNumber;
-
+        if (!_userHasCollateral[userAddress][collateralProfileIndex]) {
+            _collateralProfiles[collateralProfileIndex].usersNumber ++;
+            _userHasCollateral[userAddress][collateralProfileIndex] = true;
+        }
         return true;
     }
 
@@ -155,13 +149,6 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
         address userAddress, uint256 collateralProfileIndex
     ) external view returns (uint256) {
         return _usersCollateralIndexes[userAddress][collateralProfileIndex];
-    }
-
-    function getCollateralAmount (
-        uint256 collateralIndex
-    ) external view returns (uint256) {
-        if (_collaterals[collateralIndex].liquidated) return 0;
-        return _collaterals[collateralIndex].amount;
     }
 
     function getCollateralUsdAmount (
@@ -172,7 +159,7 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
         ) return 0;
         uint256 collateralProfileIndex = _collaterals[collateralIndex].collateralProfileIndex;
         return _collaterals[collateralIndex].amount
-            * _collateralProfiles[collateralProfileIndex].usdRate;
+            * getUsdRate(_collateralProfiles[collateralProfileIndex].contractAddress);
     }
 
     function getDepositedCollateralUsdAmount (
@@ -187,6 +174,21 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
         }
         return depositedCollateralUsdAmount;
     }
+
+//    function getDepositedCollateralUsdAmount (
+//        address userAddress
+//    ) external view returns (uint256) {
+//        uint256 depositedCollateralUsdAmount;
+//        for (uint256 i = 1; i <= _collateralProfilesNumber; i ++) {
+//            if (!_collateralProfiles[i].active) continue;
+//            uint256 collateralIndex = _usersCollateralIndexes[userAddress][i];
+//            if (collateralIndex == 0 || _collaterals[collateralIndex].liquidated)
+//                continue;
+//            depositedCollateralUsdAmount += _collaterals[collateralIndex].amount
+//               * getUsdRate(_collateralProfiles[i].contractAddress);
+//        }
+//        return depositedCollateralUsdAmount;
+//    }
 
     function getAvailableCollateralAmount (
         address userAddress, uint256 collateralProfileIndex
@@ -205,7 +207,8 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
             ) continue;
             if (collateralIndex == 0) continue;
             uint256 amount = _collaterals[collateralIndex].amount
-                * _collateralProfiles[i].usdRate * _collateralProfiles[i].borrowingFactor
+                * getUsdRate(_collateralProfiles[i].contractAddress)
+                * _collateralProfiles[i].borrowingFactor
                 / _percentShift;
             collateralUsdAmount += amount;
             if (i == collateralProfileIndex) availableCollateralUsdAmount = amount;
@@ -218,7 +221,7 @@ contract CollateralContract is StorageContract, BorrowingFeeContract {
 
         return availableCollateralUsdAmount
             * _percentShift
-            / _collateralProfiles[collateralProfileIndex].usdRate
+            / getUsdRate(_collateralProfiles[collateralProfileIndex].contractAddress)
             / _collateralProfiles[collateralProfileIndex].borrowingFactor;
     }
 }

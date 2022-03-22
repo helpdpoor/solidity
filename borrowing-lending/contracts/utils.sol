@@ -28,6 +28,15 @@ interface INftCollateral {
 }
 
 /**
+ * @dev Interface of the Proxy contract.
+ */
+interface IProxy {
+    function getUsdRate (
+        address contractAddress
+    ) external view returns (uint256);
+}
+
+/**
  * @dev Contract module that helps prevent reentrant calls to a function.
  *
  * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier

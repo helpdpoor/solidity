@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
-import 'hardhat/console.sol';
 import './marketing-indexes.sol';
 import './collateral.sol';
 
@@ -25,8 +24,8 @@ contract BorrowingContract is MarketingIndexesContract, CollateralContract {
             '10');
         require(
             _borrowingProfiles[borrowingProfileIndex].totalBorrowed
-            * _percentShift
-            / _borrowingProfiles[borrowingProfileIndex].totalLent <= 9500,
+                * _percentShift
+                / _borrowingProfiles[borrowingProfileIndex].totalLent <= 9500,
             '11'
         );
         require(
@@ -94,23 +93,28 @@ contract BorrowingContract is MarketingIndexesContract, CollateralContract {
      * @dev returning of the specified amount of assets
      */
     function returnBorrowing (
-        uint256 borrowingIndex, uint256 amount
+        uint256 borrowingIndex, uint256 amount, bool returnAll
     ) external returns (bool) {
         require(borrowingIndex > 0 && borrowingIndex
             <= _borrowingsNumber, '13');
         require(_borrowings[borrowingIndex].userAddress == msg.sender,
             '16.1');
         uint256 borrowingProfileIndex = _borrowings[borrowingIndex].borrowingProfileIndex;
-        _proceedMarketingIndexes(borrowingProfileIndex);
-        _updateBorrowingFee(borrowingIndex);
-        require(
-            _borrowings[borrowingIndex].amount
-                + _borrowings[borrowingIndex].accumulatedFee >= amount,
-            '14'
-        );
         require(!_borrowings[borrowingIndex].liquidated,
             '15');
         require(_borrowingProfiles[borrowingProfileIndex].active, '16');
+        _proceedMarketingIndexes(borrowingProfileIndex);
+        _updateBorrowingFee(borrowingIndex);
+        if (returnAll) {
+            amount = _borrowings[borrowingIndex].amount
+                + _borrowings[borrowingIndex].accumulatedFee;
+        } else {
+            require(
+                _borrowings[borrowingIndex].amount
+                + _borrowings[borrowingIndex].accumulatedFee >= amount,
+                '14'
+            );
+        }
         _takeAsset(
             _borrowingProfiles[borrowingProfileIndex].contractAddress,
             msg.sender,
@@ -150,12 +154,13 @@ contract BorrowingContract is MarketingIndexesContract, CollateralContract {
                 || _collaterals[collateralIndex].amount == 0
             ) continue;
             collateralUsdAmount += _collaterals[collateralIndex].amount
-                * _collateralProfiles[i].usdRate * _collateralProfiles[i].borrowingFactor
+                * getUsdRate(_collateralProfiles[i].contractAddress)
+                * _collateralProfiles[i].borrowingFactor
                 / _percentShift;
         }
         if (collateralUsdAmount <= borrowedUsdAmount) return 0;
         uint256 diff = collateralUsdAmount - borrowedUsdAmount;
 
-        return diff / _borrowingProfiles[borrowingProfileIndex].usdRate;
+        return diff / getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress);
     }
 }

@@ -52,6 +52,7 @@ contract BorrowingLending is BorrowingContract, LendingContract, LiquidationCont
      * 45 - Borrowing profile is not found
      * 46 - Amount should be greater than zero
      * 47 - Not enough lending amount
+     * 47.1 - This lending can not be withdrawn at the moment
      * 48 - Message sender is flagged for liquidation
      * 49 - Lending is not found
      * 50 - Borrowing profile is not found

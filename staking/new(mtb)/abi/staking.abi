@@ -13,11 +13,6 @@
 			},
 			{
 				"internalType": "uint8",
-				"name": "depositType",
-				"type": "uint8"
-			},
-			{
-				"internalType": "uint8",
 				"name": "depositRateType",
 				"type": "uint8"
 			},
@@ -968,11 +963,6 @@
 				"internalType": "address",
 				"name": "yieldContractAddress",
 				"type": "address"
-			},
-			{
-				"internalType": "uint8",
-				"name": "depositType",
-				"type": "uint8"
 			},
 			{
 				"internalType": "uint256",

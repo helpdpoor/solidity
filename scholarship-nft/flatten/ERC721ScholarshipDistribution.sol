@@ -79,7 +79,6 @@ interface IERC721Scholarship {
     ) external view returns (uint256);
 }
 
-
 /**
  * @dev
  */

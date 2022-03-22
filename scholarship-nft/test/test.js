@@ -11,7 +11,7 @@ beforeEach(async function () {
 
   const NFT = await ethers.getContractFactory("ERC721Scholarship");
   nftContract = await NFT.connect(signers[10]).deploy(
-    'name', 'symbol'
+    'name', 'symbol', 0
   );
   await nftContract.deployed();
 

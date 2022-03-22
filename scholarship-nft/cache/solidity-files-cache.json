@@ -145,8 +145,8 @@
       ]
     },
     "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/scholarship-nft/contracts/ERC721Scholarship.sol": {
-      "lastModificationDate": 1644569630442,
-      "contentHash": "5c5a73c2e2117b313c66d893fd03b21e",
+      "lastModificationDate": 1644862251068,
+      "contentHash": "fe9a41579d9690a5dd0c01a57012d4aa",
       "sourceName": "contracts/ERC721Scholarship.sol",
       "solcConfig": {
         "version": "0.8.0",

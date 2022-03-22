@@ -19,6 +19,14 @@ const downgradeTax = 1000;
 const withdrawYieldTax = 1000;
 const lockTime = 3600 * 24 * 3;
 const decimals = 10000;
+const lpRate = 2;
+const rateTypes = {
+  ETNA: 1,
+  MTB: 2,
+  LP_ETNA: 3,
+  LP_MTB: 4,
+  ERC20: 5
+}
 
 beforeEach(async function () {
   signers = await ethers.getSigners();
@@ -101,9 +109,8 @@ beforeEach(async function () {
     .addDepositProfile(
       etnaContract.address,
       etnaContract.address,
-      1,
-      1,
-      1,
+      rateTypes.ETNA,
+      rateTypes.ETNA,
       depositProfile1Apr,
       0,
       downgradeTax,
@@ -125,9 +132,8 @@ beforeEach(async function () {
     .addDepositProfile(
       etnaContract.address,
       mtbContract.address,
-      1,
-      1,
-      2,
+      rateTypes.ETNA,
+      rateTypes.MTB,
       depositProfile2Apr,
       0,
       downgradeTax,
@@ -149,20 +155,42 @@ beforeEach(async function () {
     .addDepositProfile(
       lpContract.address,
       mtbContract.address,
-      2,
-      4,
-      4,
+      rateTypes.LP_ETNA,
+      rateTypes.MTB,
       depositProfile3Apr,
       withdrawYieldTax,
       downgradeTax,
-      depositProfile3DepositUsdRate,
-      depositProfile3YieldUsdRate,
-      6,
+      0,
+      0,
+      3,
       lockTime
     );
   await stakingContract.connect(signers[10])
     .setDepositProfileData(
       3,
+      'LP Vault',
+      'ETNA',
+      'MTB',
+      '',
+      true
+    );
+  await stakingContract.connect(signers[10])
+    .addDepositProfile(
+      lpContract.address,
+      mtbContract.address,
+      rateTypes.LP_MTB,
+      rateTypes.MTB,
+      depositProfile3Apr,
+      withdrawYieldTax,
+      downgradeTax,
+      0,
+      0,
+      4,
+      lockTime
+    );
+  await stakingContract.connect(signers[10])
+    .setDepositProfileData(
+      4,
       'LP Vault',
       'MTB',
       'MTB',
@@ -183,7 +211,6 @@ describe("Testing Staking contract", function () {
           etnaContract.address,
           1,
           1,
-          1,
           1000,
           1000,
           1000,
@@ -200,7 +227,6 @@ describe("Testing Staking contract", function () {
         .addDepositProfile(
           wrongDecimalsContract.address,
           etnaContract.address,
-          1,
           1,
           1,
           1000,
@@ -221,7 +247,6 @@ describe("Testing Staking contract", function () {
           wrongDecimalsContract.address,
           1,
           1,
-          1,
           1000,
           1000,
           1000,
@@ -234,12 +259,11 @@ describe("Testing Staking contract", function () {
       .to.be.revertedWith('Only for tokens with decimals 18');
 
     result = await stakingContract.getDepositProfilesNumber();
-    expect(Number(result)).to.equal(3);
+    expect(Number(result)).to.equal(4);
 
     result = await stakingContract.getDepositProfile(1);
     expect(result.depositContractAddress).to.equal(etnaContract.address);
     expect(result.yieldContractAddress).to.equal(etnaContract.address);
-    expect(Number(result.depositType)).to.equal(1);
     expect(Number(result.lockTime)).to.equal(lockTime);
     expect(Number(result.tvl)).to.equal(0);
     expect(result.active).to.be.true;
@@ -309,7 +333,7 @@ describe("Testing Staking contract", function () {
 
     result = await stakingContract.getDepositProfileRateData(3);
     expect(Number(result.depositUsdRate)).to.equal(44);
-    expect(Number(result.yieldUsdRate)).to.equal(55);
+    expect(Number(result.yieldUsdRate)).to.equal(500);
   });
 
   it("Simple staking", async function () {
@@ -639,7 +663,7 @@ describe("Testing Staking contract", function () {
     resultStorage.expectedAccumulatedYield3 = 0;
     resultStorage.expectedYield3 = resultStorage.expectedAmount3
       * depositProfile3Apr / decimals * 20 / 365
-      * depositProfile3DepositUsdRate / depositProfile3YieldUsdRate;
+      * lpRate * depositProfile3DepositUsdRate / depositProfile3YieldUsdRate;
     result = await stakingContract.getDeposit(3);
     expect(roundTo(Number(ethers.utils.formatUnits(
       result.amount
@@ -706,7 +730,7 @@ describe("Testing Staking contract", function () {
     resultStorage.expectedAmount3;
     resultStorage.expectedAccumulatedYield3 = 0;
     resultStorage.expectedYield3 += resultStorage.expectedAmount3
-      * depositProfile3Apr / decimals * 12 / 365
+      * lpRate * depositProfile3Apr / decimals * 12 / 365
       * depositProfile3DepositUsdRate / depositProfile3YieldUsdRate;
     result = await stakingContract.getDeposit(3);
     expect(roundTo(Number(ethers.utils.formatUnits(
@@ -784,10 +808,10 @@ describe("Testing Staking contract", function () {
     // deposit 3
     resultStorage.expectedAmount3 -= unstakingAmounts[3][0];
     resultStorage.expectedAccumulatedYield3 = resultStorage.expectedYield3
-      / depositProfile3DepositUsdRate * depositProfile3YieldUsdRate;
+      / lpRate / depositProfile3DepositUsdRate * depositProfile3YieldUsdRate;
     resultStorage.expectedYield3 += resultStorage.expectedAmount3
       * depositProfile3Apr / decimals * 7 / 365
-      * depositProfile3DepositUsdRate / depositProfile3YieldUsdRate;
+      * lpRate * depositProfile3DepositUsdRate / depositProfile3YieldUsdRate;
     result = await stakingContract.getDeposit(3);
     expect(roundTo(Number(ethers.utils.formatUnits(
       result.amount
@@ -852,7 +876,7 @@ describe("Testing Staking contract", function () {
     resultStorage.expectedAccumulatedYield3;
     resultStorage.expectedYield3 += resultStorage.expectedAmount3
       * depositProfile3Apr / decimals * 10 / 365
-      * depositProfile3DepositUsdRate / depositProfile3YieldUsdRate;
+      * lpRate * depositProfile3DepositUsdRate / depositProfile3YieldUsdRate;
     result = await stakingContract.getDeposit(3);
     expect(roundTo(Number(ethers.utils.formatUnits(
       result.amount
@@ -918,10 +942,10 @@ describe("Testing Staking contract", function () {
     // deposit 3
     resultStorage.expectedAmount3 -= unstakingAmounts[3][1];
     resultStorage.expectedAccumulatedYield3 = resultStorage.expectedYield3
-      / depositProfile3DepositUsdRate * depositProfile3YieldUsdRate;
+      / lpRate / depositProfile3DepositUsdRate * depositProfile3YieldUsdRate;
     resultStorage.expectedYield3 += resultStorage.expectedAmount3
       * depositProfile3Apr / decimals * 15 / 365
-      * depositProfile3DepositUsdRate / depositProfile3YieldUsdRate;
+      * lpRate * depositProfile3DepositUsdRate / depositProfile3YieldUsdRate;
     result = await stakingContract.getDeposit(3);
     expect(roundTo(Number(ethers.utils.formatUnits(
       result.amount
@@ -1028,7 +1052,6 @@ describe("Testing Staking contract", function () {
         etnaContract.address,
         1,
         1,
-        1,
         depositProfile1Apr,
         0,
         downgradeTax,
@@ -1038,9 +1061,18 @@ describe("Testing Staking contract", function () {
         lockTime
       );
     await stakingContract.connect(signers[10])
-      .setDepositProfileUpgradeProfileId(1, 4);
+      .setDepositProfileData(
+        5,
+        'LP Vault',
+        'MTB',
+        'MTB',
+        '',
+        true
+      );
     await stakingContract.connect(signers[10])
-      .setDepositProfileDowngradeProfileId(4, 1);
+      .setDepositProfileUpgradeProfileId(1, 5);
+    await stakingContract.connect(signers[10])
+      .setDepositProfileDowngradeProfileId(5, 1);
 
     await stakingContract.connect(signers[0])
       .stake(ethers.utils.parseUnits(stakedAmount.toString()), 1);
@@ -1091,7 +1123,7 @@ describe("Testing Staking contract", function () {
       .to.equal(roundTo(resultStorage.expectedYield, 5));
 
     result = await stakingContract.getDeposit(2);
-    expect(Number(result.depositProfileId)).to.equal(4);
+    expect(Number(result.depositProfileId)).to.equal(5);
     expect(roundTo(Number(ethers.utils.formatUnits(
       result.amount
     )), 4)).to.equal(roundTo(resultStorage.expectedAmount, 4));
@@ -1099,15 +1131,15 @@ describe("Testing Staking contract", function () {
       result.accumulatedYield
     )), 4)).to.equal(0);
     result = Number(ethers.utils.formatUnits(
-      await stakingContract.getDepositYield(4, true)
+      await stakingContract.getDepositYield(5, true)
     ));
     expect(roundTo(result, 5))
       .to.equal(0);
 
     await stakingContract.connect(signers[0])
-      .downgrade(4);
+      .downgrade(5);
 
-    result = await stakingContract.getDepositProfileRateData(4)
+    result = await stakingContract.getDepositProfileRateData(5)
     resultStorage.expectedAmount *= (1 - downgradeTax / decimals);
     result = await stakingContract.getDeposit(1);
     expect(roundTo(Number(ethers.utils.formatUnits(
@@ -1123,7 +1155,7 @@ describe("Testing Staking contract", function () {
       .to.equal(roundTo(resultStorage.expectedYield, 5));
 
     result = await stakingContract.getDeposit(2);
-    expect(Number(result.depositProfileId)).to.equal(4);
+    expect(Number(result.depositProfileId)).to.equal(5);
     expect(roundTo(Number(ethers.utils.formatUnits(
       result.amount
     )), 4)).to.equal(0);

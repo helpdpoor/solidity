@@ -79,6 +79,12 @@ contract LendingContract is MarketingIndexesContract {
         _proceedMarketingIndexes(borrowingProfileIndex);
         _updateLendingYield(lendingIndex);
         require(_lendings[lendingIndex].amount >= amount, '47');
+        require(
+            _borrowingProfiles[borrowingProfileIndex].totalBorrowed * _percentShift
+                / (_borrowingProfiles[borrowingProfileIndex].totalLent - amount)
+                    <= 9500,
+            '47.1'
+        );
 
         _lendings[lendingIndex].amount -= amount;
         _borrowingProfiles[borrowingProfileIndex].totalLent -= amount;

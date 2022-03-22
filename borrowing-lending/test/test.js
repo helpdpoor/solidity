@@ -7,9 +7,7 @@ const { ethers } = require("hardhat");
 const initialEtnaTransfer = 50000;
 const batchLimit = 50;
 const zeroAddress = '0x0000000000000000000000000000000000000000';
-let signers, tokensArray, etnaContract, nEtnaContract, collateralContract, marketplaceContract,
-  nftContract, borrowing1Contract, borrowing2Contract, nftCollateralContract, blContract,
-  result;
+let signers, tokensArray, proxyContract, etnaContract, nEtnaContract, collateralContract, marketplaceContract, nftContract, borrowing1Contract, borrowing2Contract, nftCollateralContract, blContract, result;
 
 const borrowing1ProfileUsdRate = 10000;
 const borrowing2ProfileUsdRate = 10000;
@@ -28,6 +26,12 @@ const collateral4ProfileLiquidationFactor = 2000;
 
 beforeEach(async function () {
   signers = await ethers.getSigners();
+
+  const Proxy = await ethers.getContractFactory("Proxy");
+  proxyContract = await Proxy.deploy(
+    signers[10].address
+  );
+  await proxyContract.deployed();
 
   const ERC20 = await ethers.getContractFactory("BEP20Token");
   etnaContract = await ERC20.deploy(
@@ -112,6 +116,10 @@ beforeEach(async function () {
     3000
   );
   await blContract.deployed();
+  await blContract.connect(signers[10])
+    .setProxyContract(
+      proxyContract.address
+    );
 
   await etnaContract.connect(signers[0])
     .approve(blContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
@@ -165,30 +173,75 @@ beforeEach(async function () {
 
   await blContract.connect(signers[10]).addToManagers(signers[9].address);
   await expect(
-    blContract.connect(signers[0]).addBorrowingProfile(borrowing1Contract.address, 100)
+    blContract.connect(signers[0]).addBorrowingProfile(borrowing1Contract.address)
   ).to.be.revertedWith('63');
 
   await blContract.connect(signers[9])
-    .addBorrowingProfile(borrowing1Contract.address, borrowing1ProfileUsdRate);
+    .addBorrowingProfile(borrowing1Contract.address);
   await blContract.connect(signers[9])
-    .addBorrowingProfile(borrowing2Contract.address, borrowing2ProfileUsdRate);
+    .addBorrowingProfile(borrowing2Contract.address);
   await blContract.connect(signers[9]).addCollateralProfile(
-    collateralContract.address, collateral1ProfileUsdRate,
-    collateral1ProfileBorrowingFactor, collateral1ProfileLiquidationFactor
+    collateralContract.address,
+    collateral1ProfileBorrowingFactor,
+    collateral1ProfileLiquidationFactor
+  );
+  await blContract.connect(signers[9]).setUsdRateData(
+    collateralContract.address,
+    0,
+    true
   );
   await blContract.connect(signers[9]).addCollateralProfile(
-    etnaContract.address, collateral2ProfileUsdRate,
-    collateral2ProfileBorrowingFactor, collateral2ProfileLiquidationFactor
+    etnaContract.address,
+    collateral2ProfileBorrowingFactor,
+    collateral2ProfileLiquidationFactor
+  );
+  await blContract.connect(signers[9]).setUsdRateData(
+    etnaContract.address,
+    0,
+    true
   );
   await blContract.connect(signers[9]).addCollateralProfile(
-    zeroAddress, collateral3ProfileUsdRate,
-    collateral3ProfileBorrowingFactor, collateral3ProfileLiquidationFactor
+    zeroAddress,
+    collateral3ProfileBorrowingFactor,
+    collateral3ProfileLiquidationFactor
+  );
+  await blContract.connect(signers[9]).setUsdRateData(
+    zeroAddress,
+    0,
+    true
   );
   await blContract.connect(signers[9]).setNEtnaContract(nEtnaContract.address);
   await blContract.connect(signers[9]).addCollateralProfile(
-    nEtnaContract.address, collateral4ProfileUsdRate,
-    collateral4ProfileBorrowingFactor, collateral4ProfileLiquidationFactor
+    nEtnaContract.address,
+    collateral4ProfileBorrowingFactor,
+    collateral4ProfileLiquidationFactor
   );
+  await blContract.connect(signers[9]).setUsdRateData(
+    nEtnaContract.address,
+    0,
+    true
+  );
+
+  await proxyContract.connect(signers[10])
+    .setUsdRate(
+      collateralContract.address,
+      collateral1ProfileUsdRate
+    );
+  await proxyContract.connect(signers[10])
+    .setUsdRate(
+      etnaContract.address,
+      collateral2ProfileUsdRate
+    );
+  await proxyContract.connect(signers[10])
+    .setUsdRate(
+      nEtnaContract.address,
+      collateral4ProfileUsdRate
+    );
+  await proxyContract.connect(signers[10])
+    .setUsdRate(
+      zeroAddress,
+      collateral3ProfileUsdRate
+    );
 
   result = await blContract.getBorrowingProfilesNumber();
   expect(Number(result)).to.equal(2);
@@ -196,53 +249,60 @@ beforeEach(async function () {
   expect(Number(result)).to.equal(4);
   result = await blContract.getBorrowingProfile(1);
   expect(result.contractAddress).to.equal(borrowing1Contract.address);
-  expect(Number(result.usdRate)).to.equal(borrowing1ProfileUsdRate);
   expect(Number(result.totalBorrowed)).to.equal(0);
   expect(Number(result.totalLent)).to.equal(0);
   expect(result.active).to.be.true;
+  result = await blContract.getUsdRate(borrowing1Contract.address);
+  expect(Number(result)).to.equal(borrowing1ProfileUsdRate);
 
   result = await blContract.getBorrowingProfile(2);
   expect(result.contractAddress).to.equal(borrowing2Contract.address);
-  expect(Number(result.usdRate)).to.equal(borrowing2ProfileUsdRate);
   expect(Number(result.totalBorrowed)).to.equal(0);
   expect(Number(result.totalLent)).to.equal(0);
   expect(result.active).to.be.true;
+  result = await blContract.getUsdRate(borrowing2Contract.address);
+  expect(Number(result)).to.equal(borrowing2ProfileUsdRate);
 
   result = await blContract.getCollateralProfile(1);
   expect(result.contractAddress).to.equal(collateralContract.address);
-  expect(Number(result.usdRate)).to.equal(collateral1ProfileUsdRate);
   expect(Number(result.borrowingFactor)).to.equal(collateral1ProfileBorrowingFactor);
   expect(Number(result.liquidationFactor)).to.equal(collateral1ProfileLiquidationFactor);
   expect(Number(result.total)).to.equal(0);
   expect(Number(result.collateralType)).to.equal(1);
   expect(result.active).to.be.true;
 
+  result = await blContract.getUsdRate(collateralContract.address);
+  expect(Number(result)).to.equal(collateral1ProfileUsdRate);
+
   result = await blContract.getCollateralProfile(2);
   expect(result.contractAddress).to.equal(etnaContract.address);
-  expect(Number(result.usdRate)).to.equal(collateral2ProfileUsdRate);
   expect(Number(result.borrowingFactor)).to.equal(collateral2ProfileBorrowingFactor);
   expect(Number(result.liquidationFactor)).to.equal(collateral2ProfileLiquidationFactor);
   expect(Number(result.total)).to.equal(0);
   expect(Number(result.collateralType)).to.equal(2);
   expect(result.active).to.be.true;
+  result = await blContract.getUsdRate(etnaContract.address);
+  expect(Number(result)).to.equal(collateral2ProfileUsdRate);
 
   result = await blContract.getCollateralProfile(3);
   expect(result.contractAddress).to.equal(zeroAddress);
-  expect(Number(result.usdRate)).to.equal(collateral3ProfileUsdRate);
   expect(Number(result.borrowingFactor)).to.equal(collateral3ProfileBorrowingFactor);
   expect(Number(result.liquidationFactor)).to.equal(collateral3ProfileLiquidationFactor);
   expect(Number(result.total)).to.equal(0);
   expect(Number(result.collateralType)).to.equal(0);
   expect(result.active).to.be.true;
+  result = await blContract.getUsdRate(zeroAddress);
+  expect(Number(result)).to.equal(collateral3ProfileUsdRate);
 
   result = await blContract.getCollateralProfile(4);
   expect(result.contractAddress).to.equal(nEtnaContract.address);
-  expect(Number(result.usdRate)).to.equal(collateral4ProfileUsdRate);
   expect(Number(result.borrowingFactor)).to.equal(collateral4ProfileBorrowingFactor);
   expect(Number(result.liquidationFactor)).to.equal(collateral4ProfileLiquidationFactor);
   expect(Number(result.total)).to.equal(0);
   expect(Number(result.collateralType)).to.equal(3);
   expect(result.active).to.be.true;
+  result = await blContract.getUsdRate(nEtnaContract.address);
+  expect(Number(result)).to.equal(collateral4ProfileUsdRate);
 
   const Nft = await ethers.getContractFactory("CyclopsTokens");
   nftContract = await Nft.connect(signers[10]).deploy();
@@ -539,6 +599,31 @@ describe("Testing contract", function () {
     expect(result).to.equal(3);
   });
 
+  it("Lending - margin withdraw", async function () {
+    const lendingAmount = 100;
+    const borrowingAmount = 95;
+    const collateralAmount = 5000;
+
+    await blContract.connect(signers[1])
+      .lend(1, ethers.utils.parseUnits(lendingAmount.toString()));
+    await blContract.connect(signers[2])
+      .depositCollateral(1, ethers.utils.parseUnits(collateralAmount.toString()));
+    await blContract.connect(signers[2])
+      .borrow(1, ethers.utils.parseUnits(borrowingAmount.toString()), false);
+    await expect(
+      blContract.connect(signers[1])
+        .withdrawLending(1, ethers.utils.parseUnits('0.1'))
+    ).to.be.revertedWith('47.1');
+    await blContract.connect(signers[3])
+      .lend(1, ethers.utils.parseUnits('10'));
+    await expect(
+      blContract.connect(signers[1])
+        .withdrawLending(1, ethers.utils.parseUnits('10.1'))
+    ).to.be.revertedWith('47.1');
+    await blContract.connect(signers[1])
+        .withdrawLending(1, ethers.utils.parseUnits('10'));
+  });
+
   it("Borrowing", async function () {
     result = await borrowing1Contract.balanceOf(blContract.address);
     let balanceBlBorrowing1Contract = Number(ethers.utils.formatUnits(result));
@@ -572,7 +657,7 @@ describe("Testing contract", function () {
       .depositCollateral(1, ethers.utils.parseUnits(collateralAmount.toString()));
 
     result = await blContract.getCollateralProfile(1);
-    let usdRate = Number(result.usdRate) / 10000;
+    let usdRate = collateral1ProfileUsdRate / 10000;
     let borrowingFactor = Number(result.borrowingFactor) / 10000;
     let availableBorrowingAmount = collateralAmount * usdRate * borrowingFactor;
     expect(Number(ethers.utils.formatUnits(result.total))).to.equal(collateralAmount);
@@ -635,8 +720,9 @@ describe("Testing contract", function () {
       .equal(roundTo(Number(ethers.utils.formatUnits(result)), 4));
 
     await blContract.connect(signers[1])
-      .returnBorrowing(1, ethers.utils.parseUnits(toBeReturned.toString()));
+      .returnBorrowing(1, ethers.utils.parseUnits(toBeReturned.toString()), false);
     result = await blContract.getBorrowing(1);
+
     expect(roundTo(Number(ethers.utils.formatUnits(
       result.amount
     )), 4)).to.equal(roundTo(
@@ -701,7 +787,7 @@ describe("Testing contract", function () {
       .equal(roundTo(availableCollateralAmount / 2, 3));
 
     await blContract.connect(signers[1])
-      .withdrawWholeCollateral(1);
+      .withdrawCollateralAvailable(1);
 
     result = await blContract.getAvailableCollateralAmount(signers[1].address, 1);
     expect(Number(ethers.utils.formatUnits(result))).to
@@ -729,6 +815,135 @@ describe("Testing contract", function () {
       .equal(roundTo(
       balanceBlCollateralContract + collateralAmount - expectedAvailableCollateralAmount, 4
     ));
+
+    await blContract.connect(signers[1])
+      .returnBorrowing(1, 0, true);
+
+    result = await blContract.getBorrowing(1);
+    expect(Number(ethers.utils.formatUnits(
+      result.amount
+    ))).to.equal(0);
+    expect(Number(ethers.utils.formatUnits(
+      result.accumulatedFee
+    ))).to.equal(0);
+  });
+
+  it("Update fees when collateral change", async function () {
+    result = await borrowing1Contract.balanceOf(blContract.address);
+    let balanceBlBorrowing1Contract = Number(ethers.utils.formatUnits(result));
+    result = await collateralContract.balanceOf(blContract.address);
+    let balanceBlCollateralContract = Number(ethers.utils.formatUnits(result));
+
+    const lendingAmount = 8000;
+    const lendingAmount2 = 1000;
+    const borrowingAmount = 100;
+    const collateral1Amount = 5000;
+    const collateral2Amount = 10000;
+
+    await blContract.connect(signers[0]).lend(1, ethers.utils.parseUnits(lendingAmount.toString()));
+
+    result = await borrowing1Contract.balanceOf(blContract.address);
+    expect(Number(ethers.utils.formatUnits(result))).to
+      .equal(balanceBlBorrowing1Contract + lendingAmount);
+
+    result = await blContract.getBorrowingApr(1);
+    expect(Number(result)).to.equal(2000);
+    result = await blContract.getLendingApr(1);
+    expect(Number(result)).to.equal(1000);
+
+    result = await borrowing1Contract.balanceOf(signers[1].address);
+    let balanceS1Borrowing1Contract = Number(ethers.utils.formatUnits(result));
+    result = await collateralContract.balanceOf(signers[1].address);
+    let balanceS1CollateralContract = Number(ethers.utils.formatUnits(result));
+
+    await blContract.connect(signers[1])
+      .depositCollateral(1, ethers.utils.parseUnits(collateral1Amount.toString()));
+
+    result = await blContract.getCollateralProfile(1);
+    let usdRate = collateral1ProfileUsdRate / 10000;
+    let borrowingFactor = Number(result.borrowingFactor) / 10000;
+    let availableBorrowingAmount = collateral1Amount * usdRate * borrowingFactor;
+    expect(Number(ethers.utils.formatUnits(result.total))).to.equal(collateral1Amount);
+
+    result = await blContract.getCollateral(1);
+    expect(Number(ethers.utils.formatUnits(result.amount))).to.equal(collateral1Amount);
+    result = await blContract.getAvailableBorrowingAmount(signers[1].address, 1);
+    expect(Number(ethers.utils.formatUnits(result))).to.equal(availableBorrowingAmount);
+
+    await blContract.connect(signers[1])
+      .borrow(1, ethers.utils.parseUnits(borrowingAmount.toString()), false);
+    result = await borrowing1Contract.balanceOf(signers[1].address);
+    expect(Number(ethers.utils.formatUnits(result))).to
+      .equal(balanceS1Borrowing1Contract + borrowingAmount);
+    result = await borrowing1Contract.balanceOf(blContract.address);
+    expect(Number(ethers.utils.formatUnits(result))).to
+      .equal(balanceBlBorrowing1Contract + lendingAmount - borrowingAmount);
+    result = await collateralContract.balanceOf(signers[1].address);
+    expect(Number(ethers.utils.formatUnits(result))).to
+      .equal(balanceS1CollateralContract - collateral1Amount);
+    result = await collateralContract.balanceOf(blContract.address);
+    expect(Number(ethers.utils.formatUnits(result))).to
+      .equal(balanceBlCollateralContract + collateral1Amount);
+    result = await blContract.getBorrowing(1);
+    expect(result.userAddress).to.equal(signers[1].address);
+    expect(Number(result.borrowingProfileIndex)).to.equal(1);
+    expect(Number(ethers.utils.formatUnits(result.amount))).to.equal(borrowingAmount);
+    expect(Number(ethers.utils.formatUnits(result.accumulatedFee))).to.equal(0);
+    result = await blContract.getCollateral(1);
+    expect(Number(result.collateralProfileIndex)).to.equal(1);
+    expect(Number(ethers.utils.formatUnits(result.amount))).to.equal(collateral1Amount);
+
+    result = await blContract.getAprSettings();
+    const borrowingPercentage = borrowingAmount / 8000;
+    const minBorrowingApr = Number(result.aprBorrowingMin) / 100;
+    const maxBorrowingApr = Number(result.aprBorrowingMax) / 100;
+    const minLendingApr = Number(result.aprLendingMin) / 100;
+    const maxLendingApr = Number(result.aprLendingMax) / 100;
+    const expectedBorrowingApr = Math.floor(
+      (minBorrowingApr + borrowingPercentage / 0.95 * (maxBorrowingApr - minBorrowingApr)) * 100
+    );
+    const expectedLendingApr = Math.floor(
+      (minLendingApr + borrowingPercentage / 0.95 * (maxLendingApr - minLendingApr)) * 100
+    );
+
+    result = await blContract.getBorrowingApr(1);
+    expect(Number(result)).to.equal(expectedBorrowingApr);
+    result = await blContract.getLendingApr(1);
+    expect(Number(result)).to.equal(expectedLendingApr);
+
+    await hre.timeAndMine.increaseTime('100 days');
+
+    await blContract.connect(signers[0])
+      .lend(1, ethers.utils.parseUnits(lendingAmount2.toString()));
+    result = await blContract.getBorrowing(1);
+    expect(Number(ethers.utils.formatUnits(result.accumulatedFee))).to.equal(0);
+    result = await blContract.getBorrowingFee(1, true);
+    const expectedBorrowingFee = borrowingAmount * expectedBorrowingApr / 10000 * 100 / 365;
+    expect(roundTo(expectedBorrowingFee, 4)).to
+      .equal(roundTo(Number(ethers.utils.formatUnits(result)), 4));
+
+    result = await collateralContract.balanceOf(signers[1].address);
+    expect(Number(ethers.utils.formatUnits(result))).to
+      .equal(balanceS1CollateralContract - collateral1Amount);
+    result = await collateralContract.balanceOf(blContract.address);
+    expect(Number(ethers.utils.formatUnits(result))).to
+      .equal(balanceBlCollateralContract + collateral1Amount);
+
+    await blContract.connect(signers[1])
+      .depositCollateral(2, ethers.utils.parseUnits(collateral2Amount.toString()));
+
+    await blContract.connect(signers[1])
+      .withdrawCollateral(1, ethers.utils.parseUnits(collateral1Amount.toString()));
+    await blContract.connect(signers[0])
+      .lend(1, ethers.utils.parseUnits(lendingAmount2.toString()));
+
+    result = await blContract.getBorrowing(1);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      result.accumulatedFee
+    )), 4)).to.equal(roundTo(expectedBorrowingFee, 4));
+    result = await blContract.getBorrowingFee(1, true);
+    expect(roundTo(expectedBorrowingFee, 4)).to
+      .equal(roundTo(Number(ethers.utils.formatUnits(result)), 4));
   });
 
   it("Combined collateral borrowing", async function () {
@@ -741,17 +956,17 @@ describe("Testing contract", function () {
     const collateralWithdraw = 100;
     const ethS1Balance = Number(ethers.utils.formatUnits(await signers[1].getBalance()));
     result = await blContract.getCollateralProfile(1);
-    const collateral1UsdRate = Number(result.usdRate) / 10000;
+    const collateral1UsdRate = collateral1ProfileUsdRate / 10000;
     const collateral1BorrowingFactor = Number(result.borrowingFactor) / 10000;
     const collateral1BorrowingCapacity = collateral1Amount * collateral1UsdRate
       * collateral1BorrowingFactor;
     result = await blContract.getCollateralProfile(2);
-    const collateral2UsdRate = Number(result.usdRate) / 10000;
+    const collateral2UsdRate = collateral2ProfileUsdRate / 10000;
     const collateral2BorrowingFactor = Number(result.borrowingFactor) / 10000;
     const collateral2BorrowingCapacity = collateral2Amount * collateral2UsdRate
       * collateral2BorrowingFactor;
     result = await blContract.getCollateralProfile(3);
-    const collateral3UsdRate = Number(result.usdRate) / 10000;
+    const collateral3UsdRate = collateral3ProfileUsdRate / 10000;
     const collateral3BorrowingFactor = Number(result.borrowingFactor) / 10000;
     const collateral3BorrowingCapacity = collateral3Amount * collateral3UsdRate
       * collateral3BorrowingFactor;
@@ -770,6 +985,28 @@ describe("Testing contract", function () {
         3, ethers.utils.parseUnits(collateral3Amount.toString()),
         { value: ethers.utils.parseUnits(collateral3Amount.toString()) }
       );
+
+    result = await blContract.getCollateralProfileStat(1);
+    expect(Number(ethers.utils.formatUnits(
+      result.total
+    ))).to.equal(collateral1Amount);
+    expect(Number(
+      result.usersNumber
+    )).to.equal(1);
+    result = await blContract.getCollateralProfileStat(2);
+    expect(Number(ethers.utils.formatUnits(
+      result.total
+    ))).to.equal(collateral2Amount);
+    expect(Number(
+      result.usersNumber
+    )).to.equal(1);
+    result = await blContract.getCollateralProfileStat(3);
+    expect(Number(ethers.utils.formatUnits(
+      result.total
+    ))).to.equal(collateral3Amount);
+    expect(Number(
+      result.usersNumber
+    )).to.equal(1);
 
     const collateral1S2Balance = Number(ethers.utils.formatUnits(
       await collateralContract.balanceOf(signers[2].address)
@@ -799,6 +1036,28 @@ describe("Testing contract", function () {
         3, ethers.utils.parseUnits(collateral3Amount.toString()),
         { value: ethers.utils.parseUnits(collateral3Amount.toString()) }
       );
+
+    result = await blContract.getCollateralProfileStat(1);
+    expect(Number(ethers.utils.formatUnits(
+      result.total
+    ))).to.equal(collateral1Amount * 2);
+    expect(Number(
+      result.usersNumber
+    )).to.equal(2);
+    result = await blContract.getCollateralProfileStat(2);
+    expect(Number(ethers.utils.formatUnits(
+      result.total
+    ))).to.equal(collateral2Amount * 2);
+    expect(Number(
+      result.usersNumber
+    )).to.equal(2);
+    result = await blContract.getCollateralProfileStat(3);
+    expect(Number(ethers.utils.formatUnits(
+      result.total
+    ))).to.equal(collateral3Amount * 2);
+    expect(Number(
+      result.usersNumber
+    )).to.equal(2);
 
     result = Number(ethers.utils.formatUnits(
       await collateralContract.balanceOf(signers[2].address)
@@ -870,11 +1129,11 @@ describe("Testing contract", function () {
     expect(roundTo(result, 4)).to.equal(roundTo(collateral3BlBalance + collateral3Amount - collateralWithdraw, 4));
 
     await blContract.connect(signers[2])
-      .withdrawWholeCollateral(1);
+      .withdrawCollateralAvailable(1);
     await blContract.connect(signers[2])
-      .withdrawWholeCollateral(2);
+      .withdrawCollateralAvailable(2);
     await blContract.connect(signers[2])
-      .withdrawWholeCollateral(3);
+      .withdrawCollateralAvailable(3);
 
     result = Number(ethers.utils.formatUnits(
       await collateralContract.balanceOf(signers[2].address)
@@ -905,6 +1164,22 @@ describe("Testing contract", function () {
       .borrow(1, ethers.utils.parseUnits(borrowing1Amount.toString()), false);
     await blContract.connect(signers[1])
       .borrow(2, ethers.utils.parseUnits(borrowing2Amount.toString()), true);
+
+    result = await blContract.getBorrowingProfile(1);
+    expect(Number(ethers.utils.formatUnits(
+      result.totalBorrowed
+    ))).to.equal(borrowing1Amount);
+    expect(Number(ethers.utils.formatUnits(
+      result.totalLent
+    ))).to.equal(lendingAmount);
+
+    result = await blContract.getBorrowingProfile(2);
+    expect(Number(ethers.utils.formatUnits(
+      result.totalBorrowed
+    ))).to.equal(borrowing2Amount);
+    expect(Number(ethers.utils.formatUnits(
+      result.totalLent
+    ))).to.equal(lendingAmount);
 
     result = Number(ethers.utils.formatUnits(await signers[1].getBalance()));
     expect(roundTo(result, 1)).to.equal(roundTo(ethS1Balance - collateral3Amount, 1));
@@ -1004,19 +1279,19 @@ describe("Testing contract", function () {
     const collateral3Amount = 1000;
 
     result = await blContract.getCollateralProfile(1);
-    const collateral1UsdRate = Number(result.usdRate) / 10000;
+    const collateral1UsdRate = collateral1ProfileUsdRate / 10000;
     const collateral1BorrowingFactor = Number(result.borrowingFactor) / 10000;
     const collateral1LiquidationFactor = Number(result.liquidationFactor) / 10000;
     const collateral1BorrowingCapacity = collateral1Amount * collateral1UsdRate
       * collateral1BorrowingFactor;
     result = await blContract.getCollateralProfile(2);
-    const collateral2UsdRate = Number(result.usdRate) / 10000;
+    const collateral2UsdRate = collateral2ProfileUsdRate / 10000;
     const collateral2BorrowingFactor = Number(result.borrowingFactor) / 10000;
     const collateral2LiquidationFactor = Number(result.liquidationFactor) / 10000;
     const collateral2BorrowingCapacity = collateral2Amount * collateral2UsdRate
       * collateral2BorrowingFactor;
     result = await blContract.getCollateralProfile(3);
-    const collateral3UsdRate = Number(result.usdRate) / 10000;
+    const collateral3UsdRate = collateral3ProfileUsdRate / 10000;
     const collateral3BorrowingFactor = Number(result.borrowingFactor) / 10000;
     const collateral3BorrowingCapacity = collateral3Amount * collateral3UsdRate
       * collateral3BorrowingFactor;
@@ -1048,33 +1323,26 @@ describe("Testing contract", function () {
       / (borrowing1Apr * borrowing1Amount)
     );
 
-    await blContract.connect(signers[9]).setCollateralProfileData(
-      1,
-      collateral1MarginRate + 1,
-      collateral1ProfileBorrowingFactor,
-      collateral1ProfileLiquidationFactor,
-      true
-    );
+    await proxyContract.connect(signers[10])
+      .setUsdRate(
+        collateralContract.address, collateral1MarginRate + 1
+      );
 
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.false;
-    await blContract.connect(signers[9]).setCollateralProfileData(
-      1,
-      collateral1MarginRate,
-      collateral1ProfileBorrowingFactor,
-      collateral1ProfileLiquidationFactor,
-      true
-    );
+
+    await proxyContract.connect(signers[10])
+      .setUsdRate(
+        collateralContract.address, collateral1MarginRate
+      );
+
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.true;
 
-    await blContract.connect(signers[9]).setCollateralProfileData(
-      1,
-      collateral1PreMarginRate,
-      collateral1ProfileBorrowingFactor,
-      collateral1ProfileLiquidationFactor,
-      true
-    );
+    await proxyContract.connect(signers[10])
+      .setUsdRate(
+        collateralContract.address, collateral1PreMarginRate
+      );
 
     await hre.timeAndMine.increaseTime(`${preMarginPeriodInDays} days`);
 
@@ -1251,7 +1519,7 @@ describe("Testing contract", function () {
     ));
 
     result = await blContract.getCollateralProfile(1);
-    const collateral1UsdRate = Number(result.usdRate) / 10000;
+    const collateral1UsdRate = collateral1ProfileUsdRate / 10000;
     const collateral1LiquidationFactor = Number(result.liquidationFactor) / 10000;
     const liquidationFlagMargin = Number(ethers.utils.formatUnits(
       await blContract.getLiquidationFlagMargin(), 4
@@ -1263,14 +1531,17 @@ describe("Testing contract", function () {
     const marginBorrowingUsdAmount =
       collateral1UsdAmount / (1 + collateral1LiquidationFactor);
     const marginBorrowingUsdRate = marginBorrowingUsdAmount / borrowedUsdAmountS1;
-
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.ceil(marginBorrowingUsdRate * 9999).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing1Contract.address,
+      Math.ceil(marginBorrowingUsdRate * 9999).toString(),
+      false
     );
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.false;
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.ceil(marginBorrowingUsdRate * 10000).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing1Contract.address,
+      Math.ceil(marginBorrowingUsdRate * 10000).toString(),
+      false
     );
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.true;
@@ -1293,14 +1564,14 @@ describe("Testing contract", function () {
     const toBeReturnedBorrowingAmount = toBeReturnedBorrowingUsdAmount / marginBorrowingUsdRate;
 
     await blContract.connect(signers[1]).returnBorrowing(
-      1, ethers.utils.parseUnits((toBeReturnedBorrowingAmount * 0.99).toString())
+      1, ethers.utils.parseUnits((toBeReturnedBorrowingAmount * 0.99).toString()), false
     );
 
     result = await blContract.getUserLiquidationTime(signers[1].address);
     expect(Number(result)).to.be.greaterThan(0);
 
     await blContract.connect(signers[1]).returnBorrowing(
-      1, ethers.utils.parseUnits((toBeReturnedBorrowingAmount * 0.011).toString())
+      1, ethers.utils.parseUnits((toBeReturnedBorrowingAmount * 0.011).toString()), false
     );
 
     result = await blContract.getUserLiquidationTime(signers[1].address);
@@ -1333,7 +1604,7 @@ describe("Testing contract", function () {
       await blContract.getBorrowedUsdAmount(signers[1].address), 22
     ));
     result = await blContract.getCollateralProfile(1);
-    const collateral1UsdRate = Number(result.usdRate) / 10000;
+    const collateral1UsdRate = collateral1ProfileUsdRate / 10000;
     const collateral1LiquidationFactor = Number(result.liquidationFactor) / 10000;
     const liquidationFlagMargin = Number(ethers.utils.formatUnits(
       await blContract.getLiquidationFlagMargin(), 4
@@ -1345,8 +1616,10 @@ describe("Testing contract", function () {
       collateral1UsdAmount / (1 + collateral1LiquidationFactor);
     const marginBorrowingUsdRate = marginBorrowingUsdAmount / borrowedUsdAmount1;
 
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.ceil(marginBorrowingUsdRate * 10000).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing1Contract.address,
+      Math.ceil(marginBorrowingUsdRate * 10000).toString(),
+      false
     );
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.true;
@@ -1434,13 +1707,13 @@ describe("Testing contract", function () {
     });
 
     result = await blContract.getCollateralProfile(1);
-    const collateral1UsdRate = Number(result.usdRate) / 10000;
+    const collateral1UsdRate = collateral1ProfileUsdRate / 10000;
     const collateral1LiquidationFactor = Number(result.liquidationFactor) / 10000;
     result = await blContract.getCollateralProfile(2);
-    const collateral2UsdRate = Number(result.usdRate) / 10000;
+    const collateral2UsdRate = collateral2ProfileUsdRate / 10000;
     const collateral2LiquidationFactor = Number(result.liquidationFactor) / 10000;
     result = await blContract.getCollateralProfile(3);
-    const collateral3UsdRate = Number(result.usdRate) / 10000;
+    const collateral3UsdRate = collateral3ProfileUsdRate / 10000;
     const collateral3LiquidationFactor = Number(result.liquidationFactor) / 10000;
 
     const liquidationFee = Number(ethers.utils.formatUnits(
@@ -1477,21 +1750,29 @@ describe("Testing contract", function () {
     result = await blContract.userLiquidation(signers[2].address, false);
     expect(result).to.be.false;
 
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.floor(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing1Contract.address,
+      Math.floor(marginBorrowingUsdRate).toString(),
+      false
     );
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      2, Math.floor(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing2Contract.address,
+      Math.floor(marginBorrowingUsdRate).toString(),
+      false
     );
 
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.false;
 
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.ceil(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing1Contract.address,
+      Math.ceil(marginBorrowingUsdRate).toString(),
+      false
     );
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      2, Math.ceil(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing2Contract.address,
+      Math.ceil(marginBorrowingUsdRate).toString(),
+      false
     );
 
     result = await blContract.userLiquidation(signers[1].address, false);
@@ -1527,6 +1808,7 @@ describe("Testing contract", function () {
     expect(result.liquidated).to.be.true;
     result = await blContract.getCollateral(3);
     expect(result.liquidated).to.be.true;
+    result = await blContract.getCollateral(4);
     result = await blContract.getCollateral(5);
     expect(Number(result.prevCollateral)).to.equal(2);
     expect(result.liquidated).to.be.false;
@@ -1613,13 +1895,13 @@ describe("Testing contract", function () {
     });
 
     result = await blContract.getCollateralProfile(1);
-    const collateral1UsdRate = Number(result.usdRate) / 10000;
+    const collateral1UsdRate = collateral1ProfileUsdRate / 10000;
     const collateral1LiquidationFactor = Number(result.liquidationFactor) / 10000;
     result = await blContract.getCollateralProfile(2);
-    const collateral2UsdRate = Number(result.usdRate) / 10000;
+    const collateral2UsdRate = collateral2ProfileUsdRate / 10000;
     const collateral2LiquidationFactor = Number(result.liquidationFactor) / 10000;
     result = await blContract.getCollateralProfile(3);
-    const collateral3UsdRate = Number(result.usdRate) / 10000;
+    const collateral3UsdRate = collateral3ProfileUsdRate / 10000;
     const collateral3LiquidationFactor = Number(result.liquidationFactor) / 10000;
 
     const liquidationFee = Number(ethers.utils.formatUnits(
@@ -1654,21 +1936,29 @@ describe("Testing contract", function () {
 
     const marginBorrowingUsdRate = marginBorrowingUsdAmount / borrowedUsdAmount * 10000;
 
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.floor(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing1Contract.address,
+      Math.floor(marginBorrowingUsdRate).toString(),
+      false
     );
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      2, Math.floor(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing2Contract.address,
+      Math.floor(marginBorrowingUsdRate).toString(),
+      false
     );
 
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.false;
 
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.ceil(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing1Contract.address,
+      Math.ceil(marginBorrowingUsdRate).toString(),
+      false
     );
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      2, Math.ceil(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing2Contract.address,
+      Math.ceil(marginBorrowingUsdRate).toString(),
+      false
     );
 
     result = await blContract.userLiquidation(signers[1].address, false);
@@ -1751,13 +2041,13 @@ describe("Testing contract", function () {
     });
 
     result = await blContract.getCollateralProfile(1);
-    const collateral1UsdRate = Number(result.usdRate) / 10000;
+    const collateral1UsdRate = collateral1ProfileUsdRate / 10000;
     const collateral1LiquidationFactor = Number(result.liquidationFactor) / 10000;
     result = await blContract.getCollateralProfile(2);
-    const collateral2UsdRate = Number(result.usdRate) / 10000;
+    const collateral2UsdRate = collateral2ProfileUsdRate / 10000;
     const collateral2LiquidationFactor = Number(result.liquidationFactor) / 10000;
     result = await blContract.getCollateralProfile(3);
-    const collateral3UsdRate = Number(result.usdRate) / 10000;
+    const collateral3UsdRate = collateral3ProfileUsdRate / 10000;
     const collateral3LiquidationFactor = Number(result.liquidationFactor) / 10000;
 
     const liquidationFee = Number(ethers.utils.formatUnits(
@@ -1792,21 +2082,29 @@ describe("Testing contract", function () {
 
     const marginBorrowingUsdRate = marginBorrowingUsdAmount / borrowedUsdAmount * 10000;
 
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.floor(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing1Contract.address,
+      Math.floor(marginBorrowingUsdRate).toString(),
+      false
     );
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      2, Math.floor(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing2Contract.address,
+      Math.floor(marginBorrowingUsdRate).toString(),
+      false
     );
 
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.false;
 
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.ceil(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing1Contract.address,
+      Math.ceil(marginBorrowingUsdRate).toString(),
+      false
     );
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      2, Math.ceil(marginBorrowingUsdRate).toString(), true
+    await blContract.connect(signers[9]).setUsdRateData(
+      borrowing2Contract.address,
+      Math.ceil(marginBorrowingUsdRate).toString(),
+      false
     );
 
     result = await blContract.userLiquidation(signers[1].address, false);
@@ -2105,7 +2403,7 @@ describe("Testing contract", function () {
     );
 
     await blContract.connect(signers[1]).returnBorrowing(
-      1, ethers.utils.parseUnits(toBorrowS1.toString())
+      1, ethers.utils.parseUnits(toBorrowS1.toString()), false
     );
     await nftCollateralContract.connect(signers[1])
       .withdrawNftCollateral([5,6]);
@@ -2154,7 +2452,11 @@ describe("Testing contract", function () {
       .borrowAvailable(1, false);
 
     await blContract.connect(signers[9])
-      .setBorrowingProfileData(1, 100000, true);
+      .setUsdRateData(
+        borrowing1Contract.address,
+        100000,
+        false
+      );
 
     result = await blContract.userLiquidation(signers[0].address, false);
     expect(result).to.be.true;
@@ -2320,16 +2622,16 @@ describe("Testing contract", function () {
     });
 
     result = await blContract.getCollateralProfile(1);
-    const collateral1UsdRate = Number(result.usdRate) / 10000;
+    const collateral1UsdRate = collateral1ProfileUsdRate / 10000;
     const collateral1LiquidationFactor = Number(result.liquidationFactor) / 10000;
     result = await blContract.getCollateralProfile(2);
-    const collateral2UsdRate = Number(result.usdRate) / 10000;
+    const collateral2UsdRate = collateral2ProfileUsdRate / 10000;
     const collateral2LiquidationFactor = Number(result.liquidationFactor) / 10000;
     result = await blContract.getCollateralProfile(3);
-    const collateral3UsdRate = Number(result.usdRate) / 10000;
+    const collateral3UsdRate = collateral3ProfileUsdRate / 10000;
     const collateral3LiquidationFactor = Number(result.liquidationFactor) / 10000;
     result = await blContract.getCollateralProfile(4);
-    const collateral4UsdRate = Number(result.usdRate) / 10000;
+    const collateral4UsdRate = collateral4ProfileUsdRate / 10000;
     const collateral4LiquidationFactor = Number(result.liquidationFactor) / 10000;
 
     const liquidationFee = Number(ethers.utils.formatUnits(
@@ -2369,22 +2671,34 @@ describe("Testing contract", function () {
 
     const marginBorrowingUsdRate = marginBorrowingUsdAmount / borrowedUsdAmount * 10000;
 
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.floor(marginBorrowingUsdRate).toString(), true
-    );
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      2, Math.floor(marginBorrowingUsdRate).toString(), true
-    );
+    await blContract.connect(signers[9])
+      .setUsdRateData(
+        borrowing1Contract.address,
+        Math.floor(marginBorrowingUsdRate).toString(),
+        false
+      );
+    await blContract.connect(signers[9])
+      .setUsdRateData(
+        borrowing2Contract.address,
+        Math.floor(marginBorrowingUsdRate).toString(),
+        false
+      );
 
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.false;
 
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      1, Math.ceil(marginBorrowingUsdRate).toString(), true
-    );
-    await blContract.connect(signers[9]).setBorrowingProfileData(
-      2, Math.ceil(marginBorrowingUsdRate).toString(), true
-    );
+    await blContract.connect(signers[9])
+      .setUsdRateData(
+        borrowing1Contract.address,
+        Math.ceil(marginBorrowingUsdRate).toString(),
+        false
+      );
+    await blContract.connect(signers[9])
+      .setUsdRateData(
+        borrowing2Contract.address,
+        Math.ceil(marginBorrowingUsdRate).toString(),
+        false
+      );
 
     result = await blContract.userLiquidation(signers[1].address, false);
     expect(result).to.be.true;
@@ -2746,20 +3060,23 @@ describe("Testing contract", function () {
     await blContract.connect(signers[10]).addToManagers(signers[9].address);
 
     result = await blContract.getBorrowingProfile(1);
-    expect(Number(result.usdRate)).to.equal(10000);
-    await expect(
-      blContract.connect(signers[8]).setBorrowingProfileData(1, 2000, true)
-    ).to.be.revertedWith('63')
-    await blContract.connect(signers[9]).setBorrowingProfileData(1, 2000, true);
-    result = await blContract.getBorrowingProfile(1);
-    expect(Number(result.usdRate)).to.equal(2000);
+    expect(borrowing1ProfileUsdRate).to.equal(10000);
+    await blContract.connect(signers[9])
+      .setUsdRateData(
+        borrowing1Contract.address,
+        2000,
+        false
+      );
+    result = await blContract.getUsdRateData(
+      borrowing1Contract.address,
+    );
+    expect(Number(result.rate)).to.equal(2000);
 
     result = await blContract.getCollateralProfile(1);
-    expect(Number(result.usdRate)).to.equal(5000);
+    expect(collateral1ProfileUsdRate).to.equal(5000);
     await expect(
       blContract.connect(signers[8]).setCollateralProfileData(
         1,
-        11,
         22,
         33,
         false
@@ -2801,39 +3118,33 @@ describe("Testing contract", function () {
 
     result = await blContract.getBorrowingProfile(1);
     expect(result.active).to.be.true;
-    await blContract.connect(signers[9]).setBorrowingProfileData(1, 11, false);
+    await blContract.connect(signers[9]).setBorrowingProfileStatus(1, false);
     result = await blContract.getBorrowingProfile(1);
-    expect(Number(result.usdRate)).to.equal(11);
     expect(result.active).to.be.false;
-    await blContract.connect(signers[9]).setBorrowingProfileData(1, 22, true);
+    await blContract.connect(signers[9]).setBorrowingProfileStatus(1, true);
     result = await blContract.getBorrowingProfile(1);
-    expect(Number(result.usdRate)).to.equal(22);
     expect(result.active).to.be.true;
 
     result = await blContract.getCollateralProfile(1);
     expect(result.active).to.be.true;
     await blContract.connect(signers[9]).setCollateralProfileData(
       1,
-      11,
       22,
       33,
       false
     );
     result = await blContract.getCollateralProfile(1);
     expect(result.active).to.be.false;
-    expect(Number(result.usdRate)).to.equal(11);
     expect(Number(result.borrowingFactor)).to.equal(22);
     expect(Number(result.liquidationFactor)).to.equal(33);
     await blContract.connect(signers[9]).setCollateralProfileData(
       1,
-      collateral1ProfileUsdRate,
       collateral1ProfileBorrowingFactor,
       collateral1ProfileLiquidationFactor,
       true
     );
     result = await blContract.getCollateralProfile(1);
     expect(result.active).to.be.true;
-    expect(Number(result.usdRate)).to.equal(collateral1ProfileUsdRate);
     expect(Number(result.borrowingFactor)).to.equal(collateral1ProfileBorrowingFactor);
     expect(Number(result.liquidationFactor)).to.equal(collateral1ProfileLiquidationFactor);
 
@@ -2913,233 +3224,233 @@ describe("Testing contract", function () {
     expect(result).to.equal(signers[10].address);
   });
 
-  it("Admin withdraw/replenish", async function () {
-    const collateral = 100;
-
-    const collateral1BLBalance = Number(ethers.utils.formatUnits(
-      await collateralContract.balanceOf(blContract.address)
-    ));
-    const collateral2BLBalance = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(blContract.address)
-    ));
-    const collateral3BLBalance = Number(ethers.utils.formatUnits(
-      await collateralContract.provider.getBalance(blContract.address)
-    ));
-
-    const s1BLBalance = Number(ethers.utils.formatUnits(
-      await collateralContract.balanceOf(signers[10].address)
-    ));
-    const s2BLBalance = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[10].address)
-    ));
-    const s3BLBalance = Number(ethers.utils.formatUnits(
-      await collateralContract.provider.getBalance(signers[10].address)
-    ));
-
-    await blContract.connect(signers[1])
-      .depositCollateral(1, ethers.utils.parseUnits(collateral.toString()));
-    await blContract.connect(signers[2])
-      .depositCollateral(2, ethers.utils.parseUnits(collateral.toString()));
-    await blContract.connect(signers[3])
-      .depositCollateral(
-        3, ethers.utils.parseUnits(collateral.toString()),
-        {value: ethers.utils.parseUnits(collateral.toString())}
-      );
-
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.balanceOf(blContract.address)
-    ));
-    expect(result).to.equal(collateral1BLBalance + collateral);
-    result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(blContract.address)
-    ));
-    expect(result).to.equal(collateral2BLBalance + collateral);
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.provider.getBalance(blContract.address)
-    ));
-    expect(result).to.equal(collateral3BLBalance + collateral);
-
-    await expect(
-      blContract.connect(signers[9])
-        .adminWithdraw(
-          collateralContract.address, ethers.utils.parseUnits(collateral.toString())
-        )
-    ).to.be.revertedWith('62');
-    await expect(
-      blContract.connect(signers[8])
-        .adminWithdraw(
-          etnaContract.address, ethers.utils.parseUnits(collateral.toString())
-        )
-    ).to.be.revertedWith('62');
-    await expect(
-      blContract.connect(signers[0])
-        .adminWithdraw(zeroAddress, ethers.utils.parseUnits(collateral.toString()))
-    ).to.be.revertedWith('62');
-
-    await blContract.connect(signers[10])
-      .adminWithdraw(
-        etnaContract.address, ethers.utils.parseUnits(collateral.toString())
-      );
-    await blContract.connect(signers[10])
-      .adminWithdraw(
-        collateralContract.address, ethers.utils.parseUnits(collateral.toString())
-      );
-    await blContract.connect(signers[10])
-      .adminWithdraw(zeroAddress, ethers.utils.parseUnits(collateral.toString()));
-
-    result = Number(ethers.utils.formatUnits(
-      await blContract.getAdminWithdraw(etnaContract.address)
-    ));
-    expect(result).to.equal(collateral);
-    result = Number(ethers.utils.formatUnits(
-      await blContract.getAdminWithdraw(collateralContract.address)
-    ));
-    expect(result).to.equal(collateral);
-    result = Number(ethers.utils.formatUnits(
-      await blContract.getAdminWithdraw(zeroAddress)
-    ));
-    expect(result).to.equal(collateral);
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.balanceOf(blContract.address)
-    ));
-    expect(result).to.equal(collateral1BLBalance);
-    result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(blContract.address)
-    ));
-    expect(result).to.equal(collateral2BLBalance);
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.provider.getBalance(blContract.address)
-    ));
-    expect(result).to.equal(collateral3BLBalance);
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.balanceOf(signers[10].address)
-    ));
-    expect(result).to.equal(s1BLBalance + collateral);
-    result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[10].address)
-    ));
-    expect(result).to.equal(s2BLBalance + collateral);
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.provider.getBalance(signers[10].address)
-    ));
-    expect(roundTo(result, 1)).to.equal(roundTo(s3BLBalance + collateral, 1));
-
-    const replenishAmount = 100;
-    await blContract.connect(signers[10])
-      .adminReplenish(
-        etnaContract.address, ethers.utils.parseUnits(replenishAmount.toString())
-      );
-    await blContract.connect(signers[10])
-      .adminReplenish(
-        collateralContract.address, ethers.utils.parseUnits((replenishAmount + 10).toString())
-      );
-    await blContract.connect(signers[10])
-      .adminReplenish(
-        zeroAddress, 0
-        , {value: ethers.utils.parseUnits((replenishAmount - 10).toString())}
-      );
-    result = Number(ethers.utils.formatUnits(
-      await blContract.getAdminReplenish(etnaContract.address)
-    ));
-    expect(result).to.equal(replenishAmount);
-    result = Number(ethers.utils.formatUnits(
-      await blContract.getAdminReplenish(collateralContract.address)
-    ));
-    expect(result).to.equal(replenishAmount + 10);
-    result = Number(ethers.utils.formatUnits(
-      await blContract.getAdminReplenish(zeroAddress)
-    ));
-    expect(result).to.equal(replenishAmount - 10);
-
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.balanceOf(blContract.address)
-    ));
-    expect(result).to.equal(collateral1BLBalance + replenishAmount + 10);
-    result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(blContract.address)
-    ));
-    expect(result).to.equal(collateral2BLBalance + replenishAmount);
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.provider.getBalance(blContract.address)
-    ));
-    expect(result).to.equal(collateral3BLBalance + replenishAmount - 10);
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.balanceOf(signers[10].address)
-    ));
-    expect(result).to.equal(s1BLBalance + collateral - (replenishAmount + 10));
-    result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[10].address)
-    ));
-    expect(result).to.equal(s2BLBalance + collateral - replenishAmount);
-    result = Number(ethers.utils.formatUnits(
-      await collateralContract.provider.getBalance(signers[10].address)
-    ));
-    expect(roundTo(result, 1)).to.equal(roundTo(s3BLBalance + collateral - (replenishAmount - 10), 1));
-
-    await nftCollateralContract.connect(signers[0])
-      .depositNftCollateral([1,2,3]);
-
-    result = await nftContract.ownerOf(1);
-    expect(result).to.equal(nftCollateralContract.address);
-    result = await nftContract.ownerOf(2);
-    expect(result).to.equal(nftCollateralContract.address);
-    result = await nftContract.ownerOf(3);
-    expect(result).to.equal(nftCollateralContract.address);
-
-    result = await nftCollateralContract.connect(signers[10])
-      .adminWithdrawNft([1,2,4]);
-
-    result = await nftContract.ownerOf(1);
-    expect(result).to.equal(signers[10].address);
-    result = await nftContract.ownerOf(2);
-    expect(result).to.equal(signers[10].address);
-    result = await nftContract.ownerOf(3);
-    expect(result).to.equal(nftCollateralContract.address);
-
-    const withdrawAmount = 100;
-    await borrowing1Contract.transfer(
-      nftCollateralContract.address, ethers.utils.parseUnits((withdrawAmount * 2).toString())
-    );
-    const netnaBalanceContract = Number(ethers.utils.formatUnits(
-      await nEtnaContract.balanceOf(nftCollateralContract.address)
-    ));
-    const netnaBalanceS10 = Number(ethers.utils.formatUnits(
-      await nEtnaContract.balanceOf(signers[10].address)
-    ));
-    const borrowing1BalanceContract = Number(ethers.utils.formatUnits(
-      await borrowing1Contract.balanceOf(nftCollateralContract.address)
-    ));
-    const borrowing1BalanceS10 = Number(ethers.utils.formatUnits(
-      await borrowing1Contract.balanceOf(signers[10].address)
-    ));
-
-    await nftCollateralContract.connect(signers[10])
-      .adminWithdrawNEtna(
-        ethers.utils.parseUnits(withdrawAmount.toString())
-      );
-
-    await nftCollateralContract.connect(signers[10])
-      .adminWithdrawToken(
-        borrowing1Contract.address, ethers.utils.parseUnits(withdrawAmount.toString())
-      );
-
-    result = Number(ethers.utils.formatUnits(
-      await nEtnaContract.balanceOf(nftCollateralContract.address)
-    ));
-    expect(result).to.equal(netnaBalanceContract - withdrawAmount);
-    result = Number(ethers.utils.formatUnits(
-      await nEtnaContract.balanceOf(signers[10].address)
-    ));
-    expect(result).to.equal(netnaBalanceS10 + withdrawAmount);
-    result = Number(ethers.utils.formatUnits(
-      await borrowing1Contract.balanceOf(nftCollateralContract.address)
-    ));
-    expect(result).to.equal(borrowing1BalanceContract - withdrawAmount);
-    result = Number(ethers.utils.formatUnits(
-      await borrowing1Contract.balanceOf(signers[10].address)
-    ));
-    expect(result).to.equal(borrowing1BalanceS10 + withdrawAmount);
-  });
+  // it("Admin withdraw/replenish", async function () {
+  //   const collateral = 100;
+  //
+  //   const collateral1BLBalance = Number(ethers.utils.formatUnits(
+  //     await collateralContract.balanceOf(blContract.address)
+  //   ));
+  //   const collateral2BLBalance = Number(ethers.utils.formatUnits(
+  //     await etnaContract.balanceOf(blContract.address)
+  //   ));
+  //   const collateral3BLBalance = Number(ethers.utils.formatUnits(
+  //     await collateralContract.provider.getBalance(blContract.address)
+  //   ));
+  //
+  //   const s1BLBalance = Number(ethers.utils.formatUnits(
+  //     await collateralContract.balanceOf(signers[10].address)
+  //   ));
+  //   const s2BLBalance = Number(ethers.utils.formatUnits(
+  //     await etnaContract.balanceOf(signers[10].address)
+  //   ));
+  //   const s3BLBalance = Number(ethers.utils.formatUnits(
+  //     await collateralContract.provider.getBalance(signers[10].address)
+  //   ));
+  //
+  //   await blContract.connect(signers[1])
+  //     .depositCollateral(1, ethers.utils.parseUnits(collateral.toString()));
+  //   await blContract.connect(signers[2])
+  //     .depositCollateral(2, ethers.utils.parseUnits(collateral.toString()));
+  //   await blContract.connect(signers[3])
+  //     .depositCollateral(
+  //       3, ethers.utils.parseUnits(collateral.toString()),
+  //       {value: ethers.utils.parseUnits(collateral.toString())}
+  //     );
+  //
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.balanceOf(blContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral1BLBalance + collateral);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await etnaContract.balanceOf(blContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral2BLBalance + collateral);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.provider.getBalance(blContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral3BLBalance + collateral);
+  //
+  //   await expect(
+  //     blContract.connect(signers[9])
+  //       .adminWithdraw(
+  //         collateralContract.address, ethers.utils.parseUnits(collateral.toString())
+  //       )
+  //   ).to.be.revertedWith('62');
+  //   await expect(
+  //     blContract.connect(signers[8])
+  //       .adminWithdraw(
+  //         etnaContract.address, ethers.utils.parseUnits(collateral.toString())
+  //       )
+  //   ).to.be.revertedWith('62');
+  //   await expect(
+  //     blContract.connect(signers[0])
+  //       .adminWithdraw(zeroAddress, ethers.utils.parseUnits(collateral.toString()))
+  //   ).to.be.revertedWith('62');
+  //
+  //   await blContract.connect(signers[10])
+  //     .adminWithdraw(
+  //       etnaContract.address, ethers.utils.parseUnits(collateral.toString())
+  //     );
+  //   await blContract.connect(signers[10])
+  //     .adminWithdraw(
+  //       collateralContract.address, ethers.utils.parseUnits(collateral.toString())
+  //     );
+  //   await blContract.connect(signers[10])
+  //     .adminWithdraw(zeroAddress, ethers.utils.parseUnits(collateral.toString()));
+  //
+  //   result = Number(ethers.utils.formatUnits(
+  //     await blContract.getAdminWithdraw(etnaContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await blContract.getAdminWithdraw(collateralContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await blContract.getAdminWithdraw(zeroAddress)
+  //   ));
+  //   expect(result).to.equal(collateral);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.balanceOf(blContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral1BLBalance);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await etnaContract.balanceOf(blContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral2BLBalance);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.provider.getBalance(blContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral3BLBalance);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.balanceOf(signers[10].address)
+  //   ));
+  //   expect(result).to.equal(s1BLBalance + collateral);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await etnaContract.balanceOf(signers[10].address)
+  //   ));
+  //   expect(result).to.equal(s2BLBalance + collateral);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.provider.getBalance(signers[10].address)
+  //   ));
+  //   expect(roundTo(result, 1)).to.equal(roundTo(s3BLBalance + collateral, 1));
+  //
+  //   const replenishAmount = 100;
+  //   await blContract.connect(signers[10])
+  //     .adminReplenish(
+  //       etnaContract.address, ethers.utils.parseUnits(replenishAmount.toString())
+  //     );
+  //   await blContract.connect(signers[10])
+  //     .adminReplenish(
+  //       collateralContract.address, ethers.utils.parseUnits((replenishAmount + 10).toString())
+  //     );
+  //   await blContract.connect(signers[10])
+  //     .adminReplenish(
+  //       zeroAddress, 0
+  //       , {value: ethers.utils.parseUnits((replenishAmount - 10).toString())}
+  //     );
+  //   result = Number(ethers.utils.formatUnits(
+  //     await blContract.getAdminReplenish(etnaContract.address)
+  //   ));
+  //   expect(result).to.equal(replenishAmount);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await blContract.getAdminReplenish(collateralContract.address)
+  //   ));
+  //   expect(result).to.equal(replenishAmount + 10);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await blContract.getAdminReplenish(zeroAddress)
+  //   ));
+  //   expect(result).to.equal(replenishAmount - 10);
+  //
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.balanceOf(blContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral1BLBalance + replenishAmount + 10);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await etnaContract.balanceOf(blContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral2BLBalance + replenishAmount);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.provider.getBalance(blContract.address)
+  //   ));
+  //   expect(result).to.equal(collateral3BLBalance + replenishAmount - 10);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.balanceOf(signers[10].address)
+  //   ));
+  //   expect(result).to.equal(s1BLBalance + collateral - (replenishAmount + 10));
+  //   result = Number(ethers.utils.formatUnits(
+  //     await etnaContract.balanceOf(signers[10].address)
+  //   ));
+  //   expect(result).to.equal(s2BLBalance + collateral - replenishAmount);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await collateralContract.provider.getBalance(signers[10].address)
+  //   ));
+  //   expect(roundTo(result, 1)).to.equal(roundTo(s3BLBalance + collateral - (replenishAmount - 10), 1));
+  //
+  //   await nftCollateralContract.connect(signers[0])
+  //     .depositNftCollateral([1,2,3]);
+  //
+  //   result = await nftContract.ownerOf(1);
+  //   expect(result).to.equal(nftCollateralContract.address);
+  //   result = await nftContract.ownerOf(2);
+  //   expect(result).to.equal(nftCollateralContract.address);
+  //   result = await nftContract.ownerOf(3);
+  //   expect(result).to.equal(nftCollateralContract.address);
+  //
+  //   result = await nftCollateralContract.connect(signers[10])
+  //     .adminWithdrawNft([1,2,4]);
+  //
+  //   result = await nftContract.ownerOf(1);
+  //   expect(result).to.equal(signers[10].address);
+  //   result = await nftContract.ownerOf(2);
+  //   expect(result).to.equal(signers[10].address);
+  //   result = await nftContract.ownerOf(3);
+  //   expect(result).to.equal(nftCollateralContract.address);
+  //
+  //   const withdrawAmount = 100;
+  //   await borrowing1Contract.transfer(
+  //     nftCollateralContract.address, ethers.utils.parseUnits((withdrawAmount * 2).toString())
+  //   );
+  //   const netnaBalanceContract = Number(ethers.utils.formatUnits(
+  //     await nEtnaContract.balanceOf(nftCollateralContract.address)
+  //   ));
+  //   const netnaBalanceS10 = Number(ethers.utils.formatUnits(
+  //     await nEtnaContract.balanceOf(signers[10].address)
+  //   ));
+  //   const borrowing1BalanceContract = Number(ethers.utils.formatUnits(
+  //     await borrowing1Contract.balanceOf(nftCollateralContract.address)
+  //   ));
+  //   const borrowing1BalanceS10 = Number(ethers.utils.formatUnits(
+  //     await borrowing1Contract.balanceOf(signers[10].address)
+  //   ));
+  //
+  //   await nftCollateralContract.connect(signers[10])
+  //     .adminWithdrawNEtna(
+  //       ethers.utils.parseUnits(withdrawAmount.toString())
+  //     );
+  //
+  //   await nftCollateralContract.connect(signers[10])
+  //     .adminWithdrawToken(
+  //       borrowing1Contract.address, ethers.utils.parseUnits(withdrawAmount.toString())
+  //     );
+  //
+  //   result = Number(ethers.utils.formatUnits(
+  //     await nEtnaContract.balanceOf(nftCollateralContract.address)
+  //   ));
+  //   expect(result).to.equal(netnaBalanceContract - withdrawAmount);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await nEtnaContract.balanceOf(signers[10].address)
+  //   ));
+  //   expect(result).to.equal(netnaBalanceS10 + withdrawAmount);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await borrowing1Contract.balanceOf(nftCollateralContract.address)
+  //   ));
+  //   expect(result).to.equal(borrowing1BalanceContract - withdrawAmount);
+  //   result = Number(ethers.utils.formatUnits(
+  //     await borrowing1Contract.balanceOf(signers[10].address)
+  //   ));
+  //   expect(result).to.equal(borrowing1BalanceS10 + withdrawAmount);
+  // });
 });
 
 function roundTo(a, b) {

@@ -37,12 +37,11 @@ contract Staking is AccessControl {
     struct DepositProfile {
         address depositContractAddress;
         address yieldContractAddress;
-        uint8 depositType;
-        uint8 depositRateType; // 1 ETNA, 2 MTB, 3 LP, 4 ERC20
-        uint8 yieldRateType; // 1 ETNA, 2 MTB, 3 LP, 4 ERC20
+        uint8 depositRateType; // 1 ETNA, 2 MTB, 3 LP_ETNA, 4 LP_MTB, 5 ERC20
+        uint8 yieldRateType; // 1 ETNA, 2 MTB, 5 ERC20
         uint16 apr; // apr (% * 100, 2501 means 25.01%)
         uint16 withdrawYieldTax; // tax (% * 100, 2501 means 25.01%),
-        // for depositType LP_TOKEN tax will be applied before lockTime end
+        // for depositRateType LP_ETNA and LP_MTB tax will be applied before lockTime end
         // when withdraw yield
         uint16 downgradeTax; // tax (% * 100, 2501 means 25.01%)
         uint256 depositUsdRate; // deposit currency rate in USD * 10000
@@ -91,8 +90,11 @@ contract Staking is AccessControl {
     // used for exponent shifting when calculation market index
     uint256 internal constant DECIMALS = 10000;
     // used for exponent shifting when calculation with decimals
-    uint8 internal constant ERC20_TOKEN = 1;
-    uint8 internal constant LP_TOKEN = 2;
+    uint8 internal constant ETNA = 1;
+    uint8 internal constant MTB = 2;
+    uint8 internal constant LP_ETNA = 3;
+    uint8 internal constant LP_MTB = 4;
+    uint8 internal constant ERC20 = 5;
     mapping (address => uint256) internal _totalDeposit;
     bool internal _safeMode;
     bool internal _editMode = true;
@@ -144,7 +146,10 @@ contract Staking is AccessControl {
         require(amount > 0, 'Amount should be greater than zero');
         uint256 depositId = _usersDepositIndexes[msg.sender][depositProfileId];
         require(depositId > 0, 'Deposit is not found');
-        if (_depositProfiles[depositProfileId].depositType == ERC20_TOKEN) {
+        if (
+            _depositProfiles[depositProfileId].depositRateType != LP_ETNA
+                && _depositProfiles[depositProfileId].depositRateType != LP_MTB
+        ) {
             require(
                 block.timestamp >= _deposits[depositId].unlock, 'Deposit is locked'
             );
@@ -192,6 +197,9 @@ contract Staking is AccessControl {
     ) external returns (bool) {
         uint256 depositId = _usersDepositIndexes[msg.sender][depositProfileId];
         require(depositId > 0, 'Deposit is not found');
+        require(
+            _depositProfiles[depositProfileId].active, 'This deposit profile is disabled'
+        );
         uint256 upgradeProfileId =
             _depositProfiles[depositProfileId].upgradeProfileId;
         require(
@@ -220,6 +228,9 @@ contract Staking is AccessControl {
     ) external returns (bool) {
         uint256 depositId = _usersDepositIndexes[msg.sender][depositProfileId];
         require(depositId > 0, 'Deposit is not found');
+        require(
+            _depositProfiles[depositProfileId].active, 'This deposit profile is disabled'
+        );
         uint256 downgradeProfileId =
             _depositProfiles[depositProfileId].downgradeProfileId;
         require(
@@ -272,7 +283,8 @@ contract Staking is AccessControl {
         uint256 amountWithRate = amount * getDepositProfileRate(depositProfileId) / SHIFT;
         uint256 taxAmount;
         if (
-            _depositProfiles[depositProfileId].depositType == LP_TOKEN
+            (_depositProfiles[depositProfileId].depositRateType == LP_ETNA
+                || _depositProfiles[depositProfileId].depositRateType == LP_MTB)
                 && block.timestamp < _deposits[depositId].unlock
         ) {
             taxAmount = amountWithRate * _depositProfiles[depositProfileId].withdrawYieldTax / DECIMALS;
@@ -308,8 +320,9 @@ contract Staking is AccessControl {
         uint256 amountWithRate = amount * getDepositProfileRate(depositProfileId) / SHIFT;
         uint256 taxAmount;
         if (
-            _depositProfiles[depositProfileId].depositType == LP_TOKEN
-            && block.timestamp < _deposits[depositId].unlock
+            (_depositProfiles[depositProfileId].depositRateType == LP_ETNA
+                || _depositProfiles[depositProfileId].depositRateType == LP_MTB)
+                && block.timestamp < _deposits[depositId].unlock
         ) {
             taxAmount = amountWithRate * _depositProfiles[depositProfileId].withdrawYieldTax / DECIMALS;
         }
@@ -333,7 +346,6 @@ contract Staking is AccessControl {
     function addDepositProfile (
         address depositContractAddress,
         address yieldContractAddress,
-        uint8 depositType,
         uint8 depositRateType,
         uint8 yieldRateType,
         uint16 apr,
@@ -344,22 +356,30 @@ contract Staking is AccessControl {
         uint256 weight,
         uint256 lockTime
     ) external onlyManager returns (bool) {
-        require(depositType > 0 && depositType <= LP_TOKEN, 'Unknown type');
+        require(
+            depositRateType > 0 && depositRateType <= ERC20,
+            'Rate type is not valid'
+        );
+        require(
+            yieldRateType > 0 && yieldRateType <= ERC20
+                && yieldRateType != LP_ETNA
+                && yieldRateType != LP_MTB,
+            'Rate type is not valid'
+        );
         require(withdrawYieldTax <= 9999, 'Not valid withdraw yield tax');
         require(downgradeTax <= 9999, 'Not valid downgrade tax');
 
         _depositProfilesNumber ++;
-        if (
-            depositRateType == 4
-        ) {
+        if (depositRateType == ERC20) {
             require(depositUsdRate > 0, 'Usd rate should be greater than zero');
         }
-        if (
-            yieldRateType == 4
-        ) {
+        if (yieldRateType == ERC20) {
             require(yieldUsdRate > 0, 'Usd rate should be greater than zero');
         }
-        if (depositType != LP_TOKEN) {
+        if (
+            depositRateType != LP_ETNA
+                && depositRateType != LP_MTB
+        ) {
             withdrawYieldTax = 0;
         }
         IERC20 token = IERC20(depositContractAddress);
@@ -370,7 +390,6 @@ contract Staking is AccessControl {
             depositContractAddress;
         _depositProfiles[_depositProfilesNumber].yieldContractAddress =
             yieldContractAddress;
-        _depositProfiles[_depositProfilesNumber].depositType = depositType;
         _depositProfiles[_depositProfilesNumber].depositRateType = depositRateType;
         _depositProfiles[_depositProfilesNumber].yieldRateType = yieldRateType;
         _depositProfiles[_depositProfilesNumber].apr = apr;
@@ -427,7 +446,8 @@ contract Staking is AccessControl {
         require(depositProfileId > 0 && depositProfileId <= _depositProfilesNumber,
             'Deposit profile is not found');
         require(
-            _depositProfiles[depositProfileId].depositType == LP_TOKEN,
+            _depositProfiles[depositProfileId].depositRateType == LP_ETNA
+                || _depositProfiles[depositProfileId].depositRateType == LP_MTB,
             'Tax for yield withdrawal can be set for LP vaults only'
         );
         require(withdrawYieldTax <= 9999, 'Not valid withdraw yield tax');
@@ -452,7 +472,9 @@ contract Staking is AccessControl {
     ) external onlyManager returns (bool) {
         require(depositProfileId > 0 && depositProfileId <= _depositProfilesNumber,
             'Deposit profile is not found');
-        require(depositUsdRate > 0, 'Deposit usd rate should be greater than zero');
+        if (_depositProfiles[depositProfileId].depositRateType == ERC20) {
+            require(depositUsdRate > 0, 'Usd rate should be greater than zero');
+        }
         _depositProfiles[depositProfileId].depositUsdRate = depositUsdRate;
         return true;
     }
@@ -769,7 +791,6 @@ contract Staking is AccessControl {
     ) external view returns (
         address depositContractAddress,
         address yieldContractAddress,
-        uint8 depositType,
         uint256 lockTime,
         uint256 tvl,
         bool active
@@ -777,7 +798,6 @@ contract Staking is AccessControl {
         return (
             _depositProfiles[depositProfileId].depositContractAddress,
             _depositProfiles[depositProfileId].yieldContractAddress,
-            _depositProfiles[depositProfileId].depositType,
             _depositProfiles[depositProfileId].lockTime,
             _depositProfiles[depositProfileId].tvl,
             _depositProfiles[depositProfileId].active
@@ -983,9 +1003,9 @@ contract Staking is AccessControl {
         ) {
             return 0;
         }
-        if (_depositProfiles[depositProfileId].depositRateType == 1) {
+        if (_depositProfiles[depositProfileId].depositRateType == ETNA) {
             return _etnaUsdRate;
-        } else if (_depositProfiles[depositProfileId].depositRateType == 2) {
+        } else if (_depositProfiles[depositProfileId].depositRateType == MTB) {
             return _mtbUsdRate;
         } else {
             return _depositProfiles[depositProfileId].depositUsdRate;
@@ -1000,9 +1020,9 @@ contract Staking is AccessControl {
         ) {
             return 0;
         }
-        if (_depositProfiles[depositProfileId].yieldRateType == 1) {
+        if (_depositProfiles[depositProfileId].yieldRateType == ETNA) {
             return _etnaUsdRate;
-        } else if (_depositProfiles[depositProfileId].yieldRateType == 2) {
+        } else if (_depositProfiles[depositProfileId].yieldRateType == MTB) {
             return _mtbUsdRate;
         } else {
             return _depositProfiles[depositProfileId].yieldUsdRate;
@@ -1018,21 +1038,31 @@ contract Staking is AccessControl {
             return 0;
         }
         if (
-            _depositProfiles[depositProfileId].depositType == ERC20_TOKEN
-        ) {
-            return SHIFT
-                * getDepositProfileDepositUsdRate(depositProfileId)
-                / getDepositProfileYieldUsdRate(depositProfileId);
-        } else if (
-            _depositProfiles[depositProfileId].depositType == LP_TOKEN
+            _depositProfiles[depositProfileId].depositRateType == LP_ETNA
+                || _depositProfiles[depositProfileId].depositRateType == LP_MTB
         ) {
             IERC20_LP lpToken = IERC20_LP(
                 _depositProfiles[depositProfileId].depositContractAddress
             );
             (uint112 tokenTotal,,) = lpToken.getReserves();
             uint256 totalSupply = lpToken.totalSupply();
-            return SHIFT * tokenTotal * 2 / totalSupply;
+            uint256 lpBaseRate;
+            if (_depositProfiles[depositProfileId].depositRateType == LP_ETNA) {
+                lpBaseRate = _etnaUsdRate;
+            } else {
+                lpBaseRate = _mtbUsdRate;
+            }
+            if (_depositProfiles[depositProfileId].depositUsdRate > 0) {
+                lpBaseRate *= _depositProfiles[depositProfileId].depositUsdRate;
+                lpBaseRate /= SHIFT;
+            }
+            return SHIFT * tokenTotal * 2 / totalSupply
+                * lpBaseRate
+                / getDepositProfileYieldUsdRate(depositProfileId);
+        } else {
+            return SHIFT
+                * getDepositProfileDepositUsdRate(depositProfileId)
+                / getDepositProfileYieldUsdRate(depositProfileId);
         }
-        return 0;
     }
 }

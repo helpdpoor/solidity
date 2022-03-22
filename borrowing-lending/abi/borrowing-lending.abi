@@ -108,11 +108,6 @@
 				"internalType": "address",
 				"name": "contractAddress",
 				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "usdRate",
-				"type": "uint256"
 			}
 		],
 		"name": "addBorrowingProfile",
@@ -132,11 +127,6 @@
 				"internalType": "address",
 				"name": "contractAddress",
 				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "usdRate",
-				"type": "uint256"
 			},
 			{
 				"internalType": "uint256",
@@ -215,30 +205,6 @@
 			}
 		],
 		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "tokenAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "adminReplenish",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "payable",
 		"type": "function"
 	},
 	{
@@ -656,11 +622,6 @@
 			},
 			{
 				"internalType": "uint256",
-				"name": "usdRate",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
 				"name": "totalBorrowed",
 				"type": "uint256"
 			},
@@ -809,25 +770,6 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "collateralIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getCollateralAmount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
 				"internalType": "address",
 				"name": "userAddress",
 				"type": "address"
@@ -866,11 +808,6 @@
 			},
 			{
 				"internalType": "uint256",
-				"name": "usdRate",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
 				"name": "borrowingFactor",
 				"type": "uint256"
 			},
@@ -893,6 +830,30 @@
 				"internalType": "bool",
 				"name": "active",
 				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "collateralProfileIndex",
+				"type": "uint256"
+			}
+		],
+		"name": "getCollateralProfileStat",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "total",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "usersNumber",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -1218,6 +1179,19 @@
 		"type": "function"
 	},
 	{
+		"inputs": [],
+		"name": "getProxyContractAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "address",
@@ -1244,6 +1218,54 @@
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "contractAddress",
+				"type": "address"
+			}
+		],
+		"name": "getUsdRate",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "contractAddress",
+				"type": "address"
+			}
+		],
+		"name": "getUsdRateData",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "rate",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "updatedAt",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "proxy",
+				"type": "bool"
 			}
 		],
 		"stateMutability": "view",
@@ -1521,6 +1543,11 @@
 				"internalType": "uint256",
 				"name": "amount",
 				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "returnAll",
+				"type": "bool"
 			}
 		],
 		"name": "returnBorrowing",
@@ -1629,17 +1656,12 @@
 				"type": "uint256"
 			},
 			{
-				"internalType": "uint256",
-				"name": "usdRate",
-				"type": "uint256"
-			},
-			{
 				"internalType": "bool",
 				"name": "active",
 				"type": "bool"
 			}
 		],
-		"name": "setBorrowingProfileData",
+		"name": "setBorrowingProfileStatus",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1679,11 +1701,6 @@
 			{
 				"internalType": "uint256",
 				"name": "collateralProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "usdRate",
 				"type": "uint256"
 			},
 			{
@@ -1870,6 +1887,54 @@
 		"inputs": [
 			{
 				"internalType": "address",
+				"name": "proxyContractAddress",
+				"type": "address"
+			}
+		],
+		"name": "setProxyContract",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "contractAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "rate",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "proxy",
+				"type": "bool"
+			}
+		],
+		"name": "setUsdRateData",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
 				"name": "newOwner",
 				"type": "address"
 			}
@@ -1950,6 +2015,25 @@
 		"inputs": [
 			{
 				"internalType": "uint256",
+				"name": "collateralProfileIndex",
+				"type": "uint256"
+			}
+		],
+		"name": "withdrawCollateralAvailable",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
 				"name": "borrowingProfileIndex",
 				"type": "uint256"
 			},
@@ -2013,25 +2097,6 @@
 			}
 		],
 		"name": "withdrawNetna",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawWholeCollateral",
 		"outputs": [
 			{
 				"internalType": "bool",

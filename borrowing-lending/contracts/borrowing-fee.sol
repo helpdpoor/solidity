@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
-import 'hardhat/console.sol';
 import './marketing-indexes.sol';
 
 /**
@@ -53,11 +52,12 @@ contract BorrowingFeeContract is MarketingIndexesContract {
                 collateralIndex == 0 || _collaterals[collateralIndex].liquidated
                 || _collaterals[collateralIndex].amount == 0
             ) continue;
+            uint256 usdRate = getUsdRate(_collateralProfiles[i].contractAddress);
             totalCollateralUsdAmount += _collaterals[collateralIndex].amount
-                * _collateralProfiles[i].usdRate;
+                * usdRate;
             if (!_noFee[_collateralProfiles[i].collateralType]) {
                 feeCollateralUsdAmount += _collaterals[collateralIndex].amount
-                    * _collateralProfiles[i].usdRate;
+                    * usdRate;
             }
         }
         if (feeCollateralUsdAmount == 0) return 0;
@@ -145,7 +145,7 @@ contract BorrowingFeeContract is MarketingIndexesContract {
         return (
             _borrowings[borrowingIndex].amount + _borrowings[borrowingIndex].accumulatedFee
                 + _getBorrowingFee(borrowingIndex)
-        ) * _borrowingProfiles[borrowingProfileIndex].usdRate;
+        ) * getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress);
     }
 
     /**
@@ -166,9 +166,22 @@ contract BorrowingFeeContract is MarketingIndexesContract {
             uint256 factor = _percentShift + _collateralProfiles[i].liquidationFactor;
             if (margin) factor += _liquidationFlagMargin;
             collateralLiquidationUsdAmount += _collaterals[collateralIndex].amount
-                * _collateralProfiles[i].usdRate * _percentShift / factor;
+                * getUsdRate(_collateralProfiles[i].contractAddress)
+                * _percentShift / factor;
         }
 
         return collateralLiquidationUsdAmount <= borrowedUsdAmount;
+    }
+
+    function _updateAllBorrowingFees (
+        address userAddress
+    ) internal returns (bool) {
+        for (uint256 i = 1; i <= _borrowingProfilesNumber; i ++) {
+            uint256 borrowingIndex =
+                _usersBorrowingIndexes[userAddress][i];
+            if (borrowingIndex == 0) continue;
+            _updateBorrowingFee(borrowingIndex);
+        }
+        return true;
     }
 }

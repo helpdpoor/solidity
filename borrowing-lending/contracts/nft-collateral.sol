@@ -43,7 +43,7 @@ interface IBorrowingLending {
     function getCollateralProfile (
         uint256 collateralProfileIndex
     ) external view returns (
-        address, uint256, uint256, uint256, uint256, uint8, bool
+        address, uint256, uint256, uint256, uint8, bool
     );
     function getLiquidationManager () external view returns (address);
 }
@@ -139,7 +139,7 @@ contract NftCollateral is IERC721Receiver {
         _marketplaceContract = IMarketplace(marketplaceAddress);
         _nftContract = INFT(nftAddress);
         _borrowingLendingContract = IBorrowingLending(borrowingLendingAddress);
-        (,,,,,uint8 collateralType,) = _borrowingLendingContract
+        (,,,,uint8 collateralType,) = _borrowingLendingContract
             .getCollateralProfile(nEtnaProfileIndex);
         require(collateralType == 3, 'Wrong NETNA collateral profile index');
         _owner = newOwner;
@@ -337,8 +337,8 @@ contract NftCollateral is IERC721Receiver {
     function setNEtnaProfileIndex (
         uint256 nEtnaProfileIndex
     ) external onlyManager returns (bool) {
-        (,,,,,uint8 collateralType,) = _borrowingLendingContract
-        .getCollateralProfile(nEtnaProfileIndex);
+        (,,,,uint8 collateralType,) = _borrowingLendingContract
+            .getCollateralProfile(nEtnaProfileIndex);
         require(collateralType == 3, 'Wrong NETNA collateral profile index');
         _nEtnaProfileIndex = nEtnaProfileIndex;
         return true;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (token/ERC721/extensions/ERC721Enumerable.sol)
-pragma solidity ^0.8.0;
+pragma solidity 0.8.0;
 
 /**
  * @dev Interface of the ERC165 standard, as defined in the
@@ -1239,10 +1239,11 @@ abstract contract Roles is AccessControl {
 }
 
 /**
- * @dev
+ * @dev Scholarsip NFT contract for p2e fast game
  */
 contract ERC721Scholarship is ERC721, ERC721Enumerable, Roles {
-    uint8 internal constant TOKEN_DISTRIBUTOR = 1;
+    uint8 private constant TOKEN_DISTRIBUTOR = 1;
+    uint256 private _initialIdShift;
 
     mapping (uint256 => uint256) private _tokenCreationTimestamps; // tokenId => creation timestamp
     mapping (uint256 => uint256) private _tokenType; // tokenId => tokenTypeId
@@ -1250,8 +1251,11 @@ contract ERC721Scholarship is ERC721, ERC721Enumerable, Roles {
 
     constructor (
         string memory name,
-        string memory symbol
-    ) ERC721(name, symbol) {}
+        string memory symbol,
+        uint256 initialIdShift
+    ) ERC721(name, symbol) {
+        _initialIdShift = initialIdShift; // for scholarship should be 4000000
+    }
 
     function supportsInterface(
         bytes4 interfaceId
@@ -1301,7 +1305,7 @@ contract ERC721Scholarship is ERC721, ERC721Enumerable, Roles {
         uint256 tokenTypeId,
         string calldata tokenUri
     ) external hasRole(TOKEN_DISTRIBUTOR) returns (bool) {
-        uint256 tokenId = totalSupply() + 1;
+        uint256 tokenId = totalSupply() + _initialIdShift + 1;
         _mint(to, tokenId);
         _tokenType[tokenId] = tokenTypeId;
         _tokenURIs[tokenId] = tokenUri;

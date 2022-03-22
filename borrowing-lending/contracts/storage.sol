@@ -39,7 +39,6 @@ contract StorageContract is UtilsContract {
 
     struct BorrowingProfile {
         address contractAddress;
-        uint256 usdRate; // *= 10000
         uint256 borrowingMarketIndex;
         uint256 borrowingMarketIndexLastTime;
         uint256 lendingMarketIndex;
@@ -52,10 +51,10 @@ contract StorageContract is UtilsContract {
     }
     struct CollateralProfile {
         address contractAddress;
-        uint256 usdRate; // *= 10000
         uint256 borrowingFactor;
         uint256 liquidationFactor;
         uint256 total;
+        uint256 usersNumber;
         uint8 collateralType; // 0 - native, 1 - erc20, 2 - ETNA, 3 - NETNA
         bool active;
     }
@@ -85,11 +84,17 @@ contract StorageContract is UtilsContract {
         uint256 updatedAt; // timestamp, is resettled to block.timestamp when changed
         uint256 accumulatedYield; // used to store reward when changed
     }
+    struct UsdRate {
+        uint256 rate;
+        uint256 updatedAt;
+        bool proxy;
+    }
     mapping (uint256 => BorrowingProfile) internal _borrowingProfiles;
     mapping (uint256 => CollateralProfile) internal _collateralProfiles;
     mapping (uint256 => Borrowing) internal _borrowings;
     mapping (uint256 => Lending) internal _lendings;
     mapping (uint256 => Collateral) internal _collaterals;
+    mapping (address => UsdRate) internal _usdRates;
     mapping (address => uint256) internal _liquidationTime;
     mapping (address => bool) internal _liquidators;
     mapping (address => bool) internal _managers;
@@ -99,6 +104,8 @@ contract StorageContract is UtilsContract {
     // userAddress => borrowingProfileIndex => lendingIndex
     mapping (address => mapping(uint256 => uint256)) internal _usersCollateralIndexes;
     // userAddress => collateralProfileIndex => collateralIndex
+    mapping (address => mapping(uint256 => bool)) internal _userHasCollateral;
+    // userAddress => collateralProfileIndex => had deposited collateral ever
     mapping (address => uint256) internal _adminWithdraw;
     mapping (address => uint256) internal _adminReplenish;
     mapping (address => bool) internal _isUser;
@@ -107,6 +114,7 @@ contract StorageContract is UtilsContract {
     IERC20 internal _etnaContract;
     IERC20 internal _nEtnaContract;
     INftCollateral internal _nftCollateralContract;
+    IProxy _proxyContract;
     address internal _owner;
     address internal _liquidationManager;
     uint256 internal _totalUsers;
@@ -133,13 +141,12 @@ contract StorageContract is UtilsContract {
     uint16 internal _aprLendingMax; // % * 100
 
     function addBorrowingProfile (
-        address contractAddress,
-        uint256 usdRate
+        address contractAddress
     ) external onlyManager returns (bool) {
         require(contractAddress != address(0), '64');
         _borrowingProfilesNumber ++;
         _borrowingProfiles[_borrowingProfilesNumber].contractAddress = contractAddress;
-        _borrowingProfiles[_borrowingProfilesNumber].usdRate = usdRate;
+        _usdRates[contractAddress].rate = 10000;
         _borrowingProfiles[_borrowingProfilesNumber].borrowingMarketIndex = _marketIndexShift;
         _borrowingProfiles[_borrowingProfilesNumber].borrowingMarketIndexLastTime = block.timestamp;
         _borrowingProfiles[_borrowingProfilesNumber].lendingMarketIndex = _marketIndexShift;
@@ -150,7 +157,6 @@ contract StorageContract is UtilsContract {
 
     function addCollateralProfile (
         address contractAddress,
-        uint256 usdRate,
         uint256 borrowingFactor,
         uint256 liquidationFactor
     ) external onlyManager returns (bool) {
@@ -161,7 +167,6 @@ contract StorageContract is UtilsContract {
         else collateralType = 1;
         _collateralProfilesNumber ++;
         _collateralProfiles[_collateralProfilesNumber].contractAddress = contractAddress;
-        _collateralProfiles[_collateralProfilesNumber].usdRate = usdRate;
         _collateralProfiles[_collateralProfilesNumber].borrowingFactor = borrowingFactor;
         _collateralProfiles[_collateralProfilesNumber].liquidationFactor = liquidationFactor;
         _collateralProfiles[_collateralProfilesNumber].collateralType = collateralType;
@@ -169,14 +174,12 @@ contract StorageContract is UtilsContract {
         return true;
     }
 
-    function setBorrowingProfileData (
+    function setBorrowingProfileStatus (
         uint256 borrowingProfileIndex,
-        uint256 usdRate,
         bool active
     ) external onlyManager returns (bool) {
         require(borrowingProfileIndex > 0 && borrowingProfileIndex <= _borrowingProfilesNumber,
             '65');
-        _borrowingProfiles[borrowingProfileIndex].usdRate = usdRate;
         _borrowingProfiles[borrowingProfileIndex].active = active;
         return true;
     }
@@ -208,14 +211,12 @@ contract StorageContract is UtilsContract {
 
     function setCollateralProfileData (
         uint256 collateralProfileIndex,
-        uint256 usdRate,
         uint256 borrowingFactor,
         uint256 liquidationFactor,
         bool active
     ) external onlyManager returns (bool) {
         require(collateralProfileIndex > 0 && collateralProfileIndex <= _collateralProfilesNumber,
             '69');
-        _collateralProfiles[collateralProfileIndex].usdRate = usdRate;
         _collateralProfiles[collateralProfileIndex].borrowingFactor = borrowingFactor;
         _collateralProfiles[collateralProfileIndex].liquidationFactor = liquidationFactor;
         _collateralProfiles[collateralProfileIndex].active = active;
@@ -241,6 +242,24 @@ contract StorageContract is UtilsContract {
         uint256 lockTime
     ) external onlyManager returns (bool) {
         _lockTime = lockTime;
+        return true;
+    }
+
+    function setUsdRateData (
+        address contractAddress,
+        uint256 rate,
+        bool proxy
+    ) external onlyManager returns (bool) {
+        _usdRates[contractAddress].rate = rate;
+        _usdRates[contractAddress].proxy = proxy;
+        _usdRates[contractAddress].updatedAt = block.timestamp;
+        return true;
+    }
+
+    function setProxyContract (
+        address proxyContractAddress
+    ) external onlyManager returns (bool) {
+        _proxyContract = IProxy(proxyContractAddress);
         return true;
     }
 
@@ -432,13 +451,12 @@ contract StorageContract is UtilsContract {
     }
 
     function getBorrowingProfile (uint256 borrowingProfileIndex) external view returns (
-        address contractAddress, uint256 usdRate, uint256 totalBorrowed,
+        address contractAddress, uint256 totalBorrowed,
         uint256 totalLent, uint256 totalLiquidated,
         uint256 totalReturned, bool active
     ) {
         return (
             _borrowingProfiles[borrowingProfileIndex].contractAddress,
-            _borrowingProfiles[borrowingProfileIndex].usdRate,
             _borrowingProfiles[borrowingProfileIndex].totalBorrowed,
             _borrowingProfiles[borrowingProfileIndex].totalLent,
             _borrowingProfiles[borrowingProfileIndex].totalLiquidated,
@@ -466,17 +484,29 @@ contract StorageContract is UtilsContract {
     }
 
     function getCollateralProfile (uint256 collateralProfileIndex) external view returns (
-        address contractAddress, uint256 usdRate, uint256 borrowingFactor,
-        uint256 liquidationFactor, uint256 total, uint8 collateralType, bool active
+        address contractAddress,
+        uint256 borrowingFactor,
+        uint256 liquidationFactor,
+        uint256 total,
+        uint8 collateralType,
+        bool active
     ) {
         return (
             _collateralProfiles[collateralProfileIndex].contractAddress,
-            _collateralProfiles[collateralProfileIndex].usdRate,
             _collateralProfiles[collateralProfileIndex].borrowingFactor,
             _collateralProfiles[collateralProfileIndex].liquidationFactor,
             _collateralProfiles[collateralProfileIndex].total,
             _collateralProfiles[collateralProfileIndex].collateralType,
             _collateralProfiles[collateralProfileIndex].active
+        );
+    }
+
+    function getCollateralProfileStat (uint256 collateralProfileIndex) external view returns (
+        uint256 total, uint256 usersNumber
+    ) {
+        return (
+            _collateralProfiles[collateralProfileIndex].total,
+            _collateralProfiles[collateralProfileIndex].usersNumber
         );
     }
 
@@ -574,5 +604,31 @@ contract StorageContract is UtilsContract {
 
     function owner() external view returns (address) {
         return _owner;
+    }
+
+    function getProxyContractAddress () external view returns (address) {
+        return address(_proxyContract);
+    }
+
+    function getUsdRateData (
+        address contractAddress
+    ) external view returns (
+        uint256 rate, uint256 updatedAt, bool proxy
+    ) {
+        return (
+            _usdRates[contractAddress].rate,
+            _usdRates[contractAddress].updatedAt,
+            _usdRates[contractAddress].proxy
+        );
+    }
+
+    function getUsdRate (
+        address contractAddress
+    ) public view returns (uint256) {
+        if (
+            _usdRates[contractAddress].updatedAt == block.timestamp
+                || !_usdRates[contractAddress].proxy
+        ) return _usdRates[contractAddress].rate;
+        return _proxyContract.getUsdRate(contractAddress);
     }
 }
