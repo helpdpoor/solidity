@@ -30,7 +30,6 @@ const rateTypes = {
 
 beforeEach(async function () {
   signers = await ethers.getSigners();
-
   const ERC20 = await ethers.getContractFactory("BEP20Token");
   etnaContract = await ERC20.deploy(signers[10].address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'), 18);
   await etnaContract.deployed();
@@ -39,7 +38,7 @@ beforeEach(async function () {
   await etnaContract.connect(signers[10]).transfer(signers[2].address, ethers.utils.parseUnits(initialTransfer.toString()));
   await etnaContract.connect(signers[10]).transfer(signers[3].address, ethers.utils.parseUnits(initialTransfer.toString()));
   await etnaContract.connect(signers[10]).transfer(signers[4].address, ethers.utils.parseUnits(initialTransfer.toString()));
-  
+
   mtbContract = await ERC20.deploy(signers[10].address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'), 18);
   await mtbContract.deployed();
   await mtbContract.connect(signers[10]).transfer(signers[0].address, ethers.utils.parseUnits(initialTransfer.toString()));

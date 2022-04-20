@@ -1,46 +1,5 @@
 [
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "etnaContractAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			},
-			{
-				"internalType": "uint16",
-				"name": "aprBorrowingMin",
-				"type": "uint16"
-			},
-			{
-				"internalType": "uint16",
-				"name": "aprBorrowingMax",
-				"type": "uint16"
-			},
-			{
-				"internalType": "uint16",
-				"name": "aprBorrowingFix",
-				"type": "uint16"
-			},
-			{
-				"internalType": "uint16",
-				"name": "aprLendingMin",
-				"type": "uint16"
-			},
-			{
-				"internalType": "uint16",
-				"name": "aprLendingMax",
-				"type": "uint16"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
 		"anonymous": false,
 		"inputs": [
 			{
@@ -72,37 +31,6 @@
 		"type": "event"
 	},
 	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "liquidatorAddress",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "collateralIndex",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
-			}
-		],
-		"name": "CollateralLiquidation",
-		"type": "event"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "address",
@@ -111,73 +39,6 @@
 			}
 		],
 		"name": "addBorrowingProfile",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "contractAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "borrowingFactor",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "liquidationFactor",
-				"type": "uint256"
-			}
-		],
-		"name": "addCollateralProfile",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			}
-		],
-		"name": "addFlagForLiquidation",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			}
-		],
-		"name": "addToLiquidators",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -232,169 +93,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "isFixedApr",
-				"type": "bool"
-			}
-		],
-		"name": "borrow",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "isFixedApr",
-				"type": "bool"
-			}
-		],
-		"name": "borrowAvailable",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "compound",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "depositCollateral",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "nEtnaProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "depositNetna",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "tokenAddress",
-				"type": "address"
-			}
-		],
-		"name": "getAdminReplenish",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "tokenAddress",
-				"type": "address"
-			}
-		],
-		"name": "getAdminWithdraw",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "getAprSettings",
 		"outputs": [
@@ -410,7 +108,7 @@
 			},
 			{
 				"internalType": "uint16",
-				"name": "aprBorrowingFix",
+				"name": "aprBorrowingFixed",
 				"type": "uint16"
 			},
 			{
@@ -422,73 +120,6 @@
 				"internalType": "uint16",
 				"name": "aprLendingMin",
 				"type": "uint16"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getAvailableBorrowingAmount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getAvailableCollateralAmount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			}
-		],
-		"name": "getBorrowedUsdAmount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -528,49 +159,6 @@
 				"internalType": "bool",
 				"name": "liquidated",
 				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getBorrowingApr",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "addAccumulated",
-				"type": "bool"
-			}
-		],
-		"name": "getBorrowingFee",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -697,25 +285,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getBorrowingUsdAmount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "getBorrowingsNumber",
 		"outputs": [
@@ -729,203 +298,8 @@
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getCollateral",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "prevCollateral",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "liquidated",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getCollateralIndex",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getCollateralProfile",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "contractAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "borrowingFactor",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "liquidationFactor",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "total",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint8",
-				"name": "collateralType",
-				"type": "uint8"
-			},
-			{
-				"internalType": "bool",
-				"name": "active",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getCollateralProfileStat",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "total",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "usersNumber",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [],
-		"name": "getCollateralProfilesNumber",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getCollateralUsdAmount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getCollateralsNumber",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			}
-		],
-		"name": "getDepositedCollateralUsdAmount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getEtnaContract",
+		"name": "getCollateralContract",
 		"outputs": [
 			{
 				"internalType": "address",
@@ -979,25 +353,6 @@
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getLendingApr",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
 				"name": "lendingIndex",
 				"type": "uint256"
 			}
@@ -1019,97 +374,8 @@
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "lendingIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "addAccumulated",
-				"type": "bool"
-			}
-		],
-		"name": "getLendingYield",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "getLendingsNumber",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getLiquidationFee",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getLiquidationFlagMargin",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getLiquidationManager",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getLiquidationPeriod",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getLiquidatorPercentage",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -1135,7 +401,7 @@
 	},
 	{
 		"inputs": [],
-		"name": "getNEtnaContract",
+		"name": "getProxyContract",
 		"outputs": [
 			{
 				"internalType": "address",
@@ -1148,39 +414,7 @@
 	},
 	{
 		"inputs": [],
-		"name": "getNftCollateralContract",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint8",
-				"name": "collateralType",
-				"type": "uint8"
-			}
-		],
-		"name": "getNoFee",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getProxyContractAddress",
+		"name": "getRewardContract",
 		"outputs": [
 			{
 				"internalType": "address",
@@ -1277,25 +511,6 @@
 				"internalType": "address",
 				"name": "userAddress",
 				"type": "address"
-			}
-		],
-		"name": "getUserLiquidationTime",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
 			},
 			{
 				"internalType": "uint256",
@@ -1304,30 +519,6 @@
 			}
 		],
 		"name": "getUsersBorrowingIndex",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "getUsersCollateralIndex",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -1357,25 +548,6 @@
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			}
-		],
-		"name": "isLiquidator",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
 			}
 		],
 		"stateMutability": "view",
@@ -1422,17 +594,17 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
+				"internalType": "address[]",
+				"name": "userAddresses",
+				"type": "address[]"
 			},
 			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
+				"internalType": "uint256[]",
+				"name": "numbers",
+				"type": "uint256[]"
 			}
 		],
-		"name": "lend",
+		"name": "migrateBorrowings",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1446,17 +618,22 @@
 	{
 		"inputs": [
 			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
+				"internalType": "address[]",
+				"name": "userAddresses",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "numbers",
+				"type": "uint256[]"
 			}
 		],
-		"name": "liquidate",
+		"name": "migrateLendings",
 		"outputs": [
 			{
-				"internalType": "uint256",
+				"internalType": "bool",
 				"name": "",
-				"type": "uint256"
+				"type": "bool"
 			}
 		],
 		"stateMutability": "nonpayable",
@@ -1483,98 +660,7 @@
 				"type": "address"
 			}
 		],
-		"name": "removeFlagForLiquidation",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			}
-		],
-		"name": "removeFromLiquidators",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			}
-		],
 		"name": "removeFromManagers",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "returnAll",
-				"type": "bool"
-			}
-		],
-		"name": "returnBorrowing",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "returnLiquidatedBorrowing",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1599,7 +685,7 @@
 			},
 			{
 				"internalType": "uint16",
-				"name": "aprBorrowingFix",
+				"name": "aprBorrowingFixed",
 				"type": "uint16"
 			},
 			{
@@ -1675,123 +761,12 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "collateralIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "liquidated",
-				"type": "bool"
-			}
-		],
-		"name": "setCollateralLiquidationStatus",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "borrowingFactor",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "liquidationFactor",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "active",
-				"type": "bool"
-			}
-		],
-		"name": "setCollateralProfileData",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
 				"internalType": "address",
-				"name": "etnaContractAddress",
+				"name": "collateralContractAddress",
 				"type": "address"
 			}
 		],
-		"name": "setEtnaContract",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "liquidationFee",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "liquidatorPercentage",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "liquidationFlagMargin",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "liquidationPeriod",
-				"type": "uint256"
-			}
-		],
-		"name": "setLiquidationData",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			}
-		],
-		"name": "setLiquidationManager",
+		"name": "setCollateralContract",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1825,73 +800,30 @@
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "nEtnaContractAddress",
-				"type": "address"
-			}
-		],
-		"name": "setNEtnaContract",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "nftCollateralContractAddress",
-				"type": "address"
-			}
-		],
-		"name": "setNftCollateralContract",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint8",
-				"name": "collateralType",
-				"type": "uint8"
-			},
-			{
-				"internalType": "bool",
-				"name": "noFee",
-				"type": "bool"
-			}
-		],
-		"name": "setNoFee",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
 				"name": "proxyContractAddress",
 				"type": "address"
 			}
 		],
 		"name": "setProxyContract",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "rewardContractAddress",
+				"type": "address"
+			}
+		],
+		"name": "setRewardContract",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1951,152 +883,14 @@
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "updateMarketingIndexes",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "address",
 				"name": "userAddress",
 				"type": "address"
-			},
-			{
-				"internalType": "bool",
-				"name": "margin",
-				"type": "bool"
 			}
 		],
-		"name": "userLiquidation",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawCollateral",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralProfileIndex",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawCollateralAvailable",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawLending",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "borrowingProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawLendingYield",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "userAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "nEtnaProfileIndex",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawNetna",
+		"name": "updateUsersList",
 		"outputs": [
 			{
 				"internalType": "bool",

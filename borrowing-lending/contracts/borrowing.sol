@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
+import 'hardhat/console.sol';
 import './marketing-indexes.sol';
-import './collateral.sol';
+import './borrowing-fee.sol';
 
 /**
  * @dev Borrowing functional implementation
  */
-contract BorrowingContract is MarketingIndexesContract, CollateralContract {
+contract BorrowingContract is MarketingIndexesContract, BorrowingFeeContract {
     /**
      * @dev Borrowing of the specified amount of assets defined by the borrowing profile
      */
     function borrow (
-        uint256 borrowingProfileIndex, uint256 amount,
+        uint256 borrowingProfileIndex,
+        uint256 amount,
         bool isFixedApr
     ) public returns (bool) {
         require(borrowingProfileIndex > 0 && borrowingProfileIndex
             <= _borrowingProfilesNumber, '7');
         require(_borrowingProfiles[borrowingProfileIndex].active,
             '8');
-        require(_liquidationTime[msg.sender] == 0,
-            '9');
         require(_borrowingProfiles[borrowingProfileIndex].totalLent > 0,
             '10');
         require(
             _borrowingProfiles[borrowingProfileIndex].totalBorrowed
-                * _percentShift
+                * DECIMALS
                 / _borrowingProfiles[borrowingProfileIndex].totalLent <= 9500,
             '11'
         );
@@ -39,7 +39,7 @@ contract BorrowingContract is MarketingIndexesContract, CollateralContract {
 
         uint256 fixedApr;
         if (isFixedApr) {
-            fixedApr += _aprBorrowingFix;
+            fixedApr += _aprBorrowingFixed;
             fixedApr += getBorrowingApr(borrowingProfileIndex);
         }
 
@@ -62,9 +62,13 @@ contract BorrowingContract is MarketingIndexesContract, CollateralContract {
             _usersBorrowingIndexes[msg.sender][borrowingProfileIndex] = borrowingIndex;
         } else {
             _updateBorrowingFee(borrowingIndex);
+            if (
+                _borrowings[borrowingIndex].amount == 0
+                    && _borrowings[borrowingIndex].accumulatedFee == 0
+                    && fixedApr > 0
+            ) _borrowings[borrowingIndex].fixedApr = fixedApr;
         }
         _borrowings[borrowingIndex].amount += amount;
-
         _sendAsset(
             _borrowingProfiles[borrowingProfileIndex].contractAddress,
             msg.sender,
@@ -130,13 +134,63 @@ contract BorrowingContract is MarketingIndexesContract, CollateralContract {
             _borrowings[borrowingIndex].amount -= amount;
         }
 
-        if (
-            _liquidationTime[msg.sender] > 0 && !userLiquidation(msg.sender, true)
-        ) delete _liquidationTime[msg.sender];
-
         return true;
     }
 
+    function liquidateBorrowing (
+        address userAddress
+    ) external onlyCollateralContract returns (uint256) {
+        uint256 borrowedUsdAmount;
+        for (uint256 i = 1; i <= _borrowingProfilesNumber; i ++) {
+            uint256 borrowingIndex = _usersBorrowingIndexes[userAddress][i];
+            if (
+                borrowingIndex == 0 || _borrowings[borrowingIndex].liquidated
+                || _borrowings[borrowingIndex].amount == 0
+            ) continue;
+            borrowedUsdAmount += (_borrowings[borrowingIndex].amount
+                + _borrowings[borrowingIndex].accumulatedFee
+                + _getBorrowingFee(borrowingIndex))
+                * getUsdRate(_borrowingProfiles[i].contractAddress)
+                / SHIFT;
+
+            _updateBorrowingFee(borrowingIndex);
+            _borrowingProfiles[i].totalLiquidated += (_borrowings[borrowingIndex].amount
+                + _borrowings[borrowingIndex].accumulatedFee);
+            _borrowings[borrowingIndex].liquidated = true;
+
+            emit BorrowingLiquidation(
+                userAddress, msg.sender, borrowingIndex, block.timestamp
+            );
+        }
+        return borrowedUsdAmount;
+    }
+
+    /**
+     * @dev Returning of the liquidated assets, let keep accounting
+     * of the liquidated and returned assets
+     */
+    function returnLiquidatedBorrowing (
+        uint256 borrowingProfileIndex, uint256 amount
+    ) external returns (bool) {
+        require(
+            msg.sender == _collateralContract.getLiquidationManager(),
+            '77'
+        );
+        _takeAsset(
+            _borrowingProfiles[borrowingProfileIndex].contractAddress,
+            msg.sender,
+            amount
+        );
+        _borrowingProfiles[borrowingProfileIndex].totalReturned += amount;
+        _proceedMarketingIndexes(borrowingProfileIndex);
+        if (_borrowingProfiles[borrowingProfileIndex].totalBorrowed > amount) {
+            _borrowingProfiles[borrowingProfileIndex].totalBorrowed -= amount;
+        } else {
+            _borrowingProfiles[borrowingProfileIndex].totalBorrowed = 0;
+        }
+
+        return true;
+    }
 
     /**
      * @dev Return maximum available for borrowing assets amount
@@ -146,21 +200,9 @@ contract BorrowingContract is MarketingIndexesContract, CollateralContract {
     ) public view returns (uint256) {
         if (!_borrowingProfiles[borrowingProfileIndex].active) return 0;
         uint256 borrowedUsdAmount = getBorrowedUsdAmount(userAddress);
-        uint256 collateralUsdAmount;
-        for (uint256 i = 1; i <= _collateralProfilesNumber; i ++) {
-            uint256 collateralIndex = _usersCollateralIndexes[userAddress][i];
-            if (
-                collateralIndex == 0 || _collaterals[collateralIndex].liquidated
-                || _collaterals[collateralIndex].amount == 0
-            ) continue;
-            collateralUsdAmount += _collaterals[collateralIndex].amount
-                * getUsdRate(_collateralProfiles[i].contractAddress)
-                * _collateralProfiles[i].borrowingFactor
-                / _percentShift;
-        }
+        uint256 collateralUsdAmount = _collateralContract
+            .getUserCollateralUsdAmount(userAddress, true);
         if (collateralUsdAmount <= borrowedUsdAmount) return 0;
-        uint256 diff = collateralUsdAmount - borrowedUsdAmount;
-
-        return diff / getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress);
+        return collateralUsdAmount - borrowedUsdAmount;
     }
 }

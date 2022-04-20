@@ -23,7 +23,7 @@ contract p2e is AccessControl, Assets {
     // Dead address for a tax burning
 
     uint16 private _taxBurningPercentage = 5000; // part of the tax to be burned in percents * 100
-    uint256 private _withdrawTax = 3000; // base tax for withdraw in percents * 100
+    uint256 private _withdrawTax = 1000; // base tax for withdraw in percents * 100
     uint256 private _withdrawTaxResetPeriod = 15 days; // period in seconds for tax resetting to 0 (since last game)
     uint256 private _gameCounter; // counter of all games played
     uint256 private _gamePerPeriodNumber = 7; // number of free games per 24 hours or for extra games after payment
@@ -96,6 +96,11 @@ contract p2e is AccessControl, Assets {
         _takeAsset (
             _etnaAddress,
             msg.sender,
+            _gamePrice
+        );
+        _sendAsset (
+            _etnaAddress,
+            _taxBurningAddress,
             _gamePrice
         );
         _gamePayment[msg.sender] = _gamePrice;

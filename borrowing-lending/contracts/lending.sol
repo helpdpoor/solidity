@@ -10,17 +10,19 @@ contract LendingContract is MarketingIndexesContract {
     function lend (
         uint256 borrowingProfileIndex, uint256 amount
     ) external returns (bool) {
-        _checkLending(borrowingProfileIndex);
+        require(borrowingProfileIndex > 0 && borrowingProfileIndex <= _borrowingProfilesNumber,
+            '42');
         if (!_isUser[msg.sender]) {
             _totalUsers ++;
             _isUser[msg.sender] = true;
         }
 
         _proceedMarketingIndexes(borrowingProfileIndex);
-
+        uint256 lendingIndex;
         if (_usersLendingIndexes[msg.sender][borrowingProfileIndex] == 0) {
             _lendingsNumber ++;
-            _lendings[_lendingsNumber] = Lending({
+            lendingIndex = _lendingsNumber;
+            _lendings[lendingIndex] = Lending({
                 userAddress: msg.sender,
                 borrowingProfileIndex: borrowingProfileIndex,
                 amount: amount,
@@ -32,13 +34,19 @@ contract LendingContract is MarketingIndexesContract {
 
             _usersLendingIndexes[msg.sender][borrowingProfileIndex] = _lendingsNumber;
         } else {
-            uint256 lendingIndex = _usersLendingIndexes[msg.sender][borrowingProfileIndex];
+            lendingIndex = _usersLendingIndexes[msg.sender][borrowingProfileIndex];
             _updateLendingYield(lendingIndex);
-
             _addToLending(lendingIndex, borrowingProfileIndex, amount);
         }
         _borrowingProfiles[borrowingProfileIndex].totalLent += amount;
-
+        if (address(_rewardContract) != address(0)) {
+            _rewardContract.updateRewardData(
+                msg.sender,
+                borrowingProfileIndex,
+                _lendings[lendingIndex].amount,
+                _borrowingProfiles[borrowingProfileIndex].totalLent
+            );
+        }
         _takeAsset(
             _borrowingProfiles[borrowingProfileIndex].contractAddress,
             msg.sender,
@@ -52,24 +60,32 @@ contract LendingContract is MarketingIndexesContract {
      * @dev Lend accumulated yield to the contract
      */
     function compound (uint256 borrowingProfileIndex) external returns (bool) {
-        _checkLending(borrowingProfileIndex);
+        require(borrowingProfileIndex > 0 && borrowingProfileIndex <= _borrowingProfilesNumber,
+            '42');
         uint256 lendingIndex = _usersLendingIndexes[msg.sender][borrowingProfileIndex];
         require(lendingIndex > 0, '44');
         _updateLendingYield(lendingIndex);
 
         uint256 yield = _lendings[lendingIndex].accumulatedYield;
         _lendings[lendingIndex].accumulatedYield = 0;
-
         _addToLending(lendingIndex, borrowingProfileIndex, yield);
-
         _borrowingProfiles[borrowingProfileIndex].totalLent += yield;
+        if (address(_rewardContract) != address(0)) {
+            _rewardContract.updateRewardData(
+                msg.sender,
+                borrowingProfileIndex,
+                _lendings[lendingIndex].amount,
+                _borrowingProfiles[borrowingProfileIndex].totalLent
+            );
+        }
         return true;
     }
 
     function withdrawLending (
         uint256 borrowingProfileIndex, uint256 amount
     ) external returns (bool) {
-        _checkLending(borrowingProfileIndex);
+        require(borrowingProfileIndex > 0 && borrowingProfileIndex <= _borrowingProfilesNumber,
+            '42');
         uint256 lendingIndex = _usersLendingIndexes[msg.sender][borrowingProfileIndex];
         require(lendingIndex > 0, '44');
 
@@ -80,15 +96,21 @@ contract LendingContract is MarketingIndexesContract {
         _updateLendingYield(lendingIndex);
         require(_lendings[lendingIndex].amount >= amount, '47');
         require(
-            _borrowingProfiles[borrowingProfileIndex].totalBorrowed * _percentShift
+            _borrowingProfiles[borrowingProfileIndex].totalBorrowed * DECIMALS
                 / (_borrowingProfiles[borrowingProfileIndex].totalLent - amount)
                     <= 9500,
             '47.1'
         );
-
+        if (address(_rewardContract) != address(0)) {
+            _rewardContract.updateRewardData(
+                msg.sender,
+                borrowingProfileIndex,
+                _lendings[lendingIndex].amount,
+                _borrowingProfiles[borrowingProfileIndex].totalLent
+            );
+        }
         _lendings[lendingIndex].amount -= amount;
         _borrowingProfiles[borrowingProfileIndex].totalLent -= amount;
-
         _sendAsset(
             _borrowingProfiles[borrowingProfileIndex].contractAddress,
             msg.sender,
@@ -101,8 +123,6 @@ contract LendingContract is MarketingIndexesContract {
     function withdrawLendingYield (
         uint256 borrowingProfileIndex, uint256 amount
     ) external returns (bool) {
-        require(_liquidationTime[msg.sender] == 0,
-            '48');
         uint256 lendingIndex = _usersLendingIndexes[msg.sender][borrowingProfileIndex];
         require(lendingIndex > 0, '49');
 
@@ -138,17 +158,9 @@ contract LendingContract is MarketingIndexesContract {
         return true;
     }
 
-    function _checkLending (
-        uint256 borrowingProfileIndex
-    ) internal view returns (bool) {
-        require(_liquidationTime[msg.sender] == 0,
-            '41');
-        require(borrowingProfileIndex > 0 && borrowingProfileIndex <= _borrowingProfilesNumber,
-            '42');
-        return true;
-    }
-
-    function _updateLendingYield (uint256 lendingIndex) internal returns (bool) {
+    function _updateLendingYield (
+        uint256 lendingIndex
+    ) internal returns (bool) {
         uint256 yield = _getLendingYield(lendingIndex);
         _lendings[lendingIndex].accumulatedYield += yield;
         _lendings[lendingIndex].updatedAt = block.timestamp;
@@ -158,13 +170,17 @@ contract LendingContract is MarketingIndexesContract {
         return true;
     }
 
-    function getLendingYield (uint256 lendingIndex, bool addAccumulated) external view returns (uint256) {
+    function getLendingYield (
+        uint256 lendingIndex, bool addAccumulated
+    ) external view returns (uint256) {
         uint256 lendingYield = _getLendingYield(lendingIndex);
         if (addAccumulated) lendingYield += _lendings[lendingIndex].accumulatedYield;
         return lendingYield;
     }
 
-    function _getLendingYield (uint256 lendingIndex) internal view returns (uint256) {
+    function _getLendingYield (
+        uint256 lendingIndex
+    ) internal view returns (uint256) {
         uint256 borrowingProfileIndex = _lendings[lendingIndex].borrowingProfileIndex;
 
         uint256 marketIndex = _borrowingProfiles[borrowingProfileIndex].lendingMarketIndex;
@@ -177,10 +193,10 @@ contract LendingContract is MarketingIndexesContract {
         uint256 extraPeriod = block.timestamp - extraPeriodStartTime;
 
         if (extraPeriod > 0) {
-            uint256 marketFactor = _marketIndexShift +
-                _marketIndexShift * getLendingApr(borrowingProfileIndex)
-                * extraPeriod / _percentShift / _year;
-            marketIndex = marketIndex * marketFactor / _marketIndexShift;
+            uint256 marketFactor = SHIFT +
+                SHIFT * getLendingApr(borrowingProfileIndex)
+                * extraPeriod / DECIMALS / YEAR;
+            marketIndex = marketIndex * marketFactor / SHIFT;
         }
 
         uint256 newAmount = _lendings[lendingIndex].amount
@@ -188,5 +204,25 @@ contract LendingContract is MarketingIndexesContract {
             / _lendings[lendingIndex].lastMarketIndex;
 
         return newAmount - _lendings[lendingIndex].amount;
+    }
+
+    function getTotalLent (
+        uint256 borrowingProfileIndex
+    ) external view returns (uint256) {
+        if (
+            !_borrowingProfiles[borrowingProfileIndex].active
+        ) return 0;
+        return _borrowingProfiles[borrowingProfileIndex].totalLent;
+    }
+
+    function getUserProfileLent (
+        address userAddress, uint256 borrowingProfileIndex
+    ) external view returns (uint256) {
+        if (
+            !_borrowingProfiles[borrowingProfileIndex].active
+        ) return 0;
+        return _lendings[
+            _usersLendingIndexes[userAddress][borrowingProfileIndex]
+        ].amount;
     }
 }

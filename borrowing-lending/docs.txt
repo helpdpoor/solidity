@@ -1,0 +1,8 @@
+last contract deployed to the testnet
+ETNA-BUSD LP contract address: 0x458d4F8Eee678599F2Eafe1E3db6Aafa72B2a815
+BNB-BUSD LP contract address: 0xf9C04582d8359Bbb3fe56C19E7F05EA92d2629ae
+Proxy contract address: 0x82ABFfDC8283bFF0919478EE6e9271f2e7D0fBa7
+Borrowing-lending contract address: 0x25D5a047a8f0c5AF0c2f0E0b916f9e7DdDF69A10
+Collateral contract address: 0x6256f71d4604b637aD1d66488c715621Ba714071
+Nft Collateral contract address: 0x459eA61B9b260ad19F682BaCd4329f3189df3f41
+Reward contract address: 0xFfdA9fb5aa08ae774691E7Ef74C43457c34E27c2

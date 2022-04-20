@@ -7,6 +7,7 @@ const { ethers } = require("hardhat");
 let signers, p2eContract, etnaContract, mtbContract,
   owner, gameSigner, manager, taxReceiver, result = {},
   payload = {}, message, signedMessage;
+const taxBurningAddress = '0x000000000000000000000000000000000000dEaD';
 const totalSupply = 1000000;
 const initialTransfer = 1000;
 const gamePrice = 3;
@@ -232,7 +233,19 @@ describe("Testing p2e contract", function () {
         signedMessage
       )
     ).to.be.revertedWith('This account hit 24 hours limit.');
+    result.taxBurningAddressBalance = Number(ethers.utils.formatUnits(
+      await etnaContract.balanceOf(taxBurningAddress)
+    ));
+    result.p2eBalance = Number(ethers.utils.formatUnits(
+      await etnaContract.balanceOf(p2eContract.address)
+    ));
     await p2eContract.connect(signers[2]).payForGame();
+    expect(Number(ethers.utils.formatUnits(
+      await etnaContract.balanceOf(taxBurningAddress)
+    ))).to.equal(result.taxBurningAddressBalance + gamePrice);
+    expect(Number(ethers.utils.formatUnits(
+      await etnaContract.balanceOf(p2eContract.address)
+    ))).to.equal(result.p2eBalance);
     await expect(
       p2eContract.connect(signers[2]).payForGame()
     ).to.be.revertedWith('Your have already paid for a game');
