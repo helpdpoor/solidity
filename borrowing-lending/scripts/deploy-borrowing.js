@@ -97,18 +97,10 @@ async function main() {
   console.log(`Borrowing-lending contract address: ${blContract.address}`);
 
   const Collateral = await ethers.getContractFactory("CollateralWithLiquidationContract");
-  const collateralContract = await Collateral.deploy(
-    OWNER,
-    ETNA,
-    blContract.address
-  );
-  await collateralContract.deployed();
-  console.log(`Collateral contract address: ${collateralContract.address}`);
+  const collateralContract = {
+    address: '0xA193aFb48dd19c618537016813459116b17e5f6C',
+  };
 
-  await collateralContract
-    .setProxyContract(
-      proxyContract.address
-    );
   await blContract
     .setProxyContract(
       proxyContract.address
@@ -135,74 +127,6 @@ async function main() {
     false
   );
 
-  await collateralContract.setNEtnaContract (
-    NETNA
-  );
-  await collateralContract.addCollateralProfile (
-    NATIVE,
-    5000, // borrowingFactor
-    1500, // liquidationFactor
-    1, //order
-    false // no fee
-  );
-  await collateralContract.setUsdRateData(
-    NATIVE,
-    0,
-    true
-  );
-  await collateralContract.addCollateralProfile (
-    ETNA,
-    2500, // borrowingFactor
-    1500, // liquidationFactor
-    2, //order
-    true // no fee
-  );
-  await collateralContract.setUsdRateData(
-    ETNA,
-    0,
-    true
-  );
-  await collateralContract.addCollateralProfile (
-    MTB,
-    2500, // borrowingFactor
-    1500, // liquidationFactor
-    3, //order
-    true // no fee
-  );
-  await collateralContract.setUsdRateData(
-    MTB,
-    0,
-    true
-  );
-  await collateralContract.addCollateralProfile (
-    NETNA,
-    2500, // borrowingFactor
-    1500, // liquidationFactor
-    4, //order
-    true // no fee
-  );
-  await collateralContract.setUsdRateData(
-    NETNA,
-    0,
-    true
-  );
-
-  const NftCollateral = await ethers.getContractFactory("NftCollateral");
-  const nftCollateralContract = await NftCollateral.deploy(
-    MARKETPLACE,
-    NFT,
-    collateralContract.address,
-    OWNER,
-    4 // NETNA collateral profile index
-  );
-  await nftCollateralContract.deployed();
-  console.log(`Nft Collateral contract address: ${nftCollateralContract.address}`);
-
-  await collateralContract
-    .setNftCollateralContract (
-      nftCollateralContract.address
-    );
-
   const RewardPerBlock = await ethers.getContractFactory("RewardPerBlock");
   const rewardContract = await RewardPerBlock.deploy(
     OWNER,
@@ -217,6 +141,11 @@ async function main() {
 
   await blContract
     .setRewardContract(rewardContract.address);
+
+  await rewardContract
+    .setProxyContract(
+      proxyContract.address
+    );
 }
 
 // We recommend this pattern to be able to use async/await everywhere

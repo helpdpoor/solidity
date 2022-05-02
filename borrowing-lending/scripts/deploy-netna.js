@@ -8,14 +8,13 @@ const {ethers} = require("hardhat");
 
 async function main() {
   const OWNER = '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA';
-  const PROXY = '0x6Da88dCE0AD9F850d4F1b5C147815c492E7A6dED';
 
-  await hre.run("verify:verify", {
-    address: PROXY,
-    constructorArguments: [
-      OWNER
-    ],
-  });
+  const Netna = await ethers.getContractFactory("NETNA");
+  const netnaContract = await Netna.deploy(
+    OWNER
+  );
+  await netnaContract.deployed();
+  console.log(`NETNA contract address: ${netnaContract.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

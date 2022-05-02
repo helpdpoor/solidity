@@ -18,71 +18,62 @@ async function main() {
   const NFT = '0x0186F8cDFe676D4Ca5EDc6f3aE4400Ca269f0F3a';
   const MARKETPLACE = '0x0f6296c3f3FCd5931dD542Dcd1f4EEAf6eEe4DD9';
 
+  const REWARD = '0x06Cb02FEE4d9339c8833B52809844fB1bD2Ad0B1';
+
   const ETNA_BUSD = '0x458d4F8Eee678599F2Eafe1E3db6Aafa72B2a815';
   const BNB_BUSD = '0xf9C04582d8359Bbb3fe56C19E7F05EA92d2629ae';
   const MTB_BUSD = '0x6d5f5DBef48E1202380A16588D07C8CbBFf0876c';
-  const PROXY = '0x8Fb49436f6De3a2E8eB0c007d80B561e43cceD0a';
 
-  // const LP = await ethers.getContractFactory("LPToken");
-  // const lpEtnaBusdContract = await LP.deploy(
-  //   OWNER, 'ETNA-BUSD', 'ETNA-BUSD', ethers.utils.parseUnits('1000000'), 18);
-  // await lpEtnaBusdContract.deployed();
-  // console.log(`ETNA-BUSD LP contract address: ${lpEtnaBusdContract.address}`);
-  // const lpBnbBusdContract = await LP.deploy(
-  //   OWNER, 'BNB-BUSD', 'BNB-BUSD', ethers.utils.parseUnits('1000000'), 18);
-  // await lpBnbBusdContract.deployed();
-  // console.log(`BNB-BUSD LP contract address: ${lpBnbBusdContract.address}`);
-  // const lpMtbBusdContract = await LP.deploy(
-  //   OWNER, 'MTB-BUSD', 'MTB-BUSD', ethers.utils.parseUnits('1000000'), 18);
-  // await lpMtbBusdContract.deployed();
-  // console.log(`MTB-BUSD LP contract address: ${lpMtbBusdContract.address}`);
-
-  const proxyContract = {
-    address: PROXY
-  };
-  // const Proxy = await ethers.getContractFactory("Proxy");
-  // // const proxyContract = await Proxy.attach(PROXY);
-  // const proxyContract = await Proxy.deploy(
-  //   OWNER
-  // );
-  // await proxyContract.deployed();
-  // console.log(`Proxy contract address: ${proxyContract.address}`);
-  // await proxyContract
-  //   .setUsdRateData(
-  //     ETNA, // contract address
-  //     ZERO, // external contract placeholder
-  //     ETNA_BUSD, // LP contract for rate getting
-  //     0, // rate if set manually (both external and lp should be zero)
-  //     0, // type (should be zero for simple token1/token2 rate
-  //     false // if used second parameter in LP getReserves function
-  //   );
-  // await proxyContract
-  //   .setUsdRateData(
-  //     NETNA,
-  //     ZERO,
-  //     ETNA_BUSD,
-  //     0,
-  //     0,
-  //     false
-  //   );
-  // await proxyContract
-  //   .setUsdRateData(
-  //     NATIVE,
-  //     ZERO,
-  //     BNB_BUSD,
-  //     0,
-  //     0,
-  //     false
-  //   );
-  // await proxyContract
-  //   .setUsdRateData(
-  //     MTB,
-  //     ZERO,
-  //     MTB_BUSD,
-  //     0,
-  //     0,
-  //     false
-  //   );
+  const Proxy = await ethers.getContractFactory("Proxy");
+  const proxyContract = await Proxy.deploy(
+    OWNER
+  );
+  await proxyContract.deployed();
+  console.log(`Proxy contract address: ${proxyContract.address}`);
+  await proxyContract
+    .setUsdRateData(
+      ETNA, // contract address
+      ZERO, // external contract placeholder
+      ETNA_BUSD, // LP contract for rate getting
+      0, // rate if set manually (both external and lp should be zero)
+      0, // type (should be zero for simple token1/token2 rate
+      18,
+      18,
+      false // if used second parameter in LP getReserves function
+    );
+  await proxyContract
+    .setUsdRateData(
+      NETNA,
+      ZERO,
+      ETNA_BUSD,
+      0,
+      0,
+      18,
+      18,
+      false
+    );
+  await proxyContract
+    .setUsdRateData(
+      NATIVE,
+      ZERO,
+      BNB_BUSD,
+      0,
+      0,
+      18,
+      18,
+      false
+    );
+  await proxyContract
+    .setUsdRateData(
+      MTB,
+      ZERO,
+      MTB_BUSD,
+      0,
+      0,
+      18,
+      18,
+      false
+    );
 
   const BorrowingLending = await ethers.getContractFactory("BorrowingLendingContract");
   const blContract = await BorrowingLending.deploy(
@@ -141,7 +132,6 @@ async function main() {
   await collateralContract.addCollateralProfile (
     NATIVE,
     5000, // borrowingFactor
-    1500, // liquidationFactor
     1, //order
     false // no fee
   );
@@ -153,7 +143,6 @@ async function main() {
   await collateralContract.addCollateralProfile (
     ETNA,
     2500, // borrowingFactor
-    1500, // liquidationFactor
     2, //order
     true // no fee
   );
@@ -165,7 +154,6 @@ async function main() {
   await collateralContract.addCollateralProfile (
     MTB,
     2500, // borrowingFactor
-    1500, // liquidationFactor
     3, //order
     true // no fee
   );
@@ -177,7 +165,6 @@ async function main() {
   await collateralContract.addCollateralProfile (
     NETNA,
     2500, // borrowingFactor
-    1500, // liquidationFactor
     4, //order
     true // no fee
   );
@@ -187,36 +174,8 @@ async function main() {
     true
   );
 
-  const NftCollateral = await ethers.getContractFactory("NftCollateral");
-  const nftCollateralContract = await NftCollateral.deploy(
-    MARKETPLACE,
-    NFT,
-    collateralContract.address,
-    OWNER,
-    4 // NETNA collateral profile index
-  );
-  await nftCollateralContract.deployed();
-  console.log(`Nft Collateral contract address: ${nftCollateralContract.address}`);
-
-  await collateralContract
-    .setNftCollateralContract (
-      nftCollateralContract.address
-    );
-
-  const RewardPerBlock = await ethers.getContractFactory("RewardPerBlock");
-  const rewardContract = await RewardPerBlock.deploy(
-    OWNER,
-    ETNA,
-    blContract.address,
-    proxyContract.address,
-    365 * 24 * 3600, // duration
-    ethers.utils.parseUnits('1000000'), // rewardPool
-    3000, // blockTime
-  );
-  console.log(`Reward contract address: ${rewardContract.address}`);
-
   await blContract
-    .setRewardContract(rewardContract.address);
+    .setRewardContract(REWARD);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

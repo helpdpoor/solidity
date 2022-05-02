@@ -8,12 +8,22 @@ const {ethers} = require("hardhat");
 
 async function main() {
   const OWNER = '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA';
-  const PROXY = '0x6Da88dCE0AD9F850d4F1b5C147815c492E7A6dED';
+  const BORROWING = '0xD7baC58d0555215c5F05f166D39CBf706C988343';
+  const aprBorrowingMin = 700;
+  const aprBorrowingMax = 1400;
+  const aprBorrowingFix = 300;
+  const aprLendingMin = 500;
+  const aprLendingMax = 1000;
 
   await hre.run("verify:verify", {
-    address: PROXY,
+    address: BORROWING,
     constructorArguments: [
-      OWNER
+      OWNER,
+      aprBorrowingMin,
+      aprBorrowingMax,
+      aprBorrowingFix,
+      aprLendingMin,
+      aprLendingMax
     ],
   });
 }

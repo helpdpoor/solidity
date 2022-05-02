@@ -8,12 +8,16 @@ const {ethers} = require("hardhat");
 
 async function main() {
   const OWNER = '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA';
-  const PROXY = '0x6Da88dCE0AD9F850d4F1b5C147815c492E7A6dED';
+  const ETNA = '0x015C425f6dfabC31E1464cC4339954339f096061';
+  const BL = '0xD7baC58d0555215c5F05f166D39CBf706C988343';
+  const COLLATERAL = '0x5E57b7f620f24879A11d8a1A2f17c0DD22997975';
 
   await hre.run("verify:verify", {
-    address: PROXY,
+    address: COLLATERAL,
     constructorArguments: [
-      OWNER
+      OWNER,
+      ETNA,
+      BL
     ],
   });
 }

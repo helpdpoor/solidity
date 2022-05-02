@@ -205,13 +205,13 @@ contract CollateralWithLiquidationContract is UtilsContract {
     uint256 internal constant YEAR = 365 * 24 * 3600;
     uint256 internal constant SHIFT = 1 ether; // market index exponent shifting when calculation with decimals
     uint256 internal constant DECIMALS = 10000; // percents exponent shifting when calculation with decimals
-    uint256 internal _liquidationFactor = 1500; // percentage for detecting loan availability for liquidation
+    uint256 internal _liquidationFactor = 2000; // percentage for detecting loan availability for liquidation
     uint256 internal _liquidationFee = 1000; // fee that will be paid for liquidation (% * 100)
-    uint256 internal _liquidatorPercentage = 4000;
+    uint256 internal _liquidatorPercentage = 500;
     // part of the liquidation fee that will be paid to liquidators (the rest to admin) (% * 100)
-    uint256 internal _liquidationRMin = 2000;
+    uint256 internal _liquidationRMin = 500;
     // factor to determine if loan is flagged for a liquidation
-    uint256 internal _liquidationRMax = 2500;
+    uint256 internal _liquidationRMax = 1000;
     // factor to determine if loan is in a fair (not good) state
     uint8 internal _maxOrder;
 
@@ -858,8 +858,7 @@ contract CollateralWithLiquidationContract is UtilsContract {
             || _collaterals[collateralIndex].liquidated
             || _collaterals[collateralIndex].amount == 0
         ) return 0;
-        uint256 collateralProfileIndex =
-            _collaterals[collateralIndex].collateralProfileIndex;
+        uint256 collateralProfileIndex = _collaterals[collateralIndex].collateralProfileIndex;
         return _collaterals[collateralIndex].amount
             * getUsdRate(_collateralProfiles[collateralProfileIndex].contractAddress)
             / SHIFT;

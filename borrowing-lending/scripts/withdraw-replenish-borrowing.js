@@ -96,32 +96,6 @@ async function main() {
   );
 
   let balance;
-  balance = await nftContract.provider.getBalance(OLD_COLLATERAL);
-  console.log('Native', Number(balance));
-  if (Number(balance) > 0) {
-    const tx = await oldCollateralContract.adminWithdraw(
-      NATIVE,
-      balance
-    );
-    await tx.wait();
-    await collateralContract.adminReplenish(
-      NATIVE,
-      balance,
-      {value: balance}
-    );
-  }
-
-  // balance = await etnaContract.balanceOf(OLD_COLLATERAL);
-  // console.log('Etna Collateral', Number(balance));
-  // if (Number(balance) > 0) {
-  //   const tx = await oldCollateralContract.adminWithdraw(
-  //     ETNA,
-  //     balance
-  //   );
-  //   await tx.wait();
-  //   await etnaContract.transfer(collateralContract.address, balance);
-  // }
-
   balance = await etnaContract.balanceOf(OLD_REWARD);
   console.log('Etna Reward', Number(balance));
   if (Number(balance) > 0) {
@@ -132,38 +106,16 @@ async function main() {
     await tx.wait();
     await etnaContract.transfer(rewardContract.address, balance);
   }
-  return;
-  balance = await netnaContract.balanceOf(OLD_COLLATERAL);
-  console.log('Netna collateral', Number(balance));
-  if (Number(balance) > 0) {
-    const tx = await oldCollateralContract.adminWithdraw(
-      NETNA,
-      balance,
-      {gasLimit: 500000}
-    );
-    await tx.wait();
-    await netnaContract.transfer(collateralContract.address, balance);
-  }
 
-  balance = await netnaContract.balanceOf(OLD_NFT_COLLATERAL);
-  console.log('Netna Nft collateral', Number(balance));
+  balance = await etnaContract.balanceOf(OLD_BL);
+  console.log('Etna BL', Number(balance));
   if (Number(balance) > 0) {
-    const tx = await oldNftCollateralContract.adminWithdrawNEtna(
+    const tx = await oldBlContract.adminWithdraw(
+      ETNA,
       balance
     );
     await tx.wait();
-    await netnaContract.transfer(nftCollateralContract.address, balance);
-  }
-
-  balance = await mtbContract.balanceOf(OLD_COLLATERAL);
-  console.log('MTB', Number(balance));
-  if (Number(balance) > 0) {
-    const tx = await oldCollateralContract.adminWithdraw(
-      MTB,
-      balance
-    );
-    await tx.wait();
-    await mtbContract.transfer(collateralContract.address, balance);
+    // await etnaContract.transfer(rewardContract.address, balance);
   }
 
   balance = await busdContract.balanceOf(OLD_BL);
@@ -186,19 +138,6 @@ async function main() {
     );
     await tx.wait();
     await usdtContract.transfer(blContract.address, balance);
-  }
-
-  const nftIds = []
-  if (nftIds.length > 0) {
-    await oldNftCollateralContract.adminWithdrawNft(
-      nftIds, {gasLimit: nftIds.length * 200000}
-    );
-
-    for (const id of nftIds) {
-      await nftContract['safeTransferFrom(address,address,uint256)'](
-        OWNER, NFT_COLLATERAL, id
-      );
-    }
   }
 }
 

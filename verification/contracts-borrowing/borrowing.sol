@@ -22,7 +22,7 @@ contract BorrowingContract is MarketingIndexesContract, BorrowingFeeContract {
         require(_borrowingProfiles[borrowingProfileIndex].totalLent > 0,
             '10');
         require(
-            (_borrowingProfiles[borrowingProfileIndex].totalBorrowed + amount)
+            _borrowingProfiles[borrowingProfileIndex].totalBorrowed
                 * DECIMALS
                 / _borrowingProfiles[borrowingProfileIndex].totalLent <= 9500,
             '11'
@@ -193,30 +193,14 @@ contract BorrowingContract is MarketingIndexesContract, BorrowingFeeContract {
     /**
      * @dev Return maximum available for borrowing assets amount
      */
-    function getAvailableBorrowingUsdAmount (
+    function getAvailableBorrowingAmount (
         address userAddress, uint256 borrowingProfileIndex
     ) public view returns (uint256) {
         if (!_borrowingProfiles[borrowingProfileIndex].active) return 0;
         uint256 borrowedUsdAmount = getBorrowedUsdAmount(userAddress);
         uint256 collateralUsdAmount = _collateralContract
-        .getUserCollateralUsdAmount(userAddress, true);
+            .getUserCollateralUsdAmount(userAddress, true);
         if (collateralUsdAmount <= borrowedUsdAmount) return 0;
         return collateralUsdAmount - borrowedUsdAmount;
-    }
-
-    /**
-     * @dev Return maximum available for borrowing assets amount
-     */
-    function getAvailableBorrowingAmount (
-        address userAddress, uint256 borrowingProfileIndex
-    ) public view returns (uint256) {
-        uint256 usdAmount = getAvailableBorrowingUsdAmount(
-            userAddress,
-            borrowingProfileIndex
-        );
-        if (usdAmount == 0) return 0;
-        return usdAmount
-            * SHIFT
-            / getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress);
     }
 }

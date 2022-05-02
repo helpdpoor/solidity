@@ -28,6 +28,9 @@ contract Proxy is AccessControl {
         address lpAddress;
         uint256 rate;
         uint8 rateType;
+        uint8 decimals;
+        uint8 decimals0;
+        uint8 decimals1;
         bool reverse;
     }
     mapping (address => Rate) internal _usdRates;
@@ -47,12 +50,18 @@ contract Proxy is AccessControl {
         address lpAddress,
         uint256 rate,
         uint8 rateType,
+        uint8 decimals,
+        uint8 decimals0,
+        uint8 decimals1,
         bool reverse
     ) external onlyManager returns (bool) {
         _usdRates[contractAddress].externalContractAddress = externalContractAddress;
         _usdRates[contractAddress].lpAddress = lpAddress;
         _usdRates[contractAddress].rate = rate;
         _usdRates[contractAddress].rateType = rateType;
+        _usdRates[contractAddress].decimals = decimals;
+        _usdRates[contractAddress].decimals0 = decimals0;
+        _usdRates[contractAddress].decimals1 = decimals1;
         _usdRates[contractAddress].reverse = reverse;
         return true;
     }
@@ -75,6 +84,20 @@ contract Proxy is AccessControl {
         );
     }
 
+    function getUsdRateDecimals (
+        address contractAddress
+    ) external view returns (
+        uint8 decimals,
+        uint8 decimals0,
+        uint8 decimals1
+    ) {
+        return (
+            _usdRates[contractAddress].decimals,
+            _usdRates[contractAddress].decimals0,
+            _usdRates[contractAddress].decimals1
+        );
+    }
+
     function getUsdRate (
         address contractAddress
     ) external view returns (uint256) {
@@ -93,11 +116,22 @@ contract Proxy is AccessControl {
         uint112 reserve1;
         (reserve0, reserve1,) = lpToken.getReserves();
         if (reserve0 == 0 || reserve1 == 0) return 0;
+        if (_usdRates[contractAddress].decimals0 < 18) {
+            reserve0 *= uint112(10 ** (18 - _usdRates[contractAddress].decimals0));
+        }
+        if (_usdRates[contractAddress].decimals1 < 18) {
+            reserve1 *= uint112(10 ** (18 - _usdRates[contractAddress].decimals1));
+        }
         uint256 rate;
         if (_usdRates[contractAddress].reverse) {
-            rate = SHIFT * uint256(reserve1) / uint256(reserve0);
+            rate = SHIFT
+                * uint256(reserve1) / uint256(reserve0);
         } else {
-            rate = SHIFT * uint256(reserve0) / uint256(reserve1);
+            rate = SHIFT
+                * uint256(reserve0) / uint256(reserve1);
+        }
+        if (_usdRates[contractAddress].decimals < 18) {
+            rate *= 10 ** (18 - _usdRates[contractAddress].decimals);
         }
         if (_usdRates[contractAddress].rateType == 0) {
             return rate;

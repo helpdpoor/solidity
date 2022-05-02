@@ -43,12 +43,8 @@ contract LendingContract is MarketingIndexesContract {
             _rewardContract.updateRewardData(
                 msg.sender,
                 borrowingProfileIndex,
-                _lendings[lendingIndex].amount
-                    * getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress)
-                    / SHIFT,
+                _lendings[lendingIndex].amount,
                 _borrowingProfiles[borrowingProfileIndex].totalLent
-                    * getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress)
-                    / SHIFT
             );
         }
         _takeAsset(
@@ -78,12 +74,8 @@ contract LendingContract is MarketingIndexesContract {
             _rewardContract.updateRewardData(
                 msg.sender,
                 borrowingProfileIndex,
-                _lendings[lendingIndex].amount
-                    * getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress)
-                    / SHIFT,
+                _lendings[lendingIndex].amount,
                 _borrowingProfiles[borrowingProfileIndex].totalLent
-                    * getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress)
-                    / SHIFT
             );
         }
         return true;
@@ -103,33 +95,22 @@ contract LendingContract is MarketingIndexesContract {
         _proceedMarketingIndexes(borrowingProfileIndex);
         _updateLendingYield(lendingIndex);
         require(_lendings[lendingIndex].amount >= amount, '47');
-        if (_borrowingProfiles[borrowingProfileIndex].totalLent == amount) {
-            require(
-                _borrowingProfiles[borrowingProfileIndex].totalBorrowed == 0,
-                    '47.1'
-            );
-        } else {
-            require(
-                _borrowingProfiles[borrowingProfileIndex].totalBorrowed * DECIMALS
-                    / (_borrowingProfiles[borrowingProfileIndex].totalLent - amount)
-                        <= 9500,
-                            '47.1'
-            );
-        }
-        _lendings[lendingIndex].amount -= amount;
-        _borrowingProfiles[borrowingProfileIndex].totalLent -= amount;
+        require(
+            _borrowingProfiles[borrowingProfileIndex].totalBorrowed * DECIMALS
+                / (_borrowingProfiles[borrowingProfileIndex].totalLent - amount)
+                    <= 9500,
+            '47.1'
+        );
         if (address(_rewardContract) != address(0)) {
             _rewardContract.updateRewardData(
                 msg.sender,
                 borrowingProfileIndex,
-                _lendings[lendingIndex].amount
-                    * getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress)
-                    / SHIFT,
+                _lendings[lendingIndex].amount,
                 _borrowingProfiles[borrowingProfileIndex].totalLent
-                    * getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress)
-                    / SHIFT
             );
         }
+        _lendings[lendingIndex].amount -= amount;
+        _borrowingProfiles[borrowingProfileIndex].totalLent -= amount;
         _sendAsset(
             _borrowingProfiles[borrowingProfileIndex].contractAddress,
             msg.sender,
@@ -230,9 +211,7 @@ contract LendingContract is MarketingIndexesContract {
         if (
             !_borrowingProfiles[borrowingProfileIndex].active
         ) return 0;
-        return _borrowingProfiles[borrowingProfileIndex].totalLent
-            * getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress)
-            / SHIFT;
+        return _borrowingProfiles[borrowingProfileIndex].totalLent;
     }
 
     function getUserProfileLent (
@@ -243,8 +222,6 @@ contract LendingContract is MarketingIndexesContract {
         ) return 0;
         return _lendings[
             _usersLendingIndexes[userAddress][borrowingProfileIndex]
-        ].amount
-            * getUsdRate(_borrowingProfiles[borrowingProfileIndex].contractAddress)
-            / SHIFT;
+        ].amount;
     }
 }

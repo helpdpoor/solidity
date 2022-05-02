@@ -8,12 +8,15 @@ const {ethers} = require("hardhat");
 
 async function main() {
   const OWNER = '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA';
-  const PROXY = '0x6Da88dCE0AD9F850d4F1b5C147815c492E7A6dED';
+  const NETNA = '0xecBB155027262635ccE355a4F13e9643F8A37Df4';
 
   await hre.run("verify:verify", {
-    address: PROXY,
+    address: NETNA,
     constructorArguments: [
-      OWNER
+      OWNER,
+      'NETNA',
+      'NETNA',
+      ethers.utils.parseUnits('10000000')
     ],
   });
 }
@@ -26,3 +29,4 @@ main()
     console.error(error);
     process.exit(1);
   });
+// npx hardhat verify --contract contracts/netna.sol:NETNA 0x279020017E7aa4cD7E35273CcF3DB2223475d7B3 0x5011f31d9969Fb0B31766435829Df66Afa04D6FA 'NETNA' 'NETNA' 10000000000000000000000000  --network bscMainnet

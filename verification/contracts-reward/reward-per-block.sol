@@ -138,9 +138,6 @@ contract RewardPerBlock is AccessControl {
         }
     }
 
-    /**
-     * @dev Let users withdraw accrued reward
-     */
     function withdrawReward () external returns (bool) {
         uint256 profilesNumber = _borrowingLendingContract
             .getBorrowingProfilesNumber();
@@ -171,33 +168,7 @@ contract RewardPerBlock is AccessControl {
         return true;
     }
 
-    /**
-     * @dev This function update total lent and user's lent amount
-     * when user lend or withdraw lending
-     */
-    function updateRewardData (
-        address userAddress,
-        uint256 profileId,
-        uint256 lent,
-        uint256 totalLent
-    ) external onlyBorrowingLendingContract returns (bool) {
-        _updateProfileReward (
-            profileId
-        );
-        _updateUserProfileReward(
-            userAddress,
-            profileId
-        );
-        _profiles[profileId].lastTotalLentAmount = totalLent;
-        _userProfiles[userAddress][profileId].lastLentAmount = lent;
-        return true;
-    }
-
     // manager function
-    /**
-     * @dev Block time is used for reference only, all calculations in the contract
-     * are time based.
-     */
     function setBlockTime (
         uint256 blockTime
     ) external onlyManager returns (bool) {
@@ -206,9 +177,6 @@ contract RewardPerBlock is AccessControl {
         return true;
     }
 
-    /**
-     * @dev Borrowing contract is the source of information for reward calculation
-     */
     function setBorrowingContract (
         address blContractAddress
     ) external onlyManager returns (bool) {
@@ -220,12 +188,6 @@ contract RewardPerBlock is AccessControl {
         return true;
     }
 
-    /**
-     * @dev Accrued reward is distributed between deposit profiles of the
-     * borrowing-lending contracts according to the percentage that is defined
-     * for each borrowing profile. This function allows manager to update borrowing
-     * profiles percentage
-     */
     function setRewardPercentage (
         uint256[] memory percentage
     ) external onlyManager returns (bool) {
@@ -242,26 +204,17 @@ contract RewardPerBlock is AccessControl {
         return true;
     }
 
-    /**
-     * @dev This function allows manager to update reward settings
-     */
     function setRewardData (
         uint256 duration,
         uint256 endTime,
         uint256 rewardPool
     ) external onlyManager returns (bool) {
-        _updateTotalReward();
         _duration = duration;
         _endTime = endTime;
         _rewardPool = rewardPool;
         return true;
     }
 
-    /**
-     * @dev Proxy contract is used for a tokens usd rate calculation
-     * (usually based on LP pairs with stablecoins). This function let set
-     * proxy contract address
-     */
     function setProxyContract (
         address proxyContractAddress
     ) external onlyManager returns (bool) {
@@ -269,10 +222,6 @@ contract RewardPerBlock is AccessControl {
         return true;
     }
 
-    /**
-     * @dev This function is for a reward contract migration. It collect total lent data
-     * from the borrowing-lending contract
-     */
     function setProfilesTotalLent () external onlyManager returns (bool) {
         uint256 profilesNumber = _borrowingLendingContract
             .getBorrowingProfilesNumber();
@@ -285,10 +234,6 @@ contract RewardPerBlock is AccessControl {
         return true;
     }
 
-    /**
-     * @dev This function is for a reward contract migration. It collect users lent data
-     * from the borrowing-lending contract for array of addresses.
-     */
     function setUserProfilesLent (
         address[] calldata userAddresses
     ) external onlyManager returns (bool) {
@@ -317,7 +262,6 @@ contract RewardPerBlock is AccessControl {
         return true;
     }
 
-    // internal functions
     function _updateTotalReward () internal returns (bool) {
         uint256 profilesNumber = _borrowingLendingContract
             .getBorrowingProfilesNumber();
@@ -355,7 +299,6 @@ contract RewardPerBlock is AccessControl {
         uint256 period = endTime
             - _profiles[profileId].lastTimestamp;
         if (period == 0) return true;
-
         uint256 profileRewardPerToken = SHIFT
             * _rewardPool
             * period
@@ -387,6 +330,24 @@ contract RewardPerBlock is AccessControl {
             = _profiles[profileId].rewardPerToken;
         _userProfiles[userAddress][profileId].updatedAt =
             _profiles[profileId].lastTimestamp;
+        return true;
+    }
+
+    function updateRewardData (
+        address userAddress,
+        uint256 profileId,
+        uint256 lent,
+        uint256 totalLent
+    ) external onlyBorrowingLendingContract returns (bool) {
+        _updateProfileReward (
+            profileId
+        );
+        _updateUserProfileReward(
+            userAddress,
+            profileId
+        );
+        _profiles[profileId].lastTotalLentAmount = totalLent;
+        _userProfiles[userAddress][profileId].lastLentAmount = lent;
         return true;
     }
 

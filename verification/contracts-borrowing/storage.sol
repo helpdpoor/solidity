@@ -133,7 +133,7 @@ contract StorageContract is UtilsContract {
     // exponent shifting when calculation with decimals for market index and usd rate
     uint256 internal constant DECIMALS = 10000;
     // exponent shifting when calculation with decimals for percents
-    uint256 internal _lockTime = 0; // period when withdraw lending is prohibited
+    uint256 internal _lockTime = 86400; // period when withdraw lending is prohibited
     uint16 internal _aprBorrowingMin; // % * 100
     uint16 internal _aprBorrowingMax; // % * 100
     uint16 internal _aprBorrowingFixed; // % * 100
