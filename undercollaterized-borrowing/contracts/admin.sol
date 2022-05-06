@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
-import './storage.sol';
+import './accessControl.sol';
+import './utils.sol';
 
 /**
  * @dev Specific functions for administrator.
  */
-contract AdminContract is StorageContract {
+contract AdminContract is UtilsContract {
     /**
      * @dev Function for withdrawing assets, both native currency and erc20 tokens.
      */

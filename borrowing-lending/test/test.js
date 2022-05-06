@@ -2820,7 +2820,27 @@ describe("Testing contract", function () {
     tokensValue -= lastTokenPrice;
 
     await nftCollateralContract.connect(signers[2])
-      .withdrawNftCollateral(tokensArray);
+      .withdrawNftCollateral([
+        9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+        27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
+        47, 48, 49, 50, 51, 52, 53
+      ]);
+
+    expect(
+      Number(await nftCollateralContract.getUserTokensNumber(signers[2].address))
+    ).to.equal(5);
+    for (let i = 1; i <= 5; i ++) {
+      result = Number(await nftCollateralContract.getUserTokenByIndex(signers[2].address, i));
+      expect(result).to.greaterThan(0);
+      expect(Number(
+        await nftCollateralContract.getUserTokenIndexByTokenId(signers[2].address, result)
+      )).to.equal(i);
+    }
+
+    await nftCollateralContract.connect(signers[2])
+      .withdrawNftCollateral([
+        7,  8, 54, 55
+      ]);
 
     result = Number(ethers.utils.formatUnits(
       await nEtnaContract.balanceOf(collateralContract.address)

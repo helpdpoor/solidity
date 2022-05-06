@@ -1,79 +1,113 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
 
-import './roles.sol';
-
 /**
- * @dev Partial interface of the PancakeRouter contract.
+ * @dev Partial interface of the ERC20 standard.
  */
-interface IPancakeRouter {
-    function swapExactTokensForTokens(
-        uint amountIn,
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external external returns (uint[] memory amounts);
-    function swapTokensForExactTokens(
-        uint amountOut,
-        uint amountInMax,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external virtual override ensure(deadline) returns (uint[] memory amounts);
-    function factory() external view returns (address);
+interface IERC20 {
+    function transfer(
+        address recipient, uint256 amount
+    ) external returns (bool);
 }
 
 /**
- * @dev Partial interface of the PancakeFactory contract.
+ * @dev Partial interface of the Access vault contract.
  */
-interface IPancakeFactory {
-    function getPair(address tokenA, address tokenB) external view returns (address pair);
+interface IAccessVault {
+    function borrow() external returns (bool);
+    function getExchangeRouter() external view returns (address);
+    function getBaaOwner() external view returns (address);
 }
 
 /**
- * @dev Partial interface of the ERC20 standard according to the needs of the e2p contract.
+ * @dev Partial interface of the Exchange router contract.
  */
-interface IERC20_LP {
-    function totalSupply() external view returns (uint256);
-    function getReserves() external view returns (uint112, uint112, uint32);
+interface IExchangeRouter {
+    function swapTokens() external returns (bool);
 }
 
-contract Baa is Roles {
-    address private _router;
-    address private _factory;
-
-    constructor (
-        address newOwner
-    ) {
-        require(newOwner != address(0), 'Owner address can not be zero');
-        addToManagers(newOwner);
-        transferOwnership(newOwner);
+contract Baa {
+    modifier onlyAccessVault() {
+        require(msg.sender == _accessVault, '792');
+        _;
+    }
+    modifier onlyOwner() {
+        require(
+            msg.sender == _accessVault.getBaaOwner(address(this)),
+                'Caller is not the owner'
+        );
+        _;
     }
 
-    // manager functions
-    function setRouterData (
-        address router,
-        address factory
-    ) external onlyManager returns (bool) {
-        _router = router;
-        _factory = factory;
+    IAccessVault private _accessVault;
+    bool private _reentrancyFlag;
+
+    constructor (
+        address accessVaultAddress
+    ) {
+        require(accessVaultAddress != address(0), 'Access vault address can not be zero');
+        _accessVault = IAccessVault(accessVaultAddress);
+    }
+
+    /*
+     * getting current swap rate for a tokens pair
+     */
+    function borrow (
+        address tokenAddress,
+        uint256 amount
+    ) external onlyOwner returns (bool) {
+        _accessVault.borrow(tokenAddress, amount);
         return true;
     }
 
-
-    function getSwapRate(
-        address token0,
-        address token1
-    ) public view returns (uint256) {
-
-        IERC20_LP lpToken = IERC20_LP(contractAddress);
-        uint112 reserve0;
-        uint112 reserve1;
-        (reserve0, reserve1,) = lpToken.getReserves();
-        if (reserve0 == 0 || reserve1 == 0) return 0;
-        uint256 rate;
-        return SHIFT * uint256(reserve0) / uint256(reserve1);
+    /*
+     * getting current swap rate for a tokens pair
+     */
+    function swapTokens (
+        address tokenAddressA,
+        address tokenAddressB,
+        uint256 amount
+    ) external onlyOwner returns (bool) {
+        IExchangeRouter _exchangeRouter
+            = IExchangeRouter(_accessVault.getExchangeRouter());
+        _exchangeRouter.swapTokens(
+            tokenAddressA,
+            tokenAddressB,
+            amount
+        );
+        return true;
     }
 
+    function setAccessVault (
+        address accessVaultAddress
+    ) external onlyAccessVault returns (bool) {
+        require(accessVaultAddress != address(0), 'Access vault address can not be zero');
+        _accessVault = IAccessVault(accessVaultAddress);
+        return true;
+    }
+
+    function getAccessVault () external view returns (address) {
+        return address(_accessVault);
+    }
+    
+    /**
+     * @dev Function for withdrawing assets, both native currency and erc20 tokens.
+     */
+    function withdraw (
+        address tokenAddress, uint256 amount
+    ) external onlyAccessVault returns (bool) {
+        require(
+            !_reentrancyFlag, 'Reentrancy not allowed'
+        );
+        _reentrancyFlag = true;
+        
+        if (tokenAddress == address(0)) {
+            payable(_accessVault).transfer(amount);
+        } else {
+            IERC20 tokenContract = IERC20(tokenAddress);
+            require(tokenContract.transfer(_accessVault, amount));
+        }
+        
+        return true;
+    }
 }

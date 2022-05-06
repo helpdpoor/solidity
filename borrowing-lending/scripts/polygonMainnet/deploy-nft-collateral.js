@@ -8,21 +8,32 @@ const {ethers} = require("hardhat");
 
 async function main() {
   const OWNER = '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA';
-  const COLLATERAL = '0x34ccAB89934927d36A8204dB3B92Fac1Ebd97FE6';
-  const NFT_COLLATERAL = '0x0e4580413c7BFcb433E36DAEbD64614b95935aD0';
   const NFT = '0x1afc77170C1aadfF375e9e32D95C99C4d787aBe2';
   const MARKETPLACE = '0xE098E7C3C2Cd9bfbC9fcc4F3eD32bD5420f557f6';
 
-  await hre.run("verify:verify", {
-    address: NFT_COLLATERAL,
-    constructorArguments: [
-      MARKETPLACE,
-      NFT,
-      COLLATERAL,
-      OWNER,
-      7
-    ],
-  });
+  const deployedContracts = {
+    COLLATERAL: '0x5E57b7f620f24879A11d8a1A2f17c0DD22997975',
+    NFT_COLLATERAL: '',
+  };
+
+  const Collateral = await ethers.getContractFactory("CollateralWithLiquidationContract");
+  const collateralContract = await Collateral.attach(deployedContracts.COLLATERAL);
+
+  const NftCollateral = await ethers.getContractFactory("NftCollateral");
+  const nftCollateralContract = await NftCollateral.deploy(
+    MARKETPLACE,
+    NFT,
+    collateralContract.address,
+    OWNER,
+    7 // NETNA collateral profile index
+  );
+  await nftCollateralContract.deployed();
+  console.log(`Nft Collateral contract address: ${nftCollateralContract.address}`);
+
+  await collateralContract
+    .setNftCollateralContract (
+      nftCollateralContract.address
+    );
 }
 
 // We recommend this pattern to be able to use async/await everywhere
