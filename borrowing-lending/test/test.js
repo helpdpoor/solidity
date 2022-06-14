@@ -5320,6 +5320,66 @@ describe("Testing contract", function () {
         false
       );
   });
+
+  it("Lending using tokens with different decimals with compound", async function () {
+    const d = {
+      lendingAmount: 2500,
+    };
+    const e = {};
+    const b = {};
+    const compound = true;
+    // const compound = false;
+
+    await blContract.connect(signers[0])
+      .lend(1, ethers.utils.parseUnits(
+        d.lendingAmount.toString(),
+        6
+      ));
+
+    await hre.timeAndMine.increaseTime('10 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    d.yield = await blContract.getLendingYield(1, true);
+    await blContract.connect(signers[0]).compound(1);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await blContract.getLendingYield(1, true), 6
+    )), 4)).to.equal(0);
+
+    await hre.timeAndMine.increaseTime('10 hours');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+      await blContract.connect(signers[1])
+        .lend(1, ethers.utils.parseUnits(
+          d.lendingAmount.toString(),
+          6
+        ));
+
+    await hre.timeAndMine.increaseTime('5 hours');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+    d.apr = Number(ethers.utils.formatUnits(await blContract.getLendingApr(1), 4));
+    d.lendingAmount += Number(ethers.utils.formatUnits(d.yield, 6));
+    e.yield = d.lendingAmount * 15 / (365 * 24) * d.apr;
+    d.yield = await blContract.getLendingYield(1, true);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      d.yield, 6
+    )), 4)).to.equal(roundTo(e.yield, 4));
+    b.s0 = Number(ethers.utils.formatUnits(
+      await borrowing1Contract.balanceOf(signers[0].address), 6
+    ));
+    await blContract.connect(signers[0]).withdrawLendingYield(1, d.yield);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await borrowing1Contract.balanceOf(signers[0].address), 6
+    )), 4)).to.equal(roundTo(b.s0 + e.yield, 4));
+  });
 });
 
 function roundTo(a, b) {

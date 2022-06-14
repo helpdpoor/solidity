@@ -68,6 +68,8 @@ contract LendingContract is MarketingIndexesContract {
             '42');
         uint256 lendingIndex = _usersLendingIndexes[msg.sender][borrowingProfileIndex];
         require(lendingIndex > 0, '44');
+
+        _proceedMarketingIndexes(borrowingProfileIndex);
         _updateLendingYield(lendingIndex);
 
         uint256 yield = _lendings[lendingIndex].accumulatedYield;
@@ -148,6 +150,7 @@ contract LendingContract is MarketingIndexesContract {
         require(_borrowingProfiles[borrowingProfileIndex].contractAddress != address(0),
             '50');
         require(amount > 0, '51');
+        _proceedMarketingIndexes(borrowingProfileIndex);
         _updateLendingYield(lendingIndex);
         require(_lendings[lendingIndex].accumulatedYield >= amount, '52');
 

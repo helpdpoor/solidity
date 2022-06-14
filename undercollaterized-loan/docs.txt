@@ -1,0 +1,13 @@
+1. User should check is BAA contract for certain token exists.
+  function getUserBaaAddress (address userAddress, address tokenAddress) external view returns (address)
+2. If returns zero address user should send transaction to the Access Vault contract to create BAA contract for this token.
+  function deployBaa (address tokenAddress) external returns (address)
+3. When user knows his BAA he can interact with this contract (BAA is for a certain token only):
+  a. function deposit (uint256 amount) external onlyOwner returns (bool)
+  b. function withdrawDeposit (uint256 amount) external onlyOwner returns (bool)
+  c. function borrow (uint256 amount) external onlyOwner returns (bool)
+  d. function returnLoan (uint256 amount) external onlyOwner returns (bool)
+
+
+ Mainnet fork in cli:
+ npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/GAehRAmTTu_43baDn8h6tRMLQTUcfMFa --fork-block-number 10207859

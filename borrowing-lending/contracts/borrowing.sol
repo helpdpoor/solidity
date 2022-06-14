@@ -150,7 +150,7 @@ contract BorrowingContract is MarketingIndexesContract, BorrowingFeeContract {
                 + _getBorrowingFee(borrowingIndex))
                 * getUsdRate(_borrowingProfiles[i].contractAddress)
                 / SHIFT;
-
+            _proceedMarketingIndexes(i);
             _updateBorrowingFee(borrowingIndex);
             _borrowingProfiles[i].totalLiquidated += (_borrowings[borrowingIndex].amount
                 + _borrowings[borrowingIndex].accumulatedFee);
