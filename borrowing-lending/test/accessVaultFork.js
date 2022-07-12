@@ -1,11 +1,11 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
+const {alchemyApiKey} = require("../secrets.json");
 
 const d = {};
-const { alchemyApiKey } = require('../secrets.json');
 
 // Start test block
-describe('exchangeRouter.js - Exchange router testing', function () {
+describe('accessVaultFork.js - Access vault testing', function () {
   beforeEach(async function () {
     await hre.network.provider.request({
       method: "hardhat_reset",
@@ -25,6 +25,7 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     d.zero = '0x0000000000000000000000000000000000000000';
     d.borrowingFee = 1000;
     d.minimalStake = 10000;
+    d.negativeFactor = 6000;
     d.borrowingPowerData = [
       15000, 20000, 25000, 30000, 40000, 50000
     ];
@@ -75,8 +76,8 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     // console.log("Exchange router proxy admin deployed to:", d.exchangeRouterProxyAdmin.address);
 
     d.ExchangeRouter = await ethers.getContractFactory("ExchangeRouter");
-    d.exchangeRouter = await d.ExchangeRouter.connect(d.owner).deploy();
-    await d.exchangeRouter.deployed();
+    d.exchangeRouterImplementation = await d.ExchangeRouter.connect(d.owner).deploy();
+    await d.exchangeRouterImplementation.deployed();
     // console.log("Exchange router deployed to:", d.exchangeRouter.address);
 
     d.ABI = [
@@ -92,17 +93,17 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     );
 
     d.exchangeRouterProxy = await d.ExchangeRouterProxy.connect(d.owner).deploy(
-      d.exchangeRouter.address,
+      d.exchangeRouterImplementation.address,
       d.exchangeRouterProxyAdmin.address,
       d.calldata
     );
     await d.exchangeRouterProxy.deployed();
     // console.log("Exchange router proxy deployed to:", d.exchangeRouterProxy.address);
 
-    d.exchangeRouterConnect = new ethers.Contract(
+    d.exchangeRouter = new ethers.Contract(
       d.exchangeRouterProxy.address,
-      d.exchangeRouter.interface.format(ethers.utils.FormatTypes.json),
-      d.exchangeRouterProxy.provider
+      d.exchangeRouterImplementation.interface.format(ethers.utils.FormatTypes.json),
+      d.exchangeRouterImplementation.provider
     );
 
     d.BEP20Token = await ethers.getContractFactory("BEP20Token");
@@ -152,7 +153,7 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     );
     await d.etna.connect(d.owner).transfer(
       d.signers[3].address, ethers.utils.parseUnits(d.initialTransfer.toString())
-  );
+    );
     await d.etna.connect(d.owner).transfer(
       d.signers[4].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
@@ -170,11 +171,46 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     await d.upgradeableBeacon.deployed();
     // console.log("Beacon deployed to:", d.upgradeableBeacon.address);
 
-    d.BorrowingLending= await ethers.getContractFactory("BorrowingLending");
-    d.borrowingLending = await d.BorrowingLending.connect(d.owner).deploy(
-      d.busd.address, d.usdt.address
+    d.ProxyAdmin = await ethers.getContractFactory(
+      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
     );
-    await d.borrowingLending.deployed();
+    d.proxyAdmin = await d.ProxyAdmin.connect(d.owner).deploy();
+    await d.proxyAdmin.deployed();
+
+    const BorrowingLending = await ethers.getContractFactory("BorrowingLending");
+    d.blImplementation = await BorrowingLending.connect(d.owner).deploy();
+    await d.blImplementation.deployed();
+
+    d.ABI = [
+      "function initialize(address, uint16, uint16, uint16, uint16, uint16)"
+    ];
+    d.iface = new ethers.utils.Interface(d.ABI);
+    d.calldata = d.iface.encodeFunctionData("initialize", [
+      d.owner.address,
+      2000,
+      4000,
+      500,
+      1000,
+      3000
+    ]);
+
+    d.Proxy = await ethers.getContractFactory(
+      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
+    );
+    d.blProxy = await d.Proxy.connect(d.owner).deploy(
+      d.blImplementation.address,
+      d.proxyAdmin.address,
+      d.calldata
+    );
+    await d.blProxy.deployed();
+
+    // connect to blProxy contract using blImplementation ABI
+    d.borrowingLending = new ethers.Contract(
+      d.blProxy.address,
+      d.blImplementation.interface.format(ethers.utils.FormatTypes.json),
+      d.blImplementation.provider
+    );
+
     // console.log("Borrowing Lending deployed to:", d.borrowingLending.address);
     await d.busd.connect(d.owner).transfer(
       d.borrowingLending.address, ethers.utils.parseUnits('10000')
@@ -231,17 +267,9 @@ describe('exchangeRouter.js - Exchange router testing', function () {
       d.borrowingPowerData
     );
 
-    d.AccessVaultProxyAdmin = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
-    );
-    d.accessVaultProxyAdmin = await d.AccessVaultProxyAdmin.connect(d.owner).deploy();
-    await d.accessVaultProxyAdmin.deployed();
-    // console.log("Access vault proxy admin deployed to:", d.accessVaultProxyAdmin.address);
-
     d.AccessVault = await ethers.getContractFactory("AccessVault");
-    d.accessVault = await d.AccessVault.connect(d.owner).deploy();
-    await d.accessVault.deployed();
-    // console.log("Access vault deployed to:", d.accessVault.address);
+    d.accessVaultImplementation = await d.AccessVault.connect(d.owner).deploy();
+    await d.accessVaultImplementation.deployed();
 
     d.ABI = [
       "function initialize(address newOwner, address borrowingLendingAddress, address borrowingPowerAddress, address baaBeaconAddress, uint256 borrowingFee)"
@@ -255,105 +283,128 @@ describe('exchangeRouter.js - Exchange router testing', function () {
       d.borrowingFee
     ]);
 
-    d.AccessVaultProxy = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
-    );
-    d.accessVaultProxy = await d.AccessVaultProxy.connect(d.owner).deploy(
-      d.accessVault.address,
-      d.accessVaultProxyAdmin.address,
+    d.accessVaultProxy = await d.Proxy.connect(d.owner).deploy(
+      d.accessVaultImplementation.address,
+      d.proxyAdmin.address,
       d.calldata
     );
     await d.accessVaultProxy.deployed();
     // console.log("Access vault proxy deployed to:", d.accessVaultProxy.address);
 
-    d.accessVaultConnect = new ethers.Contract(
+    d.accessVault = new ethers.Contract(
       d.accessVaultProxy.address,
-      d.accessVault.interface.format(ethers.utils.FormatTypes.json),
-      d.accessVaultProxy.provider
+      d.accessVaultImplementation.interface.format(ethers.utils.FormatTypes.json),
+      d.accessVaultImplementation.provider
     );
-    await d.accessVaultConnect.connect(d.owner).addToManagers(
+
+    await d.borrowingLending.connect(d.owner).setAccessVault(d.accessVault.address);
+
+    await d.accessVault.connect(d.owner).addToManagers(
       d.manager.address
     );
-    await d.accessVaultConnect.connect(d.manager).setStablecoinProfileId(
+    await d.accessVault.connect(d.manager).setStablecoinProfileId(
       d.busd.address, 1
     );
-    await d.accessVaultConnect.connect(d.manager).setStablecoinProfileId(
+    await d.accessVault.connect(d.manager).setStablecoinProfileId(
       d.usdt.address, 2
     );
-    await d.accessVaultConnect.connect(d.manager).setTokenAvailable(
+    expect(Number(
+      await d.accessVault.getStablecoinsNumber()
+    )).to.equal(2);
+    await d.accessVault.connect(d.manager).setStablecoinProfileId(
+      d.usdt.address, 2
+    );
+    await d.accessVault.connect(d.manager).setTokenAvailable(
       d.etna.address, true
     );
-    await d.accessVaultConnect.connect(d.manager).setExchangeRouter(
-      d.exchangeRouterConnect.address
+    await d.accessVault.connect(d.manager).setExchangeRouter(
+      d.exchangeRouter.address
+    );
+    await d.accessVault.connect(d.manager).setNegativeFactor(
+      d.negativeFactor
     );
   });
 
   // Test case
-  it('Exchange router get rate', async function () {
-    expect(
-      await d.exchangeRouterConnect.getImplementationContract(d.usdt.address, d.etna.address)
-    ).to.equal(d.exchangeRouterPancakeSwap.address);
-    d.pairAddressUsdt = await d.factory.getPair(d.usdt.address, d.etna.address);
-    d.UniswapV2Pair = await ethers.getContractFactory('contracts/UniswapV2Pair.sol:UniswapV2Pair');
-    d.lpUsdt = await d.UniswapV2Pair.attach(d.pairAddressUsdt);
-    d.result = await d.lpUsdt.getReserves();
-    expect(roundTo(Number(ethers.utils.formatUnits(
-      await d.exchangeRouterPancakeSwap.getSwapRate(d.usdt.address, d.etna.address)
-    )), 6)).to.equal(roundTo(d.result._reserve0 / (d.result._reserve1 * 10**12), 6));
-    await expect(
-      d.exchangeRouterPancakeSwap.getSwapRate(d.busd.address, d.etna.address)
-    ).to.be.reverted;
-  });
-
-  it('Exchange router get amount out', async function () {
-    d.swapOut = Number(ethers.utils.formatUnits(
-      await d.exchangeRouterPancakeSwap.getSwapAmount(
-        d.usdt.address,
-        d.etna.address,
-        ethers.utils.parseUnits('1', 6)
-      )
-    ));
-    d.balances.s0_etna = Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.signers[0].address)
-    ));
-    await d.usdt.connect(d.owner).approve(
-      d.router.address, ethers.utils.parseUnits('1', 6)
+  it('Baa deposit/borrow, return loan', async function () {
+    await d.usdt.connect(d.owner).transfer(
+      d.accessVault.address, ethers.utils.parseUnits(d.initialTransfer.toString(), 6)
     );
-    await d.router.connect(d.owner).swapExactTokensForTokens(
-      ethers.utils.parseUnits('1', 6),
-      0,
-      [d.usdt.address, d.etna.address],
-      d.signers[0].address,
-      d.neverLate
+    await d.accessVault.connect(d.signers[0]).deployBaa(d.usdt.address, d.etna.address);
+    d.baaProxy = {
+      address: await d.accessVault.getUserBaaAddress(
+        d.signers[0].address, d.usdt.address, d.etna.address
+      ),
+    }
+    d.baaProxy = new ethers.Contract(
+      d.baaProxy.address,
+      d.baa.interface.format(ethers.utils.FormatTypes.json),
+      d.signers[0]
     );
-    expect(roundTo(Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.signers[0].address)
-    )), 6)).to.equal(roundTo(d.balances.s0_etna + d.swapOut, 6));
-  });
-
-  it('Exchange router swap tokens', async function () {
-    d.swapOut = Number(ethers.utils.formatUnits(
-      await d.exchangeRouterPancakeSwap.getSwapAmount(
-        d.usdt.address,
-        d.etna.address,
-        ethers.utils.parseUnits('1', 6)
-      )
+    d.loan = 100;
+    d.balances.s0Balance = Number(ethers.utils.formatUnits(
+      await d.usdt.balanceOf(d.signers[0].address), 6
     ));
-    d.balances.s0_etna = Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.signers[0].address)
+    d.balances.accessVault = Number(ethers.utils.formatUnits(
+      await d.usdt.balanceOf(d.accessVault.address), 6
     ));
+    d.balances.baaProxy = Number(ethers.utils.formatUnits(
+      await d.usdt.balanceOf(d.baaProxy.address), 6
+    ));
+    d.borrowingPower = Number(ethers.utils.formatUnits(
+      await d.borrowingPower.getUserBorrowingPower(d.signers[0].address), 4
+    ));
+    d.deposit = d.loan / d.borrowingPower;
     await d.usdt.connect(d.signers[0]).approve(
-      d.exchangeRouterPancakeSwap.address, ethers.utils.parseUnits('1', 6)
+      d.accessVault.address, ethers.utils.parseUnits(d.deposit.toString(), 6)
     );
-    await d.exchangeRouterPancakeSwap.connect(d.signers[0]).swapTokens(
-      d.usdt.address,
-      d.etna.address,
-      ethers.utils.parseUnits('1', 6),
-      0
+    await d.accessVault.connect(d.signers[0]).borrow(
+      d.baaProxy.address,
+      ethers.utils.parseUnits(d.loan.toString(), 6)
+    );
+    expect(Number(ethers.utils.formatUnits(
+      await d.usdt.balanceOf(d.signers[0].address), 6
+    ))).to.equal(d.balances.s0Balance - d.deposit);
+    expect(Number(ethers.utils.formatUnits(
+      await d.usdt.balanceOf(d.baaProxy.address), 6
+    ))).to.equal(d.balances.baaProxy + d.loan);
+    expect(Number(ethers.utils.formatUnits(
+      await d.usdt.balanceOf(d.accessVault.address), 6
+    ))).to.equal(d.balances.accessVault + d.deposit - d.loan);
+    await hre.timeAndMine.increaseTime('10 days');
+    await d.signers[0].sendTransaction({
+      to: d.signers[1].address,
+      value: 0
+    });
+    d.result = await d.accessVault.getFactors();
+    d.borrowingFeeFactor = Number(ethers.utils.formatUnits(d.result.borrowingFeeFactor, 4));
+    d.expectedFee = d.loan * d.borrowingFeeFactor * 10 / 365;
+    d.actualFee = Number(ethers.utils.formatUnits(
+      await d.accessVault.calculateFee(d.baaProxy.address, true), 6
+    ));
+    expect(roundTo(d.expectedFee, 4)).to.equal(roundTo(d.actualFee, 4));
+    await d.accessVault.connect(d.signers[0]).returnLoan(
+      d.baaProxy.address, ethers.utils.parseUnits(d.loan.toString(), 6)
     );
     expect(roundTo(Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.signers[0].address)
-    )), 6)).to.equal(roundTo(d.balances.s0_etna + d.swapOut, 6));
+      await d.usdt.balanceOf(d.baaProxy.address), 6
+    )), 4)).to.equal(0);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await d.usdt.balanceOf(d.accessVault.address), 6
+    )), 4)).to.equal(roundTo(d.balances.accessVault + d.actualFee / d.borrowingPower, 4));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await d.accessVault.getOwedAmount(d.baaProxy.address), 6
+    )), 4)).to.equal(roundTo(d.actualFee, 4));
+    d.result = await d.accessVault.getBaaData(d.baaProxy.address);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      d.result.depositAmount, 6
+    )), 4)).to.equal(roundTo(d.actualFee / d.borrowingPower, 4));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      d.result.loanAmount, 6
+    )), 4)).to.equal(roundTo(d.actualFee, 4));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      d.result.accumulatedFee, 6
+    )), 4)).to.equal(0);
   });
 });
 

@@ -2,9 +2,9 @@
 pragma solidity 0.8.2;
 
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "./BeaconProxy.sol";
+import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import './Storage.sol';
-import './TransferHelper.sol';
+import '../../common/TransferHelper.sol';
 import 'hardhat/console.sol';
 
 contract AccessVault is Initializable, Storage {
@@ -22,6 +22,19 @@ contract AccessVault is Initializable, Storage {
                 '1.2'
         );
         _;
+    }
+    modifier onlyBorrowingLending() {
+        require(
+            msg.sender == _borrowingLending,
+                '1.2'
+        );
+        _;
+    }
+    modifier nonReentrant() {
+        require(_reentrancyStatus != _ENTERED, '80');
+        _reentrancyStatus = _ENTERED;
+        _;
+        _reentrancyStatus = _NOT_ENTERED;
     }
 
     event Borrow (
@@ -61,14 +74,14 @@ contract AccessVault is Initializable, Storage {
 
     function initialize (
         address newOwner,
-        address borrowingLendingAddress,
+        address borrowingLending,
         address borrowingPowerAddress,
         address baaBeaconAddress,
         uint256 borrowingFeeFactor
     ) public initializer returns (bool) {
         require(newOwner != address(0), '2.1');
         require(
-            borrowingLendingAddress != address(0),
+            borrowingLending != address(0),
                 '2.2'
         );
         require(
@@ -77,13 +90,14 @@ contract AccessVault is Initializable, Storage {
         );
         _owner = msg.sender;
         _managers[_owner] = true;
-        _borrowingLendingContract = IBorrowingLending(borrowingLendingAddress);
+        _borrowingLending = borrowingLending;
         _borrowingPowerContract = IBorrowingPower(borrowingPowerAddress);
         _borrowingFeeFactor = borrowingFeeFactor;
         _baaBeaconAddress = baaBeaconAddress;
         _marketIndex = SHIFT;
         _marketIndexLastTime = block.timestamp;
         _maxFeeUnpaidPeriod = 2 * 24 * 3600;
+        _reentrancyStatus = _NOT_ENTERED; // reentrancy indicator initial setting
         return true;
     }
 
@@ -313,46 +327,15 @@ contract AccessVault is Initializable, Storage {
     }
 
     /**
-     * @dev Withdraw assets from debank
+     * @dev approve for Borrowing Lending contract
      */
-    function withdrawAssets (
-        address stablecoinAddress,
+    function approveForBorrowingLending (
+        address tokenAddress,
         uint256 amount
-    ) external onlyOwner returns (bool) {
-        require(
-            _stablecoinProfileId[stablecoinAddress] > 0, '9.1'
-        );
-        _debankWithdrawnAmount[stablecoinAddress] += amount;
-        require(
-            _borrowingLendingContract
-                .accessVaultWithdraw(_stablecoinProfileId[stablecoinAddress], amount),
-                '9.2'
-        );
-        return true;
-    }
-
-    /**
-     * @dev Replenish assets to debank
-     */
-    function replenishAssets (
-        address stablecoinAddress,
-        uint256 amount
-    ) external onlyOwner returns (bool) {
-        require(
-            _stablecoinProfileId[stablecoinAddress] > 0, '10.1'
-        );
-        require(
-            _debankWithdrawnAmount[stablecoinAddress] >= amount, '10.2'
-        );
+    ) external onlyBorrowingLending returns (bool) {
         TransferHelper.safeApprove(
-            stablecoinAddress, address(_borrowingLendingContract), amount
+            tokenAddress, _borrowingLending, amount
         );
-        require(
-            _borrowingLendingContract.accessVaultReplenish(
-                _stablecoinProfileId[stablecoinAddress], amount
-            ), '10.3'
-        );
-        _debankWithdrawnAmount[stablecoinAddress] -= amount;
         return true;
     }
 
@@ -362,6 +345,7 @@ contract AccessVault is Initializable, Storage {
     function adminWithdraw (
         address tokenAddress, uint256 amount
     ) external onlyOwner returns (bool) {
+        // todo add reentrancy gard
         bool reentrancy;
         if (tokenAddress == address(0)) {
             payable(owner()).transfer(amount);
@@ -547,13 +531,13 @@ contract AccessVault is Initializable, Storage {
         return true;
     }
 
-    function setBorrowingLendingContract (
-        address borrowingLendingAddress
+    function setBorrowingLending (
+        address borrowingLending
     ) external onlyManager returns (bool) {
         require(
-            borrowingLendingAddress != address(0), '17.1'
+            borrowingLending != address(0), '17.1'
         );
-        _borrowingLendingContract = IBorrowingLending(borrowingLendingAddress);
+        _borrowingLending = borrowingLending;
         return true;
     }
 
@@ -874,7 +858,7 @@ contract AccessVault is Initializable, Storage {
         address baaBeaconContract
     ) {
         return (
-            address(_borrowingLendingContract),
+           _borrowingLending,
             address(_borrowingPowerContract),
             _exchangeRouterAddress,
             _baaBeaconAddress

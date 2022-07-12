@@ -75,8 +75,8 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     // console.log("Exchange router proxy admin deployed to:", d.exchangeRouterProxyAdmin.address);
 
     d.ExchangeRouter = await ethers.getContractFactory("ExchangeRouter");
-    d.exchangeRouter = await d.ExchangeRouter.connect(d.owner).deploy();
-    await d.exchangeRouter.deployed();
+    d.exchangeRouterImplementation = await d.ExchangeRouter.connect(d.owner).deploy();
+    await d.exchangeRouterImplementation.deployed();
     // console.log("Exchange router deployed to:", d.exchangeRouter.address);
 
     d.ABI = [
@@ -92,17 +92,17 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     );
 
     d.exchangeRouterProxy = await d.ExchangeRouterProxy.connect(d.owner).deploy(
-      d.exchangeRouter.address,
+      d.exchangeRouterImplementation.address,
       d.exchangeRouterProxyAdmin.address,
       d.calldata
     );
     await d.exchangeRouterProxy.deployed();
     // console.log("Exchange router proxy deployed to:", d.exchangeRouterProxy.address);
 
-    d.exchangeRouterConnect = new ethers.Contract(
+    d.exchangeRouter = new ethers.Contract(
       d.exchangeRouterProxy.address,
-      d.exchangeRouter.interface.format(ethers.utils.FormatTypes.json),
-      d.exchangeRouterProxy.provider
+      d.exchangeRouterImplementation.interface.format(ethers.utils.FormatTypes.json),
+      d.exchangeRouterImplementation.provider
     );
 
     d.BEP20Token = await ethers.getContractFactory("BEP20Token");
@@ -152,7 +152,7 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     );
     await d.etna.connect(d.owner).transfer(
       d.signers[3].address, ethers.utils.parseUnits(d.initialTransfer.toString())
-  );
+    );
     await d.etna.connect(d.owner).transfer(
       d.signers[4].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
@@ -170,11 +170,46 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     await d.upgradeableBeacon.deployed();
     // console.log("Beacon deployed to:", d.upgradeableBeacon.address);
 
-    d.BorrowingLending= await ethers.getContractFactory("BorrowingLending");
-    d.borrowingLending = await d.BorrowingLending.connect(d.owner).deploy(
-      d.busd.address, d.usdt.address
+    d.ProxyAdmin = await ethers.getContractFactory(
+      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
     );
-    await d.borrowingLending.deployed();
+    d.proxyAdmin = await d.ProxyAdmin.connect(d.owner).deploy();
+    await d.proxyAdmin.deployed();
+
+    const BorrowingLending = await ethers.getContractFactory("BorrowingLending");
+    d.blImplementation = await BorrowingLending.connect(d.owner).deploy();
+    await d.blImplementation.deployed();
+
+    d.ABI = [
+      "function initialize(address, uint16, uint16, uint16, uint16, uint16)"
+    ];
+    d.iface = new ethers.utils.Interface(d.ABI);
+    d.calldata = d.iface.encodeFunctionData("initialize", [
+      d.owner.address,
+      2000,
+      4000,
+      500,
+      1000,
+      3000
+    ]);
+
+    d.Proxy = await ethers.getContractFactory(
+      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
+    );
+    d.blProxy = await d.Proxy.connect(d.owner).deploy(
+      d.blImplementation.address,
+      d.proxyAdmin.address,
+      d.calldata
+    );
+    await d.blProxy.deployed();
+
+    // connect to blProxy contract using blImplementation ABI
+    d.borrowingLending = new ethers.Contract(
+      d.blProxy.address,
+      d.blImplementation.interface.format(ethers.utils.FormatTypes.json),
+      d.blImplementation.provider
+    );
+
     // console.log("Borrowing Lending deployed to:", d.borrowingLending.address);
     await d.busd.connect(d.owner).transfer(
       d.borrowingLending.address, ethers.utils.parseUnits('10000')
@@ -231,17 +266,9 @@ describe('exchangeRouter.js - Exchange router testing', function () {
       d.borrowingPowerData
     );
 
-    d.AccessVaultProxyAdmin = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
-    );
-    d.accessVaultProxyAdmin = await d.AccessVaultProxyAdmin.connect(d.owner).deploy();
-    await d.accessVaultProxyAdmin.deployed();
-    // console.log("Access vault proxy admin deployed to:", d.accessVaultProxyAdmin.address);
-
     d.AccessVault = await ethers.getContractFactory("AccessVault");
-    d.accessVault = await d.AccessVault.connect(d.owner).deploy();
-    await d.accessVault.deployed();
-    // console.log("Access vault deployed to:", d.accessVault.address);
+    d.accessVaultImplementation = await d.AccessVault.connect(d.owner).deploy();
+    await d.accessVaultImplementation.deployed();
 
     d.ABI = [
       "function initialize(address newOwner, address borrowingLendingAddress, address borrowingPowerAddress, address baaBeaconAddress, uint256 borrowingFee)"
@@ -255,46 +282,46 @@ describe('exchangeRouter.js - Exchange router testing', function () {
       d.borrowingFee
     ]);
 
-    d.AccessVaultProxy = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
-    );
-    d.accessVaultProxy = await d.AccessVaultProxy.connect(d.owner).deploy(
-      d.accessVault.address,
-      d.accessVaultProxyAdmin.address,
+    d.accessVaultProxy = await d.Proxy.connect(d.owner).deploy(
+      d.accessVaultImplementation.address,
+      d.proxyAdmin.address,
       d.calldata
     );
     await d.accessVaultProxy.deployed();
     // console.log("Access vault proxy deployed to:", d.accessVaultProxy.address);
 
-    d.accessVaultConnect = new ethers.Contract(
+    d.accessVault = new ethers.Contract(
       d.accessVaultProxy.address,
-      d.accessVault.interface.format(ethers.utils.FormatTypes.json),
-      d.accessVaultProxy.provider
+      d.accessVaultImplementation.interface.format(ethers.utils.FormatTypes.json),
+      d.accessVaultImplementation.provider
     );
-    await d.accessVaultConnect.connect(d.owner).addToManagers(
+
+    await d.borrowingLending.connect(d.owner).setAccessVault(d.accessVault.address);
+
+    await d.accessVault.connect(d.owner).addToManagers(
       d.manager.address
     );
-    await d.accessVaultConnect.connect(d.manager).setStablecoinProfileId(
+    await d.accessVault.connect(d.manager).setStablecoinProfileId(
       d.busd.address, 1
     );
-    await d.accessVaultConnect.connect(d.manager).setStablecoinProfileId(
+    await d.accessVault.connect(d.manager).setStablecoinProfileId(
       d.usdt.address, 2
     );
-    await d.accessVaultConnect.connect(d.manager).setTokenAvailable(
+    await d.accessVault.connect(d.manager).setTokenAvailable(
       d.etna.address, true
     );
-    await d.accessVaultConnect.connect(d.manager).setExchangeRouter(
-      d.exchangeRouterConnect.address
+    await d.accessVault.connect(d.manager).setExchangeRouter(
+      d.exchangeRouter.address
     );
   });
 
   // Test case
   it('Exchange router get rate', async function () {
     expect(
-      await d.exchangeRouterConnect.getImplementationContract(d.usdt.address, d.etna.address)
+      await d.exchangeRouter.getImplementationContract(d.usdt.address, d.etna.address)
     ).to.equal(d.exchangeRouterPancakeSwap.address);
     d.pairAddressUsdt = await d.factory.getPair(d.usdt.address, d.etna.address);
-    d.UniswapV2Pair = await ethers.getContractFactory('contracts/UniswapV2Pair.sol:UniswapV2Pair');
+    d.UniswapV2Pair = await ethers.getContractFactory('contracts/testing/UniswapV2Pair.sol:UniswapV2Pair');
     d.lpUsdt = await d.UniswapV2Pair.attach(d.pairAddressUsdt);
     d.result = await d.lpUsdt.getReserves();
     expect(roundTo(Number(ethers.utils.formatUnits(
