@@ -18,13 +18,14 @@ async function main() {
   const PROXY = '0x005Aeaf1e1360186Be9f6152613250bB1EdCEAfb';
   const NEW_PROXY = '0x11a6c3A798Db2d9Fa677124ea3946f9f775DA797';
 
-  const Proxy = await ethers.getContractFactory("Proxy");
-  const proxyContract = await Proxy.attach(PROXY);
-  const newProxyContract = await Proxy.attach(NEW_PROXY);
+  const ProxyOld = await ethers.getContractFactory("ProxyOld");
+  const proxyContract = await ProxyOld.attach(PROXY);
+  const newProxyContract = await ProxyOld.attach(NEW_PROXY);
 
   const contracts = {
     NATIVE: '0x0000000000000000000000000000000000000000',
     ETNA: '0x51f35073ff7cf54c9e86b7042e59a8cc9709fc46',
+    NETNA: '0x279020017E7aa4cD7E35273CcF3DB2223475d7B3',
     MTB: '0x36C618F869050106e1F64d777395baF7d56A9Ead',
     BTCB: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
     ETH: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
@@ -34,7 +35,7 @@ async function main() {
 
   for (let id in contracts) {
     const rate1 = ethers.utils.formatUnits(await proxyContract.getUsdRate(contracts[id]), 0);
-    const rate2 = ethers.utils.formatUnits(await proxyContract.getUsdRate(contracts[id]), 0);
+    const rate2 = ethers.utils.formatUnits(await newProxyContract.getUsdRate(contracts[id]), 0);
     console.log(id, rate1);
     console.log(id, rate2);
   }

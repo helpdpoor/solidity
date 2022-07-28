@@ -50,6 +50,7 @@ contract Rates is AccessControl {
         bool reversed; // order of the token0 and token1 when rate is calculated
     }
     mapping (address => Rate) internal _usdRates;
+    mapping (address => address) internal _alias; // used for getting Netna rate
     uint256 internal _maxTimeGap; // maximum time gap for real time requests
     uint256 internal _minRateUpdatePeriod; // minimal period between lastRate and current rate
     uint256 internal constant _SHIFT_18 = 1 ether;
@@ -134,6 +135,17 @@ contract Rates is AccessControl {
         uint256 maxTimeGap
     ) external hasRole(MANAGER) returns (bool) {
         _maxTimeGap = maxTimeGap;
+        return true;
+    }
+
+    /**
+     * Setting of the maximum time gap for real time requests
+     */
+    function setAlias (
+        address source,
+        address target
+    ) external hasRole(MANAGER) returns (bool) {
+        _alias[source] = target;
         return true;
     }
 
@@ -226,6 +238,9 @@ contract Rates is AccessControl {
         address contractAddress,
         bool realTime
     ) external view returns (uint256) {
+        if (_alias[contractAddress] != address(0)) {
+           contractAddress = _alias[contractAddress];
+        }
         uint256 rate;
         if (_usdRates[contractAddress].chainLinkAddress != address(0)) {
             rate = _getChainLinkRate(contractAddress, realTime);
@@ -243,6 +258,15 @@ contract Rates is AccessControl {
      */
     function getMaxTimeGap () external view returns (uint256) {
         return _maxTimeGap;
+    }
+
+    /**
+     * Setting of the maximum time gap for real time requests
+     */
+    function getAlias (
+        address source
+    ) external view returns (address) {
+        return _alias[source];
     }
 
     /**

@@ -69,7 +69,7 @@ contract Collateral is Initializable {
      * Error messages:
      * borrowing-lending.sol
      * 1 - Owner address can not be zero
-     * 2 - Etna contract address can not be zero
+     * 2 - Brand token address can not be zero
      * 3 - Max APR should be greater or equal than min APR
      * admin.sol
      * 4 - Message value should be zero for an ERC20 replenish
@@ -138,9 +138,9 @@ contract Collateral is Initializable {
      * 70 - Collateral profile is not found
      * 71 - Collateral profile is not found
      * 72 - Collateral profile is not found
-     * 73 - Etna contract address can not be zero
-     * 74 - Etna contract address can not be zero
-     * 75 - Etna contract address can not be zero
+     * 73 - Brand token address can not be zero
+     * 74 - Brand token address can not be zero
+     * 75 - Brand token address can not be zero
      * 76 - Liquidation manager address can not be zero
      * 77 - caller is not the liquidation manager
      * 78 - caller is not the liquidator
@@ -217,26 +217,32 @@ contract Collateral is Initializable {
     mapping (address => uint256) internal _adminWithdraw;
     mapping (address => uint256) internal _adminReplenish;
 
-    IERC20 internal _etnaContract;
-    IERC20 internal _nEtnaContract;
     INftCollateral internal _nftCollateralContract;
     IBorrowingLending internal _borrowingLendingContract;
     IRates _ratesContract;
+    address internal _brandTokenAddress;
+    address internal _nEtnaAddress;
     address internal _owner;
     address internal _liquidationManager;
     uint256 internal _collateralProfilesNumber;
     uint256 internal _collateralsNumber;
     uint256 internal constant _YEAR = 365 * 24 * 3600;
-    uint256 internal constant _SHIFT_18 = 1 ether; // market index exponent shifting when calculation with decimals
-    uint256 internal constant _SHIFT_4 = 10000; // percents exponent shifting when calculation with decimals
-    uint256 internal _liquidationFactor; // percentage for detecting loan availability for liquidation
+    uint256 internal constant _SHIFT_18 = 1 ether;
+    // market index exponent shifting when calculation with decimals
+    uint256 internal constant _SHIFT_4 = 10000;
+    // percents exponent shifting when calculation with decimals
+    uint256 internal _liquidationFactor;
+    // percentage for detecting loan availability for liquidation
     uint256 internal _liquidationFee; // fee that will be paid for liquidation (% * 100)
     uint256 internal _liquidatorPercentage;
-    // part of the liquidation fee that will be paid to liquidators (the rest to admin) (% * 100)
+    // part of the liquidation fee that will be paid to liquidators (the rest to admin)
+    // (% * 100)
     uint256 internal _liquidationRMin;
     // factor to determine if loan is flagged for a liquidation
     uint256 internal _liquidationRMax;
     // factor to determine if loan is in a fair (not good) state
+    uint256 internal _nftProfileIndex;
+    uint256 internal _brandProfileIndex;
     uint8 internal _maxOrder;
     uint8 internal constant _NOT_ENTERED = 1; // reentrancy service constant
     uint8 internal constant _ENTERED = 2; // reentrancy service constant
@@ -244,14 +250,20 @@ contract Collateral is Initializable {
 
     function initialize (
         address newOwner,
-        address etnaContractAddress,
-        address borrowingLendingContractAddress
+        address brandTokenAddress,
+        address nEtnaAddress,
+        address borrowingLendingContractAddress,
+        address ratesContractAddress
     ) public initializer returns (bool) {
-        require(etnaContractAddress != address(0), '2');
+        require(brandTokenAddress != address(0), '2');
+        require(nEtnaAddress != address(0), '2');
         require(newOwner != address(0), '1');
         require(borrowingLendingContractAddress != address(0), '75');
+        require(ratesContractAddress != address(0), '64');
         _borrowingLendingContract = IBorrowingLending(borrowingLendingContractAddress);
-        _etnaContract = IERC20(etnaContractAddress);
+        _brandTokenAddress = brandTokenAddress;
+        _nEtnaAddress = nEtnaAddress;
+        _ratesContract = IRates(ratesContractAddress);
         _owner = newOwner;
         _managers[newOwner] = true;
         _liquidationManager = newOwner;
@@ -331,6 +343,11 @@ contract Collateral is Initializable {
         _collateralProfiles[_collateralProfilesNumber].order = order;
         _noFee[contractAddress] = noFee;
         _collateralProfiles[_collateralProfilesNumber].active = true;
+        if (contractAddress == _nEtnaAddress) {
+            _nftProfileIndex = _collateralProfilesNumber;
+        } else if (contractAddress == _brandTokenAddress) {
+            _brandProfileIndex = _collateralProfilesNumber;
+        }
         return true;
     }
 
@@ -366,23 +383,20 @@ contract Collateral is Initializable {
     function setRatesContract (
         address ratesContractAddress
     ) external onlyManager returns (bool) {
+        require(ratesContractAddress != address(0), '64');
         _ratesContract = IRates(ratesContractAddress);
         return true;
     }
 
-    function setEtnaContract (
-        address etnaContractAddress
+    function setBrandToken (
+        address brandTokenAddress
     ) external onlyManager returns (bool) {
-        require(etnaContractAddress != address(0), '73');
-        _etnaContract = IERC20(etnaContractAddress);
-        return true;
-    }
-
-    function setNEtnaContract (
-        address nEtnaContractAddress
-    ) external onlyManager returns (bool) {
-        require(nEtnaContractAddress != address(0), '74');
-        _nEtnaContract = IERC20(nEtnaContractAddress);
+        require(brandTokenAddress != address(0), '73');
+        _brandTokenAddress = brandTokenAddress;
+        if (_brandProfileIndex > 0) {
+            _collateralProfiles[_brandProfileIndex].contractAddress
+                = brandTokenAddress;
+        }
         return true;
     }
 
@@ -391,6 +405,18 @@ contract Collateral is Initializable {
     ) external onlyManager returns (bool) {
         require(nftCollateralContractAddress != address(0), '75');
         _nftCollateralContract = INftCollateral(nftCollateralContractAddress);
+        return true;
+    }
+
+    function setNEtnaContract (
+        address nEtnaAddress
+    ) external onlyManager returns (bool) {
+        require(nEtnaAddress != address(0), '75');
+        _nEtnaAddress = nEtnaAddress;
+        if (_nftProfileIndex > 0) {
+            _collateralProfiles[_nftProfileIndex].contractAddress
+                = nEtnaAddress;
+        }
         return true;
     }
 
@@ -590,34 +616,32 @@ contract Collateral is Initializable {
     }
 
     function depositNetna (
-        address userAddress, uint256 nEtnaProfileIndex, uint256 amount
+        address userAddress, uint256 amount
     ) external onlyNftCollateralContract returns (bool) {
-        require(isNetnaProfile(nEtnaProfileIndex), '23');
-        uint256 collateralIndex = getUsersCollateralIndex(userAddress, nEtnaProfileIndex);
+        uint256 collateralIndex = getUsersCollateralIndex(userAddress, _nftProfileIndex);
         if (collateralIndex > 0) {
             _collaterals[collateralIndex].amount += amount;
         } else {
-            _addNewCollateral(userAddress, nEtnaProfileIndex, amount, 0);
+            _addNewCollateral(userAddress, _nftProfileIndex, amount, 0);
         }
-        _collateralProfiles[nEtnaProfileIndex].total += amount;
+        _collateralProfiles[_nftProfileIndex].total += amount;
         return true;
     }
 
     function withdrawNetna (
-        address userAddress, uint256 nEtnaProfileIndex, uint256 amount
+        address userAddress, uint256 amount
     ) external onlyNftCollateralContract returns (bool) {
-        require(isNetnaProfile(nEtnaProfileIndex), '23');
         require(
-            getAvailableCollateralAmount(userAddress, nEtnaProfileIndex) >= amount,
+            getAvailableCollateralAmount(userAddress, _nftProfileIndex) >= amount,
              '30'
         );
-        uint256 collateralIndex = getUsersCollateralIndex(userAddress, nEtnaProfileIndex);
+        uint256 collateralIndex = getUsersCollateralIndex(userAddress, _nftProfileIndex);
         require(collateralIndex > 0, '66');
         require(_collaterals[collateralIndex].amount >= amount, '29');
         _collaterals[collateralIndex].amount -= amount;
-        _collateralProfiles[nEtnaProfileIndex].total -= amount;
+        _collateralProfiles[_nftProfileIndex].total -= amount;
         _sendAsset(
-            address(_nEtnaContract),
+            _nEtnaAddress,
             address(_nftCollateralContract),
             amount
         );
@@ -756,7 +780,7 @@ contract Collateral is Initializable {
             ) {
                 _collaterals[collateralIndexes[i]].liquidated = true;
                 _sendAsset(
-                    address(_nEtnaContract),
+                    _nEtnaAddress,
                     address(_nftCollateralContract),
                     _collaterals[collateralIndexes[i]].amount
                 );
@@ -988,12 +1012,12 @@ contract Collateral is Initializable {
         return tokenContract.balanceOf(address(this));
     }
 
-    function getEtnaContract () external view returns (address) {
-        return address(_etnaContract);
+    function getBrandToken () external view returns (address) {
+        return _brandTokenAddress;
     }
 
     function getNEtnaContract () external view returns (address) {
-        return address(_nEtnaContract);
+        return _nEtnaAddress;
     }
 
     function getNftCollateralContract () external view returns (address) {
@@ -1069,6 +1093,14 @@ contract Collateral is Initializable {
         return _noFee[contractAddress];
     }
 
+    function getNftProfileIndex () external view returns (uint256) {
+        return _nftProfileIndex;
+    }
+
+    function getBrandProfileIndex () external view returns (uint256) {
+        return _brandProfileIndex;
+    }
+
     function isManager (
         address userAddress
     ) external view returns (bool) {
@@ -1078,8 +1110,7 @@ contract Collateral is Initializable {
     function isNetnaProfile (
         uint256 collateralProfileIndex
     ) public view returns (bool) {
-        return _collateralProfiles[collateralProfileIndex]
-            .contractAddress == address(_nEtnaContract);
+        return collateralProfileIndex == _nftProfileIndex;
     }
 
     function owner() external view returns (address) {

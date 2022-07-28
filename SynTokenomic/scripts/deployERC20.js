@@ -5,21 +5,28 @@
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
 const {ethers} = require("hardhat");
+const d = {};
+d.zero = '0x0000000000000000000000000000000000000000';
+d.name = 'Token1';
+d.symbol = 'TN1';
+d.decimals = 18;
+d.totalSupply = 10000000;
 
 async function main() {
-  const OWNER = '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA';
-
-  const Netna = await ethers.getContractFactory("BEP20Token");
-  const netnaContract = await Netna.deploy(
-    OWNER,
-    'NETNA-TEST',
-    'NETNA-TEST',
-    ethers.utils.parseUnits('1000000000'),
+  d.signers = await ethers.getSigners();
+  d.owner = d.signers[0];
+  d.ERC20Token = await ethers.getContractFactory("ERC20Token");
+  d.token = await d.ERC20Token.deploy(
+    d.owner.address,
+    ethers.utils.parseUnits('1000000'),
+    d.zero,
+    0,
     18,
-    {gasPrice: 50000000000}
+    'TEST',
+    'TEST'
   );
-  await netnaContract.deployed();
-  console.log(`NETNA contract address: ${netnaContract.address}`);
+  await d.token.deployed();
+  console.log('Token address: ', d.token.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

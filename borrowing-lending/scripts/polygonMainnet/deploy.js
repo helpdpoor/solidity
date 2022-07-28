@@ -7,40 +7,39 @@ const hre = require("hardhat");
 const {ethers} = require("hardhat");
 const fs = require('fs');
 const path = require('path');
-const jsonPath = path.join(__dirname, '../../deployed-contracts/bscMainnet.json');
+const jsonPath = path.join(__dirname, '../../deployed-contracts/polygonMainnet.json');
 const d = {};
 
 async function main() {
   d.signers = await ethers.getSigners();
   d.owner = d.signers[0];
   const OWNER = d.owner.address;
+
   const tokenAddresses = {
-    BUSD: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
-    USDT: '0x55d398326f99059fF775485246999027B3197955',
+    USDC: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
     NATIVE: '0x0000000000000000000000000000000000000000',
     ZERO: '0x0000000000000000000000000000000000000000',
-    ETNA: '0x51f35073ff7cf54c9e86b7042e59a8cc9709fc46',
-    NETNA: '0x279020017E7aa4cD7E35273CcF3DB2223475d7B3',
-    MTB: '0x36C618F869050106e1F64d777395baF7d56A9Ead',
-    BTCB: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
-    ETH: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
-    CAKE: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
-    OxPAD: '0x94733910a43D412DDaD505a8772839AA77aC1b6d',
-    NFT: '0x83C454FF387cebbC3CbAa5a7a44F412F4FA63c0E',
-    MARKETPLACE: '0x9cFFF32674745b4738306E87cCb14de18eABC6a7',
+    ETNA: '0x015C425f6dfabC31E1464cC4339954339f096061',
+    NETNA: '0xecBB155027262635ccE355a4F13e9643F8A37Df4',
+    MTB: '0x5eE0fE440a4cA7F41bCF06b20c2A30a404E21069',
+    WBTC: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6',
+    WETH: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
+    QUICK: '0x831753DD7087CaC61aB5644b308642cc1c33Dc13',
+    NFT: '0x1afc77170C1aadfF375e9e32D95C99C4d787aBe2',
+    MARKETPLACE: '0xE098E7C3C2Cd9bfbC9fcc4F3eD32bD5420f557f6',
   };
 
   const lpPairs = {
-    ETNA_BUSD: '0xa1A1dC3A23882E33F41943EC620A2F68A6703fCC',
-    MTB_BUSD: '0x591582D30f23Ed3C1FC2ADbf82b37Ef5CE1131Bd',
-    OxPAD_BUSD: '0xEEd9d7D32BC8218025f263e85eA60d33c8dbAf09',
+    ETNA_USDC: '0xfc2234eFF1ACe573915924fa6d12e5821635f111',
+    MTB_USDC: '0x15F9EAC81721bb4Da5D516D3CbA393932e163017',
   };
 
   const chainLinkFeeds = {
-    BNB: '0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE',
-    BTC: '0x264990fbd0A4796A3E3d8E37C4d5F87a3aCa5Ebf',
-    ETH: '0x2A3796273d47c4eD363b361D3AEFb7F7E2A13782',
-    CAKE: '0xB6064eD41d4f67e353768aA239cA86f4F73665a1',
+    MATIC: '0xab594600376ec9fd91f8e885dadf0ce036862de0',
+    WBTC: '0xde31f8bfbd8c84b5360cfacca3539b938dd78ae6',
+    ETH: '0xf9680d99d6c9589e2a93a78a04a279e509205945',
+    QUICK: '0xa058689f4bca95208bba3f265674ae95ded75b6d',
   };
 
   const factors = {
@@ -48,10 +47,9 @@ async function main() {
     ETNA: 2000,
     MTB: 1500,
     NETNA: 1500,
-    BTCB: 5000,
-    ETH: 5000,
-    CAKE: 3000,
-    OxPAD: 1500,
+    WBTC: 5000,
+    WETH: 5000,
+    QUICK: 3000,
   };
 
   // settings for reward contract

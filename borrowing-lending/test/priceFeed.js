@@ -163,6 +163,17 @@ describe("priceFeed.js - Testing rates contract", function () {
     d.result = await d.lpFeed.getReserves();
     d.lpRate = Number(d.result._reserve0) / Number(d.result._reserve1 * 10 ** 12);
     expect(roundToPrecision(d.rate, 8)).to.equal(roundToPrecision(d.lpRate, 8));
+
+    await d.ratesContract.connect(d.owner).setAlias(
+      d.addresses.dai,
+      d.addresses.usdt
+    );
+
+    d.rateDai = Number(ethers.utils.formatUnits(
+      await d.ratesContract.getUsdRate(d.addresses.dai, false), 30
+    ));
+
+    expect(d.rate).to.equal(d.rateDai);
   });
 
   it("Update lp rate", async function () {

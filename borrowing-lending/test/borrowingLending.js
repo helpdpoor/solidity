@@ -8,7 +8,7 @@ const initialEtnaTransfer = 50000;
 const batchLimit = 50;
 const zeroAddress = '0x0000000000000000000000000000000000000000';
 const { alchemyApiKey } = require('../secrets.json');
-let signers, tokensArray, etnaContract, mtbContract, nEtnaContract, erc20CollateralContract, erc20Collateral2Contract, marketplaceContract, nftContract, borrowing1Contract, borrowing2Contract, borrowing3Contract, collateralContract, nftCollateralContract, blContract, rewardContract, result;
+let signers, tokensArray, brandToken, mtbContract, nEtnaContract, erc20CollateralContract, erc20Collateral2Contract, marketplaceContract, nftContract, borrowing1Contract, borrowing2Contract, borrowing3Contract, collateralContract, nftCollateralContract, blContract, rewardContract, result;
 
 const collateralProfileLiquidationFactor = 2000;
 const collateral1ProfileUsdRate = 0.5;
@@ -41,20 +41,20 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     await d.ratesContract.deployed();
 
     const ERC20 = await ethers.getContractFactory("BEP20Token");
-    etnaContract = await ERC20.deploy(
+    brandToken = await ERC20.deploy(
       d.owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'), 18
     );
-    await etnaContract.deployed();
+    await brandToken.deployed();
 
-    await etnaContract.connect(d.owner)
+    await brandToken.connect(d.owner)
       .transfer(signers[0].address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(d.owner)
+    await brandToken.connect(d.owner)
       .transfer(signers[1].address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(d.owner)
+    await brandToken.connect(d.owner)
       .transfer(signers[2].address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(d.owner)
+    await brandToken.connect(d.owner)
       .transfer(signers[3].address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(d.owner)
+    await brandToken.connect(d.owner)
       .transfer(signers[4].address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
 
     mtbContract = await ERC20.deploy(
@@ -239,13 +239,15 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     await d.collateralImplementation.deployed();
 
     d.ABI = [
-      "function initialize(address, address, address)"
+      "function initialize(address, address, address, address, address)"
     ];
     d.iface = new ethers.utils.Interface(d.ABI);
     d.calldata = d.iface.encodeFunctionData("initialize", [
       d.owner.address, // owner
-      etnaContract.address,
-      blContract.address
+      brandToken.address,
+      nEtnaContract.address,
+      blContract.address,
+      d.ratesContract.address
     ]);
 
     d.collateralProxy = await d.Proxy.connect(d.owner).deploy(
@@ -262,26 +264,22 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       d.collateralImplementation.provider
     );
 
-    await collateralContract.connect(d.owner)
-      .setRatesContract(
-        d.ratesContract.address
-      );
     await blContract.connect(d.owner)
       .setCollateralContract(
         collateralContract.address
       );
 
-    await etnaContract.connect(signers[0])
+    await brandToken.connect(signers[0])
       .approve(collateralContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(signers[1])
+    await brandToken.connect(signers[1])
       .approve(collateralContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(signers[2])
+    await brandToken.connect(signers[2])
       .approve(collateralContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(signers[3])
+    await brandToken.connect(signers[3])
       .approve(collateralContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(signers[4])
+    await brandToken.connect(signers[4])
       .approve(collateralContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(d.owner)
+    await brandToken.connect(d.owner)
       .approve(collateralContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
 
     await mtbContract.connect(signers[0])
@@ -396,7 +394,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       false
     );
     await collateralContract.connect(signers[9]).addCollateralProfile(
-      etnaContract.address,
+      brandToken.address,
       collateral2ProfileBorrowingFactor,
       2,
       true
@@ -408,7 +406,6 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       false
     );
 
-    await collateralContract.connect(signers[9]).setNEtnaContract(nEtnaContract.address);
     await collateralContract.connect(signers[9]).addCollateralProfile(
       nEtnaContract.address,
       collateral4ProfileBorrowingFactor,
@@ -429,7 +426,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       );
     await d.ratesContract.connect(d.owner)
       .setUsdRate(
-        etnaContract.address,
+        brandToken.address,
         ethers.utils.parseUnits(collateral2ProfileUsdRate.toString())
       );
     await d.ratesContract.connect(d.owner)
@@ -477,12 +474,12 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       .to.equal(collateral1ProfileUsdRate);
 
     result = await collateralContract.getCollateralProfile(2);
-    expect(result.contractAddress).to.equal(etnaContract.address);
+    expect(result.contractAddress).to.equal(brandToken.address);
     expect(Number(result.borrowingFactor)).to.equal(collateral2ProfileBorrowingFactor);
     expect(Number(result.total)).to.equal(0);
     expect(Number(result.order)).to.equal(2);
     expect(result.active).to.be.true;
-    result = await collateralContract.getUsdRate(etnaContract.address);
+    result = await collateralContract.getUsdRate(brandToken.address);
     expect(Number(ethers.utils.formatUnits(result)))
       .to.equal(collateral2ProfileUsdRate);
 
@@ -521,7 +518,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     await nftContract.deployed();
 
     const Marketplace = await ethers.getContractFactory("NFTMarketplace");
-    marketplaceContract = await Marketplace.connect(d.owner).deploy(nftContract.address, etnaContract.address, 0);
+    marketplaceContract = await Marketplace.connect(d.owner).deploy(nftContract.address, brandToken.address, 0);
     await marketplaceContract.deployed();
 
     const NftCollateral = await ethers.getContractFactory("NftCollateral");
@@ -529,31 +526,16 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     await d.nftCollateralImplementation.deployed();
 
     d.ABI = [
-      "function initialize(address, address, address, address, uint256)"
+      "function initialize(address, address, address, address)"
     ];
     d.iface = new ethers.utils.Interface(d.ABI);
-    d.calldataRevert = d.iface.encodeFunctionData("initialize", [
-      marketplaceContract.address,
-      nftContract.address,
-      collateralContract.address,
-      d.owner.address,
-      3
-    ]);
+
     d.calldata = d.iface.encodeFunctionData("initialize", [
       marketplaceContract.address,
       nftContract.address,
       collateralContract.address,
-      d.owner.address,
-      4
+      d.owner.address
     ]);
-
-    await expect(
-      d.Proxy.connect(d.owner).deploy(
-        d.nftCollateralImplementation.address,
-        d.proxyAdmin.address,
-        d.calldataRevert
-      )
-    ).to.be.revertedWith('Wrong NETNA collateral profile index');
 
     d.nftCollateralProxy = await d.Proxy.connect(d.owner).deploy(
       d.nftCollateralImplementation.address,
@@ -569,10 +551,6 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       d.nftCollateralImplementation.provider
     );
 
-    await expect(
-      nftCollateralContract.connect(d.owner).setNEtnaProfileIndex(3)
-    ).to.be.revertedWith('Wrong NETNA collateral profile index');
-
     const totalSupply = await nEtnaContract.totalSupply();
     await nEtnaContract.connect(d.owner)
       .transfer(nftCollateralContract.address, totalSupply);
@@ -581,9 +559,9 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       .setNftCollateralContract(nftCollateralContract.address);
 
     await nftContract.connect(d.owner).transferPublishRight(marketplaceContract.address);
-    await etnaContract.connect(signers[0]).approve(marketplaceContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(signers[1]).approve(marketplaceContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
-    await etnaContract.connect(signers[2]).approve(marketplaceContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
+    await brandToken.connect(signers[0]).approve(marketplaceContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
+    await brandToken.connect(signers[1]).approve(marketplaceContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
+    await brandToken.connect(signers[2]).approve(marketplaceContract.address, ethers.utils.parseUnits(initialEtnaTransfer.toString()));
 
     await marketplaceContract.connect(d.owner).setExternalPriceCurve();
     await marketplaceContract.connect(d.owner).addNFTProfile(
@@ -635,7 +613,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     d.iface = new ethers.utils.Interface(d.ABI);
     d.calldata = d.iface.encodeFunctionData("initialize", [
       d.owner.address,
-      etnaContract.address,
+      brandToken.address,
       blContract.address,
       d.ratesContract.address,
       duration,
@@ -660,7 +638,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       d.rewardImplementation.provider
     );
 
-    await etnaContract.connect(d.owner).transfer(
+    await brandToken.connect(d.owner).transfer(
       rewardContract.address, ethers.utils.parseUnits('100000')
     );
     await blContract.connect(d.owner)
@@ -1305,10 +1283,10 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await erc20CollateralContract.balanceOf(collateralContract.address)
     ));
     const collateral2S2Balance = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[2].address)
+      await brandToken.balanceOf(signers[2].address)
     ));
     const collateral2BlBalance = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     const collateral3S2Balance = Number(ethers.utils.formatUnits(
       await erc20CollateralContract.provider.getBalance(signers[2].address)
@@ -1358,11 +1336,11 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ));
     expect(roundTo(result, 4)).to.equal(roundTo(collateral1BlBalance + collateral1Amount, 4));
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[2].address)
+      await brandToken.balanceOf(signers[2].address)
     ));
     expect(roundTo(result, 4)).to.equal(roundTo(collateral2S2Balance - collateral2Amount, 4));
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     expect(roundTo(result, 4)).to.equal(roundTo(collateral2BlBalance + collateral2Amount, 4));
     result = Number(ethers.utils.formatUnits(
@@ -1402,11 +1380,11 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ));
     expect(roundTo(result, 4)).to.equal(roundTo(collateral1BlBalance + collateral1Amount - collateralWithdraw, 4));
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[2].address)
+      await brandToken.balanceOf(signers[2].address)
     ));
     expect(roundTo(result, 4)).to.equal(roundTo(collateral2S2Balance - collateral2Amount + collateralWithdraw, 4));
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     expect(roundTo(result, 4)).to.equal(roundTo(collateral2BlBalance + collateral2Amount - collateralWithdraw, 4));
     result = Number(ethers.utils.formatUnits(
@@ -1434,11 +1412,11 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ));
     expect(roundTo(result, 4)).to.equal(roundTo(collateral1BlBalance, 4));
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[2].address)
+      await brandToken.balanceOf(signers[2].address)
     ));
     expect(roundTo(result, 4)).to.equal(roundTo(collateral2S2Balance, 4));
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     expect(roundTo(result, 4)).to.equal(roundTo(collateral2BlBalance, 4));
     result = Number(ethers.utils.formatUnits(
@@ -3193,13 +3171,13 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await erc20CollateralContract.balanceOf(collateralContract.address)
     ));
     const collateral2S7BalanceBefore = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[7].address)
+      await brandToken.balanceOf(signers[7].address)
     ));
     const collateral2S8BalanceBefore = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[8].address)
+      await brandToken.balanceOf(signers[8].address)
     ));
     const collateral2BlBalanceBefore = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     const collateral3S7BalanceBefore = Number(ethers.utils.formatUnits(
       await erc20CollateralContract.provider.getBalance(signers[7].address)
@@ -3238,13 +3216,13 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await erc20CollateralContract.balanceOf(collateralContract.address)
     ));
     const collateral2S7BalanceAfter = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[7].address)
+      await brandToken.balanceOf(signers[7].address)
     ));
     const collateral2S8BalanceAfter = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[8].address)
+      await brandToken.balanceOf(signers[8].address)
     ));
     const collateral2BlBalanceAfter = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     const collateral3S7BalanceAfter = Number(ethers.utils.formatUnits(
       await erc20CollateralContract.provider.getBalance(signers[7].address)
@@ -3659,30 +3637,23 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     expect(Number(result.liquidationRMax)).to.equal(777);
 
     await expect(
-      collateralContract.connect(signers[3]).setEtnaContract(d.owner.address)
+      collateralContract.connect(signers[3]).setBrandToken(d.owner.address)
     )
       .to.be.revertedWith('63');
     await collateralContract.connect(signers[9])
-      .setEtnaContract(d.owner.address);
-    result = await collateralContract.getEtnaContract();
+      .setBrandToken(d.owner.address);
+    result = await collateralContract.getBrandToken();
     expect(result).to.equal(d.owner.address);
+    d.brandProfileIndex = Number(await collateralContract.getBrandProfileIndex());
+    expect(d.brandProfileIndex).to.be.greaterThan(0);
+    result = await collateralContract.getCollateralProfile(d.brandProfileIndex);
+    expect(result.contractAddress).to.equal(d.owner.address);
     await collateralContract.connect(signers[9])
-      .setEtnaContract(etnaContract.address);
-    result = await collateralContract.getEtnaContract();
-    expect(result).to.equal(etnaContract.address);
-
-    await expect(
-      collateralContract.connect(signers[3]).setNEtnaContract(d.owner.address)
-    )
-      .to.be.revertedWith('63');
-    await collateralContract.connect(signers[9])
-      .setNEtnaContract(d.owner.address);
-    result = await collateralContract.getNEtnaContract();
-    expect(result).to.equal(d.owner.address);
-    await collateralContract.connect(signers[9])
-      .setNEtnaContract(etnaContract.address);
-    result = await collateralContract.getNEtnaContract();
-    expect(result).to.equal(etnaContract.address);
+      .setBrandToken(brandToken.address);
+    result = await collateralContract.getBrandToken();
+    expect(result).to.equal(brandToken.address);
+    result = await collateralContract.getCollateralProfile(d.brandProfileIndex);
+    expect(result.contractAddress).to.equal(brandToken.address);
 
     await expect(
       nftCollateralContract.connect(signers[9])
@@ -3690,10 +3661,6 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ).to.be.revertedWith('Caller is not the manager');
     await nftCollateralContract.connect(d.owner)
       .addToManagers(signers[9].address);
-    await nftCollateralContract.connect(signers[9])
-      .updateNEtnaContract();
-    result = await nftCollateralContract.getNEtnaContract();
-    expect(result).to.equal(etnaContract.address);
     await nftCollateralContract.connect(signers[9])
       .setCollateralContract(d.owner.address);
     result = await nftCollateralContract.getCollateralContract();
@@ -3715,7 +3682,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await erc20CollateralContract.balanceOf(collateralContract.address)
     ));
     const collateral2BLBalance = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     const collateral3BLBalance = Number(ethers.utils.formatUnits(
       await erc20CollateralContract.provider.getBalance(collateralContract.address)
@@ -3724,7 +3691,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await erc20CollateralContract.balanceOf(d.owner.address)
     ));
     const s2BLBalance = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(d.owner.address)
+      await brandToken.balanceOf(d.owner.address)
     ));
     const s3BLBalance = Number(ethers.utils.formatUnits(
       await erc20CollateralContract.provider.getBalance(d.owner.address)
@@ -3745,7 +3712,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ));
     expect(result).to.equal(collateral1BLBalance + collateral);
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     expect(result).to.equal(collateral2BLBalance + collateral);
     result = Number(ethers.utils.formatUnits(
@@ -3762,7 +3729,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     await expect(
       collateralContract.connect(signers[8])
         .adminWithdraw(
-          etnaContract.address, ethers.utils.parseUnits(collateral.toString())
+          brandToken.address, ethers.utils.parseUnits(collateral.toString())
         )
     ).to.be.revertedWith('62');
     await expect(
@@ -3772,7 +3739,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
 
     await collateralContract.connect(d.owner)
       .adminWithdraw(
-        etnaContract.address, ethers.utils.parseUnits(collateral.toString())
+        brandToken.address, ethers.utils.parseUnits(collateral.toString())
       );
     await collateralContract.connect(d.owner)
       .adminWithdraw(
@@ -3782,7 +3749,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       .adminWithdraw(zeroAddress, ethers.utils.parseUnits(collateral.toString()));
 
     result = Number(ethers.utils.formatUnits(
-      await collateralContract.getAdminWithdraw(etnaContract.address)
+      await collateralContract.getAdminWithdraw(brandToken.address)
     ));
     expect(result).to.equal(collateral);
     result = Number(ethers.utils.formatUnits(
@@ -3798,7 +3765,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ));
     expect(result).to.equal(collateral1BLBalance);
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     expect(result).to.equal(collateral2BLBalance);
     result = Number(ethers.utils.formatUnits(
@@ -3810,7 +3777,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ));
     expect(result).to.equal(s1BLBalance + collateral);
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(d.owner.address)
+      await brandToken.balanceOf(d.owner.address)
     ));
     expect(result).to.equal(s2BLBalance + collateral);
     result = Number(ethers.utils.formatUnits(
@@ -3821,7 +3788,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     const replenishAmount = 100;
     await collateralContract.connect(d.owner)
       .adminReplenish(
-        etnaContract.address, ethers.utils.parseUnits(replenishAmount.toString())
+        brandToken.address, ethers.utils.parseUnits(replenishAmount.toString())
       );
     await collateralContract.connect(d.owner)
       .adminReplenish(
@@ -3833,7 +3800,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
         , {value: ethers.utils.parseUnits((replenishAmount - 10).toString())}
       );
     result = Number(ethers.utils.formatUnits(
-      await collateralContract.getAdminReplenish(etnaContract.address)
+      await collateralContract.getAdminReplenish(brandToken.address)
     ));
     expect(result).to.equal(replenishAmount);
     result = Number(ethers.utils.formatUnits(
@@ -3850,7 +3817,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ));
     expect(result).to.equal(collateral1BLBalance + replenishAmount + 10);
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(collateralContract.address)
+      await brandToken.balanceOf(collateralContract.address)
     ));
     expect(result).to.equal(collateral2BLBalance + replenishAmount);
     result = Number(ethers.utils.formatUnits(
@@ -3862,7 +3829,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ));
     expect(result).to.equal(s1BLBalance + collateral - (replenishAmount + 10));
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(d.owner.address)
+      await brandToken.balanceOf(d.owner.address)
     ));
     expect(result).to.equal(s2BLBalance + collateral - replenishAmount);
     result = Number(ethers.utils.formatUnits(
@@ -3909,17 +3876,11 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     ));
 
     await nftCollateralContract.connect(d.owner)
-      .adminWithdrawNEtna(
-        ethers.utils.parseUnits(withdrawAmount.toString())
-      );
-
-    await nftCollateralContract.connect(d.owner)
       .adminWithdrawToken(
-        borrowing1Contract.address, ethers.utils.parseUnits(
-          withdrawAmount.toString(), 6
+        nEtnaContract.address, ethers.utils.parseUnits(
+          withdrawAmount.toString()
         )
       );
-
     result = Number(ethers.utils.formatUnits(
       await nEtnaContract.balanceOf(nftCollateralContract.address)
     ));
@@ -3928,6 +3889,14 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await nEtnaContract.balanceOf(d.owner.address)
     ));
     expect(result).to.equal(netnaBalanceS10 + withdrawAmount);
+
+    await nftCollateralContract.connect(d.owner)
+      .adminWithdrawToken(
+        borrowing1Contract.address, ethers.utils.parseUnits(
+          withdrawAmount.toString(), 6
+        )
+      );
+
     result = Number(ethers.utils.formatUnits(
       await borrowing1Contract.balanceOf(nftCollateralContract.address), 6
     ));
@@ -4313,11 +4282,11 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       1: 0, 2: 0,
     };
     const balances = {
-      0: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[0].address))),
-      1: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[1].address))),
-      2: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[2].address))),
-      3: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[3].address))),
-      4: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[4].address))),
+      0: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[0].address))),
+      1: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[1].address))),
+      2: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[2].address))),
+      3: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[3].address))),
+      4: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[4].address))),
     };
     const apr = {};
     let totalReward = 0;
@@ -4447,7 +4416,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await rewardContract.calculateReward(signers[1].address, true)
     )), 5)).to.equal(0);
     expect(roundToPrecision(Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[1].address)
+      await brandToken.balanceOf(signers[1].address)
     )), 5)).to.equal(
       roundToPrecision(balances[1] + rewards[1], 5)
     );
@@ -4457,7 +4426,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await rewardContract.calculateReward(signers[3].address, true)
     )), 5)).to.equal(0);
     expect(roundToPrecision(Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[3].address)
+      await brandToken.balanceOf(signers[3].address)
     )), 5)).to.equal(
       roundToPrecision(balances[3] + rewards[3], 5)
     );
@@ -4575,38 +4544,38 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
 
     await rewardContract.connect(signers[0]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
     await rewardContract.connect(signers[1]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
     await rewardContract.connect(signers[2]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
     await rewardContract.connect(signers[3]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
     await rewardContract.connect(signers[4]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
 
     const newBalances = {
-      0: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[0].address))),
-      1: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[1].address))),
-      2: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[2].address))),
-      3: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[3].address))),
-      4: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[4].address))),
+      0: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[0].address))),
+      1: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[1].address))),
+      2: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[2].address))),
+      3: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[3].address))),
+      4: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[4].address))),
     };
     const paidReward = (newBalances[0] - balances[0]) + (newBalances[1] - balances[1]) + (newBalances[2] - balances[2]) + (newBalances[3] - balances[3]) + (newBalances[4] - balances[4]);
 
     expect(roundTo(paidReward, 1))
       .to.equal(roundTo(totalReward, 1));
     expect(roundTo(Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     )), 1)).to.equal(0);
   });
 
@@ -4640,11 +4609,11 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       1: 0, 2: 0,
     };
     const balances = {
-      0: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[0].address))),
-      1: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[1].address))),
-      2: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[2].address))),
-      3: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[3].address))),
-      4: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[4].address))),
+      0: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[0].address))),
+      1: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[1].address))),
+      2: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[2].address))),
+      3: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[3].address))),
+      4: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[4].address))),
     };
     const apr = {};
     let totalReward = 0;
@@ -4719,7 +4688,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     rewardPool *= 2;
     rewardPerYear = rewardPool * 365 * 3600 * 24 / duration;
     rewardUsdPerYear = rewardPerYear * collateral2ProfileUsdRate;
-    await etnaContract.connect(d.owner).transfer(
+    await brandToken.connect(d.owner).transfer(
       rewardContract.address, ethers.utils.parseUnits('100000')
     );
     await rewardContract.connect(d.owner).
@@ -4800,7 +4769,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await rewardContract.calculateReward(signers[1].address, true)
     )), 5)).to.equal(0);
     expect(roundToPrecision(Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[1].address)
+      await brandToken.balanceOf(signers[1].address)
     )), 5)).to.equal(
       roundToPrecision(balances[1] + rewards[1], 5)
     );
@@ -4810,7 +4779,7 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
       await rewardContract.calculateReward(signers[3].address, true)
     )), 5)).to.equal(0);
     expect(roundToPrecision(Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(signers[3].address)
+      await brandToken.balanceOf(signers[3].address)
     )), 5)).to.equal(
       roundToPrecision(balances[3] + rewards[3], 5)
     );
@@ -4928,38 +4897,38 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
 
     await rewardContract.connect(signers[0]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
     await rewardContract.connect(signers[1]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
     await rewardContract.connect(signers[2]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
     await rewardContract.connect(signers[3]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
     await rewardContract.connect(signers[4]).withdrawReward();
     result = Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     ));
 
     const newBalances = {
-      0: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[0].address))),
-      1: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[1].address))),
-      2: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[2].address))),
-      3: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[3].address))),
-      4: Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[4].address))),
+      0: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[0].address))),
+      1: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[1].address))),
+      2: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[2].address))),
+      3: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[3].address))),
+      4: Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[4].address))),
     };
     const paidReward = (newBalances[0] - balances[0]) + (newBalances[1] - balances[1]) + (newBalances[2] - balances[2]) + (newBalances[3] - balances[3]) + (newBalances[4] - balances[4]);
 
     expect(roundTo(paidReward, 1))
       .to.equal(roundTo(totalReward, 1));
     expect(roundTo(Number(ethers.utils.formatUnits(
-      await etnaContract.balanceOf(rewardContract.address)
+      await brandToken.balanceOf(rewardContract.address)
     )), 1)).to.equal(roundTo(already, 1));
   });
 
@@ -4969,8 +4938,8 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     let rewardS0 = 0;
     let rewardS1 = 0;
     let totalLent = 0;
-    let balanceS0 = Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[0].address)));
-    let balanceS1 = Number(ethers.utils.formatUnits(await etnaContract.balanceOf(signers[1].address)));
+    let balanceS0 = Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[0].address)));
+    let balanceS1 = Number(ethers.utils.formatUnits(await brandToken.balanceOf(signers[1].address)));
     let apr = 0;
     let totalReward = 0;
     await blContract.connect(signers[0])
@@ -5028,6 +4997,29 @@ describe.only("borrowingLending.js - Testing debank contracts", function () {
     expect(roundToPrecision(Number(ethers.utils.formatUnits(
       await rewardContract.calculateReward(signers[0].address, true)
     )), 5)).to.equal(roundToPrecision(rewardS0 * 2, 5));
+  });
+
+  it("Bonus reward migration", async function () {
+    await rewardContract.connect(d.owner).migrateProfiles(1, 2, 3, 4, 5, 6);
+    result = await rewardContract.getProfile(1);
+    expect(Number(result.rewardPerToken)).to.equal(2);
+    expect(Number(result.lastTimestamp)).to.equal(3);
+    expect(Number(result.rewardPercentage)).to.equal(4);
+    expect(Number(result.lastTotalLentAmount)).to.equal(5);
+    expect(Number(
+      await rewardContract.getRewardPaid(1)
+    )).to.equal(6);
+
+    await rewardContract.connect(d.owner).migrateUserProfiles(signers[0].address, 1, 2, 3, 4, 5, 6, 7);
+    result = await rewardContract.getUserProfile(signers[0].address, 1);
+    expect(Number(result.accumulatedReward)).to.equal(2);
+    expect(Number(result.withdrawnReward)).to.equal(3);
+    expect(Number(result.rewardPerTokenOffset)).to.equal(4);
+    expect(Number(result.lastLentAmount)).to.equal(5);
+    expect(Number(result.updatedAt)).to.equal(6);
+    expect(Number(
+      await rewardContract.getUserRewardPaid(signers[0].address, 1)
+    )).to.equal(7);
   });
 
   it('APR settings changing', async function () {

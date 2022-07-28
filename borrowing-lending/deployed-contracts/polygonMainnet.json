@@ -1,1 +1,104 @@
-[]
+{
+    "proxyAdmin": {
+        "latest": "0x7e31ffCefe928bF2Ba5c717cBd0F67dEb5E1e3Ae",
+        "all": [
+            {
+                "address": "0x7e31ffCefe928bF2Ba5c717cBd0F67dEb5E1e3Ae",
+                "timestamp": 1657683736
+            }
+        ]
+    },
+    "rates": {
+        "latest": "0xD382509f48eeFe4C618350D28Ad1Cfb520F76dD2",
+        "all": [
+            {
+                "address": "0xD382509f48eeFe4C618350D28Ad1Cfb520F76dD2",
+                "timestamp": 1657684888
+            }
+        ]
+    },
+    "blImplementation": {
+        "latest": "0xB03C5f09b4F98593234D5B664680370c553Cc768",
+        "all": [
+            {
+                "address": "0xB03C5f09b4F98593234D5B664680370c553Cc768",
+                "timestamp": 1657685116
+            }
+        ]
+    },
+    "blProxy": {
+        "latest": "0x1a983f96C2e4B3536c7605B8f812B30E68Cec493",
+        "all": [
+            {
+                "address": "0x1a983f96C2e4B3536c7605B8f812B30E68Cec493",
+                "timestamp": 1657685116
+            }
+        ]
+    },
+    "collateralImplementation": {
+        "latest": "0xA58179e3e8c8272b1B6c6d7C5F6312A982027E83",
+        "all": [
+            {
+                "address": "0xFC6a5416C5A7e2b19Cd5A84376d1153675ee87Bb",
+                "timestamp": 1657689914
+            },
+            {
+                "address": "0xa3820d1C6D4F8058898820980DD7aDc66806ED7A",
+                "timestamp": 1657690615
+            },
+            {
+                "address": "0xA58179e3e8c8272b1B6c6d7C5F6312A982027E83",
+                "timestamp": 1657856414
+            }
+        ]
+    },
+    "collateralProxy": {
+        "latest": "0xbeE1BD28dB9171f83c92f4445EF1359F4e71F86f",
+        "all": [
+            {
+                "address": "0xf7aeB1518C75c7357aC98B30D1212c02daa9BB02",
+                "timestamp": 1657689914
+            },
+            {
+                "address": "0xbeE1BD28dB9171f83c92f4445EF1359F4e71F86f",
+                "timestamp": 1657690615
+            }
+        ]
+    },
+    "nftCollateralImplementation": {
+        "latest": "0x2077bBb77Fc8a7f89C1FC766B29412f35F9310A0",
+        "all": [
+            {
+                "address": "0x2077bBb77Fc8a7f89C1FC766B29412f35F9310A0",
+                "timestamp": 1657691810
+            }
+        ]
+    },
+    "nftCollateralProxy": {
+        "latest": "0x6022AC21208D70961B7C688a7838397afA7902aB",
+        "all": [
+            {
+                "address": "0x6022AC21208D70961B7C688a7838397afA7902aB",
+                "timestamp": 1657691810
+            }
+        ]
+    },
+    "rewardImplementation": {
+        "latest": "0x789d1ad26A97462e07F2E8375AFD072E1eeAA48F",
+        "all": [
+            {
+                "address": "0x789d1ad26A97462e07F2E8375AFD072E1eeAA48F",
+                "timestamp": 1657692178
+            }
+        ]
+    },
+    "rewardProxy": {
+        "latest": "0x380D6e0790D4E32915D5C7837FFFFF6d6724DF87",
+        "all": [
+            {
+                "address": "0x380D6e0790D4E32915D5C7837FFFFF6d6724DF87",
+                "timestamp": 1657692178
+            }
+        ]
+    }
+}

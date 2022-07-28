@@ -1,0 +1,42 @@
+{
+    "proxyAdmin": {
+        "latest": "0xecBB155027262635ccE355a4F13e9643F8A37Df4",
+        "all": [
+            {
+                "address": "0xecBB155027262635ccE355a4F13e9643F8A37Df4",
+                "timestamp": 1657680716
+            }
+        ]
+    },
+    "rates": {
+        "latest": "0xD382509f48eeFe4C618350D28Ad1Cfb520F76dD2",
+        "all": [
+            {
+                "address": "0x95D2E1f71815B57B4053a410B367DD2E4A7F5DD6",
+                "timestamp": 1657684888
+            },
+            {
+                "address": "0xD382509f48eeFe4C618350D28Ad1Cfb520F76dD2",
+                "timestamp": 1657688483
+            }
+        ]
+    },
+    "blImplementation": {
+        "latest": "0xB03C5f09b4F98593234D5B664680370c553Cc768",
+        "all": [
+            {
+                "address": "0xB03C5f09b4F98593234D5B664680370c553Cc768",
+                "timestamp": 1657685116
+            }
+        ]
+    },
+    "blProxy": {
+        "latest": "0x1a983f96C2e4B3536c7605B8f812B30E68Cec493",
+        "all": [
+            {
+                "address": "0x1a983f96C2e4B3536c7605B8f812B30E68Cec493",
+                "timestamp": 1657685116
+            }
+        ]
+    }
+}

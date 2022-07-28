@@ -311,6 +311,7 @@ contract Reward is Initializable {
     function setRatesContract (
         address ratesContractAddress
     ) external onlyManager returns (bool) {
+        require(ratesContractAddress != address(0), 'Contract address can not be zero');
         _ratesContract = IRates(ratesContractAddress);
         return true;
     }
@@ -628,5 +629,40 @@ contract Reward is Initializable {
             / _duration
             / totalLent;
         return apr;
+    }
+
+    function migrateProfiles (
+        uint256 profileId,
+        uint256 rewardPerToken,
+        uint256 lastTimestamp,
+        uint256 rewardPercentage,
+        uint256 lastTotalLentAmount,
+        uint256 rewardPaid
+    ) external onlyManager returns (bool) {
+        _profiles[profileId].rewardPerToken = rewardPerToken;
+        _profiles[profileId].lastTimestamp = lastTimestamp;
+        _profiles[profileId].rewardPercentage = rewardPercentage;
+        _profiles[profileId].lastTotalLentAmount = lastTotalLentAmount;
+        _rewardPaid[profileId] = rewardPaid;
+        return true;
+    }
+
+    function migrateUserProfiles (
+        address userAddress,
+        uint256 profileId,
+        uint256 accumulatedReward,
+        uint256 withdrawnReward,
+        uint256 rewardPerTokenOffset,
+        uint256 lastLentAmount,
+        uint256 updatedAt,
+        uint256 rewardPaid
+    ) external onlyManager returns (bool) {
+        _userProfiles[userAddress][profileId].accumulatedReward = accumulatedReward;
+        _userProfiles[userAddress][profileId].withdrawnReward = withdrawnReward;
+        _userProfiles[userAddress][profileId].rewardPerTokenOffset = rewardPerTokenOffset;
+        _userProfiles[userAddress][profileId].lastLentAmount = lastLentAmount;
+        _userProfiles[userAddress][profileId].updatedAt = updatedAt;
+        _userRewardPaid[userAddress][profileId] = rewardPaid;
+        return true;
     }
 }
