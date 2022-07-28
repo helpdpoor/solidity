@@ -7,5 +7,23 @@
                 "timestamp": 1657680716
             }
         ]
+    },
+    "deployerImplementation": {
+        "latest": "0x6987f2A1ff39DbF369A0629c06bf529327ebea25",
+        "all": [
+            {
+                "address": "0x6987f2A1ff39DbF369A0629c06bf529327ebea25",
+                "timestamp": 1658987542
+            }
+        ]
+    },
+    "deployerProxy": {
+        "latest": "0xD7baC58d0555215c5F05f166D39CBf706C988343",
+        "all": [
+            {
+                "address": "0xD7baC58d0555215c5F05f166D39CBf706C988343",
+                "timestamp": 1658987542
+            }
+        ]
     }
 }

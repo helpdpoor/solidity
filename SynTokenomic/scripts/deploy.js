@@ -14,7 +14,7 @@ d.options = {};
 if (d.networkName === 'polygonMainnet') {
   d.options.gasPrice = 50000000000;
 }
-const jsonPath = path.join(__dirname, `../../deployed-contracts/${d.networkName}.json`);
+const jsonPath = path.join(__dirname, `../deployed-contracts/${d.networkName}.json`);
 
 async function main() {
   d.signers = await ethers.getSigners();
@@ -22,89 +22,68 @@ async function main() {
   const now = Math.round(Date.now() / 1000);
   const deployedContracts = require(jsonPath);
 
-
-
-
   d.ProxyAdmin = await ethers.getContractFactory(
     "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
   );
   if (!deployedContracts.proxyAdmin) throw new Error('Proxy admin contract is not defined');
   d.proxyAdmin = await d.ProxyAdmin.attach(deployedContracts.proxyAdmin.latest);
 
-  d.BorrowingLending = await ethers.getContractFactory("BorrowingLending");
-  d.blImplementation = await d.BorrowingLending.deploy();
-  await d.blImplementation.deployed();
-  if (!(deployedContracts.blImplementation)) deployedContracts.blImplementation = {
+  d.Deployer = await ethers.getContractFactory("Deployer");
+  d.deployerImplementation = await d.Deployer.deploy(d.options);
+  await d.deployerImplementation.deployed();
+  if (!(deployedContracts.deployerImplementation)) deployedContracts.deployerImplementation = {
     latest: '',
     all: [],
   };
-  deployedContracts.blImplementation.latest = d.blImplementation.address;
-  deployedContracts.blImplementation.all.push({
-    address: d.blImplementation.address,
+
+  deployedContracts.deployerImplementation.latest = d.deployerImplementation.address;
+  deployedContracts.deployerImplementation.all.push({
+    address: d.deployerImplementation.address,
     timestamp: now,
   });
   saveToJson(deployedContracts);
-  console.log(`Borrowing lending implementation contract deployed to ${d.blImplementation.address}`);
+  console.log(`Deployer implementation contract deployed to ${d.deployerImplementation.address}`);
 
   d.ABI = [
-    "function initialize(address, uint16, uint16, uint16, uint16, uint16)"
+    "function initialize(address, address, address, uint256, uint256)"
   ];
   d.iface = new ethers.utils.Interface(d.ABI);
   d.calldata = d.iface.encodeFunctionData("initialize", [
-    OWNER,
-    aprBorrowingMin,
-    aprBorrowingMax,
-    aprBorrowingFix,
-    aprLendingMin,
-    aprLendingMax
+    d.owner.address,
+    d.zero,
+    d.owner.address,
+    0,
+    0
   ]);
 
   d.Proxy = await ethers.getContractFactory(
     "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
   );
-  d.blProxy = await d.Proxy.deploy(
-    d.blImplementation.address,
+  d.deployerProxy = await d.Proxy.deploy(
+    d.deployerImplementation.address,
     d.proxyAdmin.address,
-    d.calldata
+    d.calldata,
+    d.options
   );
-  await d.blProxy.deployed();
-  if (!(deployedContracts.blProxy)) deployedContracts.blProxy = {
+  await d.deployerProxy.deployed();
+  if (!(deployedContracts.deployerProxy)) deployedContracts.deployerProxy = {
     latest: '',
     all: [],
   };
-  deployedContracts.blProxy.latest = d.blProxy.address;
-  deployedContracts.blProxy.all.push({
-    address: d.blProxy.address,
+  deployedContracts.deployerProxy.latest = d.deployerProxy.address;
+  deployedContracts.deployerProxy.all.push({
+    address: d.deployerProxy.address,
     timestamp: now,
   });
   saveToJson(deployedContracts);
-  console.log(`Borrowing lending proxy contract deployed to ${d.blProxy.address}`);
+  console.log(`Deployer proxy contract deployed to ${d.deployerProxy.address}`);
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  d.Deployer = await ethers.getContractFactory("Deployer");
-  d.deployer = await d.Deployer.deploy(
-    d.owner.address,
-    d.zero,
-    d.owner.address,
-    0,
-    0,
-    d.options
+function saveToJson(jsonData) {
+  fs.writeFileSync(
+    jsonPath,
+    JSON.stringify(jsonData, null, 4)
   );
-  await d.deployer.deployed();
 }
 
 // We recommend this pattern to be able to use async/await everywhere

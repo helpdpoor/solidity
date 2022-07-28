@@ -13,7 +13,7 @@ d.options = {};
 if (d.networkName === 'polygonMainnet') {
   d.options.gasPrice = 50000000000;
 }
-const jsonPath = path.join(__dirname, `../../deployed-contracts/${d.networkName}.json`);
+const jsonPath = path.join(__dirname, `../deployed-contracts/${d.networkName}.json`);
 
 async function main() {
   d.signers = await ethers.getSigners();
@@ -24,7 +24,7 @@ async function main() {
   d.ProxyAdmin = await ethers.getContractFactory(
     "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
   );
-  d.proxyAdmin = await d.ProxyAdmin.deploy(options);
+  d.proxyAdmin = await d.ProxyAdmin.deploy(d.options);
   await d.proxyAdmin.deployed();
   if (!(deployedContracts.proxyAdmin)) deployedContracts.proxyAdmin = {
     latest: '',

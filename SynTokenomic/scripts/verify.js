@@ -10,18 +10,27 @@ async function main() {
   d.signers = await ethers.getSigners();
   d.owner = d.signers[0];
   d.zero = '0x0000000000000000000000000000000000000000';
-  const contractAddress = '0x9477eFC987c022304316ccC3d28f917afE5F98c0';
+  const contractAddress = '0xD7baC58d0555215c5F05f166D39CBf706C988343';
+
+
+  const ABI = [
+    "function initialize(address, address, address, uint256, uint256)"
+  ];
+  const iface = new ethers.utils.Interface(ABI);
+  const calldata = iface.encodeFunctionData("initialize", [
+    d.owner.address,
+    d.zero,
+    d.owner.address,
+    0,
+    0
+  ]);
 
   await hre.run("verify:verify", {
     address: contractAddress,
     constructorArguments: [
-      d.owner.address,
-      ethers.utils.parseUnits('1000000'),
-      d.zero,
-      0,
-      18,
-      'TEST',
-      'TEST'
+      '0x6987f2A1ff39DbF369A0629c06bf529327ebea25',
+      '0xecBB155027262635ccE355a4F13e9643F8A37Df4',
+      calldata,
     ],
   });
 }

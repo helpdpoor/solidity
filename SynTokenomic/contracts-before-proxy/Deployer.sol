@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (token/ERC20/ERC20.sol)
 
-pragma solidity 0.8.2;
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import './AccessControl.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 import './ERC20Token.sol';
 import 'hardhat/console.sol';
 
-contract Deployer is AccessControl, Initializable {
+contract Deployer is Ownable {
     event ContractDeployed (address tokenAddress);
     struct VestingStage {
         uint256 amount;
@@ -39,26 +38,23 @@ contract Deployer is AccessControl, Initializable {
     address internal _feeReceiver;
     uint256 internal _feeAmountSimple;
     uint256 internal _feeAmountAdvanced;
-    bytes32 internal constant MANAGER = keccak256(abi.encode('MANAGER'));
 
-    function initialize (
+    constructor (
         address newOwner,
         address feeContractAddress,
         address feeReceiver,
         uint256 feeAmountSimple,
         uint256 feeAmountAdvanced
-    ) public initializer returns (bool) {
+    ) {
         require(newOwner != address(0), 'Owner address can not be zero');
         require(feeReceiver != address(0), 'Fee receiver address can not be zero');
-        _owner = newOwner;
-        _grantRole(MANAGER, newOwner);
+        transferOwnership(newOwner);
         _maxAllocationsNumber = 10;
         _maxVestingStagesNumber = 10;
         _feeContractAddress = feeContractAddress;
         _feeReceiver = feeReceiver;
         _feeAmountSimple = feeAmountSimple;
         _feeAmountAdvanced = feeAmountAdvanced;
-        return true;
     }
 
     /**
@@ -66,7 +62,7 @@ contract Deployer is AccessControl, Initializable {
      */
     function setFeeContractAddress (
         address feeContractAddress
-    ) external hasRole(MANAGER) returns (bool) {
+    ) external onlyOwner returns (bool) {
         _feeContractAddress = feeContractAddress;
         return true;
     }
@@ -76,7 +72,7 @@ contract Deployer is AccessControl, Initializable {
      */
     function setFeeReceiverAddress (
         address feeReceiver
-    ) external hasRole(MANAGER) returns (bool) {
+    ) external onlyOwner returns (bool) {
         require(feeReceiver != address(0), 'Fee receiver address can not be zero');
         _feeReceiver = feeReceiver;
         return true;
@@ -87,7 +83,7 @@ contract Deployer is AccessControl, Initializable {
      */
     function setFeeAmountSimple (
         uint256 amount
-    ) external hasRole(MANAGER) returns (bool) {
+    ) external onlyOwner returns (bool) {
         _feeAmountSimple = amount;
         return true;
     }
@@ -97,7 +93,7 @@ contract Deployer is AccessControl, Initializable {
      */
     function setFeeAmountAdvanced (
         uint256 amount
-    ) external hasRole(MANAGER) returns (bool) {
+    ) external onlyOwner returns (bool) {
         _feeAmountAdvanced = amount;
         return true;
     }
