@@ -9,20 +9,20 @@
         ]
     },
     "deployerImplementation": {
-        "latest": "0x6987f2A1ff39DbF369A0629c06bf529327ebea25",
+        "latest": "0xF66b5507EfDA400abc31b1c055022FdE969aE9be",
         "all": [
             {
-                "address": "0x6987f2A1ff39DbF369A0629c06bf529327ebea25",
-                "timestamp": 1658987542
+                "address": "0xF66b5507EfDA400abc31b1c055022FdE969aE9be",
+                "timestamp": 1659013782
             }
         ]
     },
     "deployerProxy": {
-        "latest": "0xD7baC58d0555215c5F05f166D39CBf706C988343",
+        "latest": "0x8B42bC905662D1eF8Cb66EaCfD1fA039aAa4c9bf",
         "all": [
             {
-                "address": "0xD7baC58d0555215c5F05f166D39CBf706C988343",
-                "timestamp": 1658987542
+                "address": "0x8B42bC905662D1eF8Cb66EaCfD1fA039aAa4c9bf",
+                "timestamp": 1659013782
             }
         ]
     }

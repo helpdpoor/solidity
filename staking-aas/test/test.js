@@ -33,124 +33,114 @@ const tax = 1000;
 const decimals = 10000;
 const apr = 2000;
 
-beforeEach(async function () {
-  signers = await ethers.getSigners();
-  user1 = signers[0];
-  user2 = signers[1];
-  user3 = signers[2];
-  pool1owner = signers[6];
-  pool2owner = signers[7];
-  taxReceiver = signers[8];
-  manager = signers[9];
-  owner = signers[10];
-
-  const ERC20 = await ethers.getContractFactory("MTB");
-  deposit1contract = await ERC20.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
-  await deposit1contract.deployed();
-  await deposit1contract.connect(owner).transfer(user1.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await deposit1contract.connect(owner).transfer(user2.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await deposit1contract.connect(owner).transfer(user3.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  
-  deposit2contract = await ERC20.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
-  await deposit2contract.deployed();
-  await deposit2contract.connect(owner).transfer(user1.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await deposit2contract.connect(owner).transfer(user2.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await deposit2contract.connect(owner).transfer(user3.address, ethers.utils.parseUnits(initialTransfer.toString()));
-
-  yield1contract = await ERC20.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
-  await yield1contract.deployed();
-  await yield1contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await yield1contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
-
-  yield2contract = await ERC20.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
-  await yield2contract.deployed();
-  await yield2contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await yield2contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
-
-  lock1contract = await ERC20.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
-  await lock1contract.deployed();
-  await lock1contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await lock1contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
-
-  lock2contract = await ERC20.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
-  await lock2contract.deployed();
-  await lock2contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await lock2contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
-
-  const Staking = await ethers.getContractFactory("Staking");
-  stakingContract = await Staking.connect(owner).deploy(
-    owner.address,
-    taxReceiver.address,
-    tax,
-    blockTime
-  );
-  await stakingContract.deployed();
-
-  await deposit1contract.connect(user1).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await deposit1contract.connect(user2).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await deposit1contract.connect(user3).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-
-  await deposit2contract.connect(user1).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await deposit2contract.connect(user2).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await deposit2contract.connect(user3).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-
-  await yield1contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await yield1contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await yield2contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await yield2contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-
-  await lock1contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await lock1contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await lock2contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-  await lock2contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
-
-  await stakingContract.connect(owner)
-    .addLockProfile(
-      lock1contract.address,
-      ethers.utils.parseUnits(lock1amount.toString()),
-      true
-    );
-  await stakingContract.connect(owner)
-    .addLockProfile(
-      lock2contract.address,
-      ethers.utils.parseUnits(lock2amount.toString()),
-      true
-    );
-});
 
 describe("Testing Staking contract", function () {
+  beforeEach(async function () {
+    signers = await ethers.getSigners();
+    user1 = signers[0];
+    user2 = signers[1];
+    user3 = signers[2];
+    pool1owner = signers[6];
+    pool2owner = signers[7];
+    taxReceiver = signers[8];
+    manager = signers[9];
+    owner = signers[10];
+
+    const ERC20Token = await ethers.getContractFactory("ERC20Token");
+    deposit1contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await deposit1contract.deployed();
+    await deposit1contract.connect(owner).transfer(user1.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit1contract.connect(owner).transfer(user2.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit1contract.connect(owner).transfer(user3.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    deposit2contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await deposit2contract.deployed();
+    await deposit2contract.connect(owner).transfer(user1.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(owner).transfer(user2.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(owner).transfer(user3.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    yield1contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await yield1contract.deployed();
+    await yield1contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    yield2contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await yield2contract.deployed();
+    await yield2contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield2contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    lock1contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await lock1contract.deployed();
+    await lock1contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock1contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    lock2contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await lock2contract.deployed();
+    await lock2contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock2contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    const Staking = await ethers.getContractFactory("Staking");
+    stakingContract = await Staking.connect(owner).deploy(
+      owner.address,
+      taxReceiver.address,
+      tax,
+      blockTime
+    );
+    await stakingContract.deployed();
+
+    await deposit1contract.connect(user1).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit1contract.connect(user2).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit1contract.connect(user3).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    await deposit2contract.connect(user1).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(user2).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(user3).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    await yield1contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield2contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield2contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    await lock1contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock1contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock2contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock2contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    await stakingContract.connect(owner)
+      .addLockProfile(
+        lock1contract.address,
+        ethers.utils.parseUnits(lock1amount.toString()),
+        ethers.utils.parseUnits(lock1amount.toString()),
+        true
+      );
+    await stakingContract.connect(owner)
+      .addLockProfile(
+        lock2contract.address,
+        ethers.utils.parseUnits(lock2amount.toString()),
+        ethers.utils.parseUnits(lock2amount.toString()),
+        true
+      );
+  });
+
   it("Pools management", async function () {
     await stakingContract.connect(pool1owner)
       .addDepositProfile(
-        1, // lock profile id
+        [
+          1, // lock profile id
+          ethers.utils.parseUnits(pool1size.toString()), // pool size
+          distribution1period, // period
+          0 // apr
+        ],
         deposit1contract.address,
         yield1contract.address,
-        ethers.utils.parseUnits(pool1size.toString()),
-        distribution1period,
-        0
-      );
-
-
-    await expect(
-      stakingContract.connect(user1)
-        .setDepositProfileExtra(
-          1,
+        [
           'name',
           'depositCurrency',
           'yieldCurrency',
-          'link',
-          true
-        )
-    ).to.be.revertedWith('Deposit profile is not found');
-
-    await stakingContract.connect(pool1owner)
-      .setDepositProfileExtra(
-        1,
-        'name',
-        'depositCurrency',
-        'yieldCurrency',
-        'link',
-        true
+          'link'
+        ]
       );
 
     expect(Number(ethers.utils.formatUnits(
@@ -193,34 +183,20 @@ describe("Testing Staking contract", function () {
 
     await stakingContract.connect(pool2owner)
       .addDepositProfile(
-        2,
+        [
+          2,
+          ethers.utils.parseUnits(pool2size.toString()),
+          distribution2period,
+          0
+        ],
         deposit2contract.address,
         yield2contract.address,
-        ethers.utils.parseUnits(pool2size.toString()),
-        distribution2period,
-        0
-      );
-
-    await expect(
-      stakingContract.connect(user1)
-        .setDepositProfileExtra(
-          2,
+        [
           'name',
           'depositCurrency',
           'yieldCurrency',
-          'link',
-          true
-        )
-    ).to.be.revertedWith('Deposit profile is not found');
-
-    await stakingContract.connect(pool2owner)
-      .setDepositProfileExtra(
-        1,
-        'name',
-        'depositCurrency',
-        'yieldCurrency',
-        'link',
-        true
+          'link'
+        ]
       );
 
     expect(Number(ethers.utils.formatUnits(
@@ -229,6 +205,7 @@ describe("Testing Staking contract", function () {
     expect(Number(
       await stakingContract.getDepositProfilesNumber()
     )).to.equal(2);
+
     result.depositProfile = await stakingContract.getDepositProfile(2);
     expect(result.depositProfile.depositContractAddress)
       .to.equal(deposit2contract.address);
@@ -238,6 +215,7 @@ describe("Testing Staking contract", function () {
       result.depositProfile.poolSize
     )))
       .to.equal(pool2size);
+
     expect(Number(result.depositProfile.period))
       .to.equal(distribution2period);
     result.depositProfileExtra = await stakingContract.getDepositProfileExtra(2);
@@ -274,21 +252,20 @@ describe("Testing Staking contract", function () {
   it("Dynamic staking", async function () {
     await stakingContract.connect(pool1owner)
       .addDepositProfile(
-        1, // lock profile id
+        [
+          1,
+          ethers.utils.parseUnits(pool1size.toString()),
+          distribution1period,
+          0
+        ],
         deposit1contract.address,
         yield1contract.address,
-        ethers.utils.parseUnits(pool1size.toString()),
-        distribution1period,
-        0
-      );
-    await stakingContract.connect(pool1owner)
-      .setDepositProfileExtra(
-        1,
-        'name',
-        'depositCurrency',
-        'yieldCurrency',
-        'link',
-        true
+        [
+          'name',
+          'depositCurrency',
+          'yieldCurrency',
+          'link'
+        ]
       );
 
     hre.timeAndMine.increaseTime('10 day');
@@ -655,24 +632,24 @@ describe("Testing Staking contract", function () {
   it("Fixed rate staking", async function () {
     await stakingContract.connect(pool2owner)
       .addDepositProfile(
-        1, // lock profile id
+        [
+          1,
+          ethers.utils.parseUnits(pool2size.toString()),
+          distribution2period,
+          apr
+        ],
         deposit2contract.address,
-        yield2contract.address,
-        ethers.utils.parseUnits(pool2size.toString()),
-        distribution2period,
-        apr
+        deposit2contract.address,
+        [
+          'name',
+          'depositCurrency',
+          'yieldCurrency',
+          'link',
+        ]
       );
-
-    await stakingContract.connect(pool2owner)
-      .setDepositProfileExtra(
-        1,
-        'name',
-        'depositCurrency',
-        'yieldCurrency',
-        'link',
-        true
-      );
-
+    const contractBalance = Number(ethers.utils.formatUnits(
+      await deposit2contract.balanceOf(stakingContract.address)
+    ));
     hre.timeAndMine.increaseTime('10 day');
     await signers[0].sendTransaction({
       to: signers[1].address,
@@ -689,7 +666,7 @@ describe("Testing Staking contract", function () {
 
     expect(Number(ethers.utils.formatUnits(
       await deposit2contract.balanceOf(stakingContract.address)
-    ))).to.equal(deposit1amount);
+    ))).to.equal(deposit1amount + contractBalance);
     expect(Number(ethers.utils.formatUnits(
       await stakingContract.getDepositYield(1)
     ))).to.equal(0);
@@ -867,13 +844,13 @@ describe("Testing Staking contract", function () {
       );
     result.user1reward -= withdrawYield1amount;
 
-    await stakingContract.connect(user1)
-      .unStake(
-        ethers.utils.parseUnits(unstake1amount.toString()),
-        1
-      );
-    result.user1deposited -= unstake1amount;
-    result.totalDeposited -= unstake1amount;
+    await expect(
+      stakingContract.connect(user1)
+        .unStake(
+          ethers.utils.parseUnits(unstake1amount.toString()),
+          1
+        )
+    ).to.be.revertedWith('Assets are locked yet');
 
     expect(roundTo(Number(ethers.utils.formatUnits(
       await stakingContract.getDepositYield(1)
@@ -1031,6 +1008,14 @@ describe("Testing Staking contract", function () {
       stakingContract.connect(pool2owner)
         .withdrawLockedAssets(1)
     ).to.be.revertedWith('Locked assets are already withdrawn');
+
+    await stakingContract.connect(user1)
+      .unStake(
+        ethers.utils.parseUnits(unstake1amount.toString()),
+        1
+      );
+    result.user1deposited -= unstake1amount;
+    result.totalDeposited -= unstake1amount;
 
     const taxedAmount = lock1amount * tax / decimals;
 

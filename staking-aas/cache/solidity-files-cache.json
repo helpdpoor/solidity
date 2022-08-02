@@ -1,79 +1,7 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/staking-per-block/contracts/access-control.sol": {
-      "lastModificationDate": 1646149580356,
-      "contentHash": "97297f19d037e0448e84fcf39b1fc2f1",
-      "sourceName": "contracts/access-control.sol",
-      "solcConfig": {
-        "version": "0.8.0",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "0.8.0"
-      ],
-      "artifacts": [
-        "AccessControl"
-      ]
-    },
-    "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/staking-per-block/contracts/staking-per-block.sol": {
-      "lastModificationDate": 1646932257715,
-      "contentHash": "fed6ea86c4d5456f7e56f8016d4e3876",
-      "sourceName": "contracts/staking-per-block.sol",
-      "solcConfig": {
-        "version": "0.8.0",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "hardhat/console.sol",
-        "./access-control.sol"
-      ],
-      "versionPragmas": [
-        "0.8.0"
-      ],
-      "artifacts": [
-        "IERC20",
-        "Staking"
-      ]
-    },
-    "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/staking-per-block/node_modules/hardhat/console.sol": {
+    "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/staking-aas/node_modules/hardhat/console.sol": {
       "lastModificationDate": 1646149949882,
       "contentHash": "cc4777addd464ea56fa35b1c45df0591",
       "sourceName": "hardhat/console.sol",
@@ -107,10 +35,82 @@
         "console"
       ]
     },
-    "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/staking-per-block/contracts/mtb.sol": {
-      "lastModificationDate": 1646252723715,
-      "contentHash": "9614171757cbd0de99a7dffae857cf14",
-      "sourceName": "contracts/mtb.sol",
+    "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/staking-aas/contracts/AccessControl.sol": {
+      "lastModificationDate": 1659154040941,
+      "contentHash": "97297f19d037e0448e84fcf39b1fc2f1",
+      "sourceName": "contracts/AccessControl.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "AccessControl"
+      ]
+    },
+    "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/staking-aas/contracts/Staking.sol": {
+      "lastModificationDate": 1659407825346,
+      "contentHash": "0f25b3b62bd8d58b1f701931f3c44fc5",
+      "sourceName": "contracts/Staking.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "hardhat/console.sol",
+        "./AccessControl.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "IERC20",
+        "Staking"
+      ]
+    },
+    "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/staking-aas/contracts/ERC20Token.sol": {
+      "lastModificationDate": 1659154086605,
+      "contentHash": "056d2b5f051e19d46af31139473ae31a",
+      "sourceName": "contracts/ERC20Token.sol",
       "solcConfig": {
         "version": "0.8.0",
         "settings": {
@@ -140,9 +140,9 @@
       "artifacts": [
         "Context",
         "ERC20",
+        "ERC20Token",
         "IERC20",
-        "IERC20Metadata",
-        "MTB"
+        "IERC20Metadata"
       ]
     }
   }

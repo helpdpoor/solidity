@@ -45,13 +45,14 @@ async function main() {
   console.log(`Deployer implementation contract deployed to ${d.deployerImplementation.address}`);
 
   d.ABI = [
-    "function initialize(address, address, address, uint256, uint256)"
+    "function initialize(address, address, address, uint256, uint256, uint256)"
   ];
   d.iface = new ethers.utils.Interface(d.ABI);
   d.calldata = d.iface.encodeFunctionData("initialize", [
     d.owner.address,
     d.zero,
     d.owner.address,
+    0,
     0,
     0
   ]);
