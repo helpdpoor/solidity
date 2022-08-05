@@ -30,7 +30,22 @@ async function main() {
   await d.staking.addLockProfile(
     '0xF2b65Fd32ca4B5EC5595ee97a833eb6bAd9e0C89',
     ethers.utils.parseUnits('100'),
-    ethers.utils.parseUnits('50'),
+    ethers.utils.parseUnits('50')
+  );
+
+  await d.staking.addLockProfile(
+    '0x28525d136EAd6cd2f6810e3cD02CD4c7231A2951',
+    ethers.utils.parseUnits('150'),
+    ethers.utils.parseUnits('75')
+  );
+
+  await d.staking.setFavoriteToken(
+    '0xF2b65Fd32ca4B5EC5595ee97a833eb6bAd9e0C89',
+    true
+  );
+
+  await d.staking.setFavoriteToken(
+    '0x28525d136EAd6cd2f6810e3cD02CD4c7231A2951',
     true
   );
 

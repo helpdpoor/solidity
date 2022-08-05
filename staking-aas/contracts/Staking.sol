@@ -45,6 +45,7 @@ contract Staking is AccessControl {
         uint256 tvl; // total amount of tokens deposited in a pool
         uint256 stakers;
         uint256 yieldPaid;
+        uint256 totalYield;
         string name;
         string depositCurrency;
         string yieldCurrency;
@@ -100,7 +101,7 @@ contract Staking is AccessControl {
         uint256 amount, uint256 depositProfileId
     ) external returns (bool) {
         require(
-            _depositProfiles[depositProfileId].active, 'This pool is disabled'
+            _depositProfiles[depositProfileId].active, 'This vault is disabled'
         );
         if (_depositProfiles[depositProfileId].endTime == 0) {
             _depositProfiles[depositProfileId].endTime =
@@ -118,6 +119,9 @@ contract Staking is AccessControl {
                 tvl <= _depositProfiles[depositProfileId].poolSize,
                     'Pool size exceeded'
             );
+            uint256 period = _depositProfiles[depositProfileId].endTime - block.timestamp;
+            _depositProfiles[depositProfileId].totalYield += amount * period *
+                _depositProfiles[depositProfileId].apr / DECIMALS / YEAR;
         }
         IERC20 depositTokenContract = IERC20(
             _depositProfiles[depositProfileId].depositContractAddress
@@ -132,12 +136,48 @@ contract Staking is AccessControl {
         return true;
     }
 
+    function reStake (
+        uint256 depositProfileId
+    ) external returns (bool) {
+        require(
+            _depositProfiles[depositProfileId].active, 'This vault is disabled'
+        );
+        require(
+            reStakeAvailable(depositProfileId), 'Restake is not available'
+        );
+        uint256 depositId = _usersDepositIndexes[msg.sender][depositProfileId];
+        require(depositId > 0, 'Deposit is not found');
+
+        _updateUserYield(depositId);
+        uint256 amount = _deposits[depositId].accumulatedYield;
+        _deposits[depositId].accumulatedYield = 0;
+
+        require(amount > 0, 'Nothing to restake');
+        uint256 tvl = _depositProfiles[depositProfileId].tvl + amount;
+        if (_depositProfiles[depositProfileId].apr > 0) {
+            require(
+                tvl <= _depositProfiles[depositProfileId].poolSize,
+                    'Pool size exceeded'
+            );
+            uint256 period = _depositProfiles[depositProfileId].endTime - block.timestamp;
+            _depositProfiles[depositProfileId].totalYield += amount * period *
+                _depositProfiles[depositProfileId].apr / DECIMALS / YEAR;
+        }
+
+        _deposits[depositId].amount += amount;
+        _updateTotalYield(depositProfileId);
+        if (_depositProfiles[depositProfileId].apr == 0) {
+            _deposits[depositId].yieldPerTokenOffset
+                = _depositProfiles[depositProfileId].yieldPerToken;
+        }
+        _depositProfiles[depositProfileId].tvl += amount;
+
+        return true;
+    }
+
     function unStake (
         uint256 amount, uint256 depositProfileId
     ) external returns (bool) {
-        require(
-            _depositProfiles[depositProfileId].active, 'This deposit profile is disabled'
-        );
         require(amount > 0, 'Amount should be greater than zero');
         uint256 depositId = _usersDepositIndexes[msg.sender][depositProfileId];
         require(depositId > 0, 'Deposit is not found');
@@ -167,9 +207,6 @@ contract Staking is AccessControl {
     ) public returns (bool) {
         uint256 depositId = _usersDepositIndexes[msg.sender][depositProfileId];
         require(depositId > 0, 'Deposit is not found');
-        require(
-            _depositProfiles[depositProfileId].active, 'This deposit profile is disabled'
-        );
         IERC20 tokenContract = IERC20(_depositProfiles[depositProfileId].yieldContractAddress);
         uint256 balance = tokenContract.balanceOf(address(this));
         if (amount > balance) amount = balance;
@@ -195,9 +232,6 @@ contract Staking is AccessControl {
     ) external returns (bool) {
         uint256 depositId = _usersDepositIndexes[msg.sender][depositProfileId];
         require(depositId > 0, 'Deposit is not found');
-        require(
-            _depositProfiles[depositProfileId].active, 'This deposit profile is disabled'
-        );
         _updateUserYield(depositId);
         uint256 amount = _deposits[depositId].accumulatedYield;
         require(amount > 0, 'Nothing to withdraw');
@@ -205,12 +239,12 @@ contract Staking is AccessControl {
     }
 
     function withdrawLockedAssets (
-        uint256 depositProfileSerialNumber
+        uint256 depositProfileId
     ) external returns (bool) {
-        uint256 depositProfileId =
-            _userDepositProfileIds[msg.sender][depositProfileSerialNumber];
-        require(depositProfileId > 0,
-            'Deposit profile is not found');
+        require(
+            _depositProfiles[depositProfileId].poolOwnerAddress == msg.sender,
+                'Sender is not the pool owner'
+        );
         require(
             _depositProfiles[depositProfileId].endTime < block.timestamp,
                 'Locked assets can not be withdrawn at the moment'
@@ -230,6 +264,42 @@ contract Staking is AccessControl {
         return true;
     }
 
+    function withdrawYieldRemains (
+        uint256 depositProfileId
+    ) public returns (bool) {
+        require(
+            _depositProfiles[depositProfileId].poolOwnerAddress == msg.sender,
+                'Sender is not the pool owner'
+        );
+        require(
+            _depositProfiles[depositProfileId].active, 'This vault is disabled'
+        );
+        require(
+            _depositProfiles[depositProfileId].apr > 0, 'Option available for FSP pool only'
+        );
+
+        require(
+            _depositProfiles[depositProfileId].endTime > 0 &&
+                _depositProfiles[depositProfileId].endTime < block.timestamp,
+                    'Vault is not expired yet'
+        );
+        uint256 yieldMaxAmount = _depositProfiles[depositProfileId].poolSize
+            * _depositProfiles[depositProfileId].apr
+            * _depositProfiles[depositProfileId].period
+            / DECIMALS / YEAR;
+        uint256 amount = yieldMaxAmount - _depositProfiles[depositProfileId].totalYield;
+        amount = amount * 1000000 / 1000001; // to avoid rounding errors when pool owner
+        // withdraw locked yield before users withdraw yield
+        _depositProfiles[depositProfileId].active = false;
+
+        IERC20 tokenContract = IERC20(_depositProfiles[depositProfileId].yieldContractAddress);
+        uint256 balance = tokenContract.balanceOf(address(this));
+        if (amount > balance) amount = balance;
+        require(amount > 0, 'Nothing to withdraw');
+        tokenContract.transfer(msg.sender, amount);
+        return true;
+    }
+
     function addDepositProfile (
         uint256[] calldata uintData, // lockProfileId, poolSize, period, apr
         address depositContractAddress,
@@ -242,11 +312,7 @@ contract Staking is AccessControl {
         );
         IERC20 token = IERC20(yieldContractAddress);
         uint256 yieldMaxAmount;
-        if (uintData[3] > 0) {
-            require(
-                depositContractAddress == yieldContractAddress,
-                    'Deposit and yield tokens should be same for FSP'
-            );
+        if (uintData[3] > 0) { // apr > 0, FSP
             yieldMaxAmount = uintData[1] * uintData[3] * uintData[2] / YEAR / DECIMALS;
         } else {
             yieldMaxAmount = uintData[1];
@@ -258,7 +324,6 @@ contract Staking is AccessControl {
         uint256 lockedAmount = getLockedAmount(
             uintData[0],
             depositContractAddress,
-            yieldContractAddress,
             uintData[3] > 0
         );
         token.transferFrom(
@@ -284,7 +349,7 @@ contract Staking is AccessControl {
             _userDepositProfilesNumber[msg.sender]
         ] = _depositProfilesNumber;
         _setDepositProfileExtra (
-            _userDepositProfilesNumber[msg.sender],
+            _depositProfilesNumber,
             nameData
         );
         return true;
@@ -293,14 +358,13 @@ contract Staking is AccessControl {
     function getLockedAmount(
         uint256 lockProfileId,
         address depositContractAddress,
-        address yieldContractAddress,
         bool apr
     ) public view returns (uint256) {
-        if (depositContractAddress == yieldContractAddress || apr) {
+        if (apr) {
            return _lockProfiles[lockProfileId].amount;
         }
-        if (_favoriteTokens[yieldContractAddress]) {
-            return _lockProfiles[lockProfileId].reducedAmount;
+        if (_favoriteTokens[depositContractAddress]) {
+           return _lockProfiles[lockProfileId].reducedAmount;
         }
         address token0;
         address token1;
@@ -311,19 +375,16 @@ contract Staking is AccessControl {
         callData = abi.encodeWithSignature(
             'token0()'
         );
-        (success, data) = yieldContractAddress.staticcall(callData);
+        (success, data) = depositContractAddress.staticcall(callData);
         if (success) (token0) = abi.decode(data, (address));
 
         callData = abi.encodeWithSignature(
             'token1()'
         );
-        (success, data) = yieldContractAddress.staticcall(callData);
+        (success, data) = depositContractAddress.staticcall(callData);
         if (success) (token1) = abi.decode(data, (address));
 
-        if (
-            token0 == depositContractAddress && _favoriteTokens[token1]
-                || token1 == depositContractAddress && _favoriteTokens[token0]
-        ) {
+        if (_favoriteTokens[token0] || _favoriteTokens[token1]) {
             return _lockProfiles[lockProfileId].reducedAmount;
         }
 
@@ -331,13 +392,9 @@ contract Staking is AccessControl {
     }
 
     function _setDepositProfileExtra (
-        uint256 depositProfileSerialNumber,
+        uint256 depositProfileId,
         string[] calldata nameData // name, depositCurrency, yieldCurrency, link
     ) internal returns (bool) {
-        uint256 depositProfileId =
-            _userDepositProfileIds[msg.sender][depositProfileSerialNumber];
-        require(depositProfileId > 0,
-            'Deposit profile is not found');
         _depositProfiles[depositProfileId].name = nameData[0];
         _depositProfiles[depositProfileId].depositCurrency = nameData[1];
         _depositProfiles[depositProfileId].yieldCurrency = nameData[2];
@@ -346,24 +403,11 @@ contract Staking is AccessControl {
         return true;
     }
 
-    function setDepositProfileStatus (
-        uint256 depositProfileSerialNumber,
-        bool active
-    ) external returns (bool) {
-        uint256 depositProfileId =
-        _userDepositProfileIds[msg.sender][depositProfileSerialNumber];
-        require(depositProfileId > 0,
-            'Deposit profile is not found');
-        _depositProfiles[depositProfileId].active = active;
-        return true;
-    }
-
     // manager functions
     function addLockProfile (
         address contractAddress,
         uint256 amount,
-        uint256 reducedAmount,
-        bool active
+        uint256 reducedAmount
     ) external onlyManager returns (bool) {
         _lockProfilesNumber ++;
         IERC20 token = IERC20(contractAddress);
@@ -371,7 +415,7 @@ contract Staking is AccessControl {
         _lockProfiles[_lockProfilesNumber].contractAddress = contractAddress;
         _lockProfiles[_lockProfilesNumber].amount = amount;
         _lockProfiles[_lockProfilesNumber].reducedAmount = reducedAmount;
-        _lockProfiles[_lockProfilesNumber].active = active;
+        _lockProfiles[_lockProfilesNumber].active = true;
         return true;
     }
 
@@ -427,7 +471,7 @@ contract Staking is AccessControl {
         return true;
     }
 
-    function setFavoriteLpPair (
+    function setFavoriteToken (
         address contractAddress,
         bool allowed
     ) external onlyManager returns (bool) {
@@ -590,6 +634,7 @@ contract Staking is AccessControl {
         uint256 tvl,
         uint256 stakers,
         uint256 yieldPaid,
+        uint256 totalYield,
         uint256 yieldPerToken
     ) {
         return (
@@ -598,6 +643,7 @@ contract Staking is AccessControl {
             _depositProfiles[depositProfileId].tvl,
             _depositProfiles[depositProfileId].stakers,
             _depositProfiles[depositProfileId].yieldPaid,
+            _depositProfiles[depositProfileId].totalYield,
             _depositProfiles[depositProfileId].yieldPerToken
         );
     }
@@ -643,7 +689,7 @@ contract Staking is AccessControl {
         );
     }
 
-    function getFavoriteLpPair (
+    function getFavoriteToken (
         address contractAddress
     ) external view returns (bool) {
         return _favoriteTokens[contractAddress];
@@ -662,6 +708,13 @@ contract Staking is AccessControl {
 
     function getTax () external view returns (uint256) {
         return _tax;
+    }
+
+    function reStakeAvailable (
+        uint256 depositProfileId
+    ) public view returns (bool) {
+        return _depositProfiles[depositProfileId].depositContractAddress ==
+            _depositProfiles[depositProfileId].yieldContractAddress;
     }
 
     function calculateYield (
@@ -733,7 +786,7 @@ contract Staking is AccessControl {
 
     function getDepositYield (
         uint256 depositId
-    ) external view returns (uint256) {
+    ) public view returns (uint256) {
         if (_deposits[depositId].depositProfileId == 0) return 0;
         return calculateYield(depositId)
             + _deposits[depositId].accumulatedYield;

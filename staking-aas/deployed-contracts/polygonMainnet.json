@@ -1,6 +1,6 @@
 {
     "staking": {
-        "latest": "0x21d30E41277EbcC71DEB1FfA94448B4A0D61bd39",
+        "latest": "0x902d8a4eFF1AC8684F8B3ffDC244208c9aDEFF32",
         "all": [
             {
                 "address": "0x00aa4104A8DBA1afC9B1C8556169c5B294F64e7B",
@@ -17,6 +17,14 @@
             {
                 "address": "0x21d30E41277EbcC71DEB1FfA94448B4A0D61bd39",
                 "timestamp": 1659409480
+            },
+            {
+                "address": "0x494121Ed783Ac9DfE391F03Eb7D19923D07Dc8C7",
+                "timestamp": 1659518058
+            },
+            {
+                "address": "0x902d8a4eFF1AC8684F8B3ffDC244208c9aDEFF32",
+                "timestamp": 1659525365
             }
         ]
     },

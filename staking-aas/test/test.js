@@ -64,6 +64,8 @@ describe("Testing Staking contract", function () {
     await yield1contract.deployed();
     await yield1contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
     await yield1contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(owner).transfer(user1.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(owner).transfer(user2.address, ethers.utils.parseUnits(initialTransfer.toString()));
 
     yield2contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
     await yield2contract.deployed();
@@ -100,6 +102,8 @@ describe("Testing Staking contract", function () {
 
     await yield1contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
     await yield1contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(user1).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(user2).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
     await yield2contract.connect(pool1owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
     await yield2contract.connect(pool2owner).approve(stakingContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
 
@@ -112,15 +116,13 @@ describe("Testing Staking contract", function () {
       .addLockProfile(
         lock1contract.address,
         ethers.utils.parseUnits(lock1amount.toString()),
-        ethers.utils.parseUnits(lock1amount.toString()),
-        true
+        ethers.utils.parseUnits(lock1amount.toString())
       );
     await stakingContract.connect(owner)
       .addLockProfile(
         lock2contract.address,
         ethers.utils.parseUnits(lock2amount.toString()),
-        ethers.utils.parseUnits(lock2amount.toString()),
-        true
+        ethers.utils.parseUnits(lock2amount.toString())
       );
   });
 
@@ -236,17 +238,6 @@ describe("Testing Staking contract", function () {
       result.depositProfileData.lockedAmount
     )))
       .to.equal(lock2amount);
-
-    await expect(
-      stakingContract.connect(user1)
-        .setDepositProfileStatus(1, false)
-    ).to.be.revertedWith('Deposit profile is not found');
-
-    await stakingContract.connect(pool1owner).setDepositProfileStatus(1, false);
-
-    result.depositProfile = await stakingContract.getDepositProfile(1);
-    expect(result.depositProfile.active)
-      .to.be.false;
   });
 
   it("Dynamic staking", async function () {
@@ -268,6 +259,10 @@ describe("Testing Staking contract", function () {
         ]
       );
 
+    expect(
+      await stakingContract.reStakeAvailable(1)
+    ).to.be.false;
+
     hre.timeAndMine.increaseTime('10 day');
     await signers[0].sendTransaction({
       to: signers[1].address,
@@ -279,6 +274,7 @@ describe("Testing Staking contract", function () {
         ethers.utils.parseUnits(deposit1amount.toString()),
         1
       );
+
     result.user1deposited = deposit1amount;
     result.totalDeposited = deposit1amount;
 
@@ -288,6 +284,10 @@ describe("Testing Staking contract", function () {
     expect(Number(ethers.utils.formatUnits(
       await stakingContract.getDepositYield(1)
     ))).to.equal(0);
+
+    await expect(
+      stakingContract.connect(pool1owner).withdrawYieldRemains(1)
+    ).to.be.revertedWith('Option available for FSP pool only');
 
     hre.timeAndMine.increaseTime('10 day');
     await signers[0].sendTransaction({
@@ -606,7 +606,7 @@ describe("Testing Staking contract", function () {
     await expect(
       stakingContract.connect(user1)
         .withdrawLockedAssets(1)
-    ).to.be.revertedWith('Deposit profile is not found');
+    ).to.be.revertedWith('Sender is not the pool owner');
 
     await stakingContract.connect(pool1owner)
       .withdrawLockedAssets(1);
@@ -647,9 +647,11 @@ describe("Testing Staking contract", function () {
           'link',
         ]
       );
+
     const contractBalance = Number(ethers.utils.formatUnits(
       await deposit2contract.balanceOf(stakingContract.address)
     ));
+
     hre.timeAndMine.increaseTime('10 day');
     await signers[0].sendTransaction({
       to: signers[1].address,
@@ -661,6 +663,7 @@ describe("Testing Staking contract", function () {
         ethers.utils.parseUnits(deposit1amount.toString()),
         1
       );
+
     result.user1deposited = deposit1amount;
     result.totalDeposited = deposit1amount;
 
@@ -670,6 +673,10 @@ describe("Testing Staking contract", function () {
     expect(Number(ethers.utils.formatUnits(
       await stakingContract.getDepositYield(1)
     ))).to.equal(0);
+
+    await expect(
+      stakingContract.connect(pool2owner).withdrawYieldRemains(1)
+    ).to.be.revertedWith('Vault is not expired yet');
 
     hre.timeAndMine.increaseTime('10 day');
     await signers[0].sendTransaction({
@@ -992,14 +999,10 @@ describe("Testing Staking contract", function () {
     await stakingContract.connect(user3)
       .withdrawYieldAll(1);
 
-    expect(roundTo(Number(ethers.utils.formatUnits(
-      await yield1contract.balanceOf(stakingContract.address)
-    )), 2)).to.equal(0);
-
     await expect(
       stakingContract.connect(user1)
         .withdrawLockedAssets(1)
-    ).to.be.revertedWith('Deposit profile is not found');
+    ).to.be.revertedWith('Sender is not the pool owner');
 
     await stakingContract.connect(pool2owner)
       .withdrawLockedAssets(1);
@@ -1028,6 +1031,337 @@ describe("Testing Staking contract", function () {
     expect(roundTo(Number(ethers.utils.formatUnits(
       await lock1contract.balanceOf(taxReceiver.address)
     )), 8)).to.equal(roundTo(taxedAmount, 8));
+  });
+
+  it("Fixed rate staking, owner withdraw", async function () {
+    await stakingContract.connect(pool2owner)
+      .addDepositProfile(
+        [
+          1,
+          ethers.utils.parseUnits(pool2size.toString()),
+          distribution2period,
+          apr
+        ],
+        deposit2contract.address,
+        deposit2contract.address,
+        [
+          'name',
+          'depositCurrency',
+          'yieldCurrency',
+          'link',
+        ]
+      );
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    await stakingContract.connect(user1)
+      .stake(
+        ethers.utils.parseUnits(deposit1amount.toString()),
+        1
+      );
+
+    result.maxYield = pool2size
+      * apr
+      * distribution2period
+      / decimals
+      / year;
+    result.user1deposited = deposit1amount;
+    result.totalDeposited = deposit1amount;
+    result.totalYieldExpected = deposit1amount
+      * apr
+      * distribution2period
+      / decimals
+      / year;
+
+    result.response = await stakingContract.getDepositProfileData(1);
+    result.totalYield = Number(ethers.utils.formatUnits(
+      result.response.totalYield
+    ));
+    expect(result.totalYield).to.equal(result.totalYieldExpected);
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    await stakingContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.totalYieldExpected += deposit2amount
+      * apr
+      * (distribution2period - 10 * 24 * 3600)
+      / decimals
+      / year;
+
+    result.response = await stakingContract.getDepositProfileData(1);
+    result.totalYield = Number(ethers.utils.formatUnits(
+      result.response.totalYield
+    ));
+    expect(roundTo(result.totalYield, 4)).to.equal(roundTo(result.totalYieldExpected, 4));
+
+    hre.timeAndMine.increaseTime('365 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    const contractBalance = Number(ethers.utils.formatUnits(
+      await deposit2contract.balanceOf(stakingContract.address)
+    ));
+    await stakingContract.connect(pool2owner).withdrawYieldRemains(1);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await deposit2contract.balanceOf(stakingContract.address)
+    )), 1)).to.equal(roundTo(
+      contractBalance - (result.maxYield - result.totalYield), 1
+    ));
+  });
+
+  it("Dynamic staking with restake", async function () {
+    await stakingContract.connect(pool1owner)
+      .addDepositProfile(
+        [
+          1,
+          ethers.utils.parseUnits(pool1size.toString()),
+          distribution1period,
+          0
+        ],
+        yield1contract.address,
+        yield1contract.address,
+        [
+          'name',
+          'yieldCurrency',
+          'yieldCurrency',
+          'link'
+        ]
+      );
+
+    expect(
+      await stakingContract.reStakeAvailable(1)
+    ).to.be.true;
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.contractBalance = Number(ethers.utils.formatUnits(
+      await yield1contract.balanceOf(stakingContract.address)
+    ));
+
+    await stakingContract.connect(user1)
+      .stake(
+        ethers.utils.parseUnits(deposit1amount.toString()),
+        1
+      );
+
+    result.user1deposited = deposit1amount;
+    result.totalDeposited = deposit1amount;
+
+    expect(Number(ethers.utils.formatUnits(
+      await yield1contract.balanceOf(stakingContract.address)
+    ))).to.equal(result.contractBalance + deposit1amount);
+    expect(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward = pool1size
+      * 3600 * 24 * 10
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.shouldBeDistributed = pool1size * 10 * 3600 * 24 / distribution1period;
+
+    await stakingContract.connect(user1)
+      .reStake(1);
+
+    result.user1deposited += result.user1reward;
+    result.totalDeposited += result.user1reward;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    )), 2)).to.equal(0);
+
+    result.response = await stakingContract.getDeposit(1);
+    expect (roundTo(Number(ethers.utils.formatUnits(
+      result.response.amount
+    )), 2)).to.equal(roundTo(deposit1amount + result.user1reward, 2));
+
+
+    await stakingContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.user2deposited = deposit2amount;
+    result.totalDeposited += deposit2amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    )), 3)).to.equal(0);
+    expect(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(2)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('22 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+    result.user1reward = pool1size * 3600 * 24 * 22
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    )), 3)).to.equal(roundTo(result.user1reward, 3));
+    result.user2reward = pool1size * 3600 * 24 * 22
+      * result.user2deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(2)
+    )), 3)).to.equal(roundTo(result.user2reward, 3));
+  });
+
+  it("Fixed staking with restake", async function () {
+    await stakingContract.connect(pool1owner)
+      .addDepositProfile(
+        [
+          1,
+          ethers.utils.parseUnits(pool1size.toString()),
+          distribution1period,
+          apr
+        ],
+        yield1contract.address,
+        yield1contract.address,
+        [
+          'name',
+          'yieldCurrency',
+          'yieldCurrency',
+          'link'
+        ]
+      );
+
+    expect(
+      await stakingContract.reStakeAvailable(1)
+    ).to.be.true;
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.contractBalance = Number(ethers.utils.formatUnits(
+      await yield1contract.balanceOf(stakingContract.address)
+    ));
+
+    await stakingContract.connect(user1)
+      .stake(
+        ethers.utils.parseUnits(deposit1amount.toString()),
+        1
+      );
+
+    result.user1deposited = deposit1amount;
+    result.totalDeposited = deposit1amount;
+
+    expect(Number(ethers.utils.formatUnits(
+      await yield1contract.balanceOf(stakingContract.address)
+    ))).to.equal(result.contractBalance + deposit1amount);
+    expect(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward = result.user1deposited
+      * apr
+      * 3600 * 24 * 10
+      / decimals
+      / year;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    )), 3)).to.equal(roundTo(result.user1reward, 3));
+
+    await stakingContract.connect(user1)
+      .reStake(1);
+
+    result.user1deposited += result.user1reward;
+    result.totalDeposited += result.user1reward;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    )), 2)).to.equal(0);
+
+    result.response = await stakingContract.getDeposit(1);
+    expect (roundTo(Number(ethers.utils.formatUnits(
+      result.response.amount
+    )), 2)).to.equal(roundTo(deposit1amount + result.user1reward, 2));
+
+
+    await stakingContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.user2deposited = deposit2amount;
+    result.totalDeposited += deposit2amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    )), 3)).to.equal(0);
+    expect(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(2)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('22 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward = result.user1deposited
+      * apr
+      * 3600 * 24 * 22
+      / decimals
+      / year;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(1)
+    )), 3)).to.equal(roundTo(result.user1reward, 3));
+
+    result.user2reward = result.user2deposited
+      * apr
+      * 3600 * 24 * 22
+      / decimals
+      / year;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await stakingContract.getDepositYield(2)
+    )), 3)).to.equal(roundTo(result.user2reward, 3));
   });
 
   it("Admin functions", async function () {

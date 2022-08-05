@@ -5,11 +5,9 @@ pragma solidity 0.8.2;
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './AccessControl.sol';
-import './ERC20Token.sol';
 import 'hardhat/console.sol';
 
-contract Deployer is AccessControl, Initializable {
-    event ContractDeployed (address tokenAddress);
+contract Vesting is AccessControl, Initializable {
     struct VestingStage {
         uint256 amount;
         uint256 unlockTime;
@@ -37,8 +35,7 @@ contract Deployer is AccessControl, Initializable {
     mapping(address => uint256[]) internal _tokenAllocationIds;
     address internal _feeContractAddress; // Syntrum token address
     address internal _feeReceiver;
-    uint256 internal _feeAmountSimple;
-    uint256 internal _feeAmountAdvanced;
+    uint256 internal _feeAmount;
     uint256 internal _feeDiscount; // Applied when payment in tokens is selected, % * 100 (1000 == 10%)
     uint256 internal constant DECIMALS = 10000;
     bytes32 internal constant MANAGER = keccak256(abi.encode('MANAGER'));
@@ -47,8 +44,7 @@ contract Deployer is AccessControl, Initializable {
         address newOwner,
         address feeContractAddress,
         address feeReceiver,
-        uint256 feeAmountSimple,
-        uint256 feeAmountAdvanced,
+        uint256 feeAmount,
         uint256 feeDiscount
     ) public initializer returns (bool) {
         require(newOwner != address(0), 'Owner address can not be zero');
@@ -59,8 +55,7 @@ contract Deployer is AccessControl, Initializable {
         _maxVestingStagesNumber = 10;
         _feeContractAddress = feeContractAddress;
         _feeReceiver = feeReceiver;
-        _feeAmountSimple = feeAmountSimple;
-        _feeAmountAdvanced = feeAmountAdvanced;
+        _feeAmount = feeAmount;
         _feeDiscount = feeDiscount;
         return true;
     }
@@ -89,20 +84,10 @@ contract Deployer is AccessControl, Initializable {
     /**
      * @dev Set fee amount for simple token deployment
      */
-    function setFeeAmountSimple (
+    function setFeeAmount (
         uint256 amount
     ) external hasRole(MANAGER) returns (bool) {
-        _feeAmountSimple = amount;
-        return true;
-    }
-
-    /**
-     * @dev Set fee amount for advanced token deployment
-     */
-    function setFeeAmountAdvanced (
-        uint256 amount
-    ) external hasRole(MANAGER) returns (bool) {
-        _feeAmountAdvanced = amount;
+        _feeAmount = amount;
         return true;
     }
 
@@ -117,43 +102,14 @@ contract Deployer is AccessControl, Initializable {
     }
 
     /**
-     * @dev Deploy token contract with lockup, stores its allocation and vesting data
+     * @dev Register token contract, create allocations
      */
-    function deploySimple (
-        address receiver_,
-        uint256 totalSupply_,
-        uint8 decimals_,
-        string memory name_,
-        string memory symbol_,
-        bool native_
-    ) external payable returns (bool) {
-        _takeFee(_feeAmountSimple, native_);
-        ERC20Token token = new ERC20Token(
-            receiver_,
-            totalSupply_,
-            address(0),
-            0,
-            decimals_,
-            name_,
-            symbol_
-        );
-        emit ContractDeployed(address(token));
-        return true;
-    }
-
-    /**
-     * @dev Deploy token contract with lockup, stores its allocation and vesting data
-     */
-    function deployAdvanced (
+    function register (
         uint8[] memory uint8Data_, // allocations number, vesting stages numbers
         uint256[] memory uint256Data_, // allocation amounts, vesting stage data (amount, timestamp)
         address[] memory addressData_, // allocation receivers
         string[] memory stringData_, // allocation names
-        address receiver_,
-        uint256 totalSupply_,
-        uint8 decimals_,
-        string memory name_,
-        string memory symbol_,
+        address tokenAddress_,
         bool native_
     ) external payable returns (bool) {
         require(uint8Data_.length > 0, 'uint8Data_ bad parameters');
@@ -161,7 +117,7 @@ contract Deployer is AccessControl, Initializable {
         require(uint256Data_.length >= uint8Data_[0], 'uint256Data_ bad parameters');
         uint256 vestingsNumber;
         uint256 totalAllocated;
-        for (uint256 i ; i < uint8Data_[0]; i ++) {
+        for (uint256 i; i < uint8Data_[0]; i ++) {
             vestingsNumber += uint8Data_[i + 1];
             totalAllocated += uint256Data_[i];
         }
@@ -170,34 +126,20 @@ contract Deployer is AccessControl, Initializable {
             'uint256Data_ bad parameters: totalAllocated should be greater than zero'
         );
         require(
-            totalAllocated <= totalSupply_,
-            'uint256Data_ bad parameters: totalSupply exceeded'
-        );
-        require(
             uint256Data_.length == uint8Data_[0] + vestingsNumber * 2,
             'uint256Data_ bad parameters: array length'
         );
         require(addressData_.length == uint8Data_[0], 'addressData_ bad parameters');
         require(stringData_.length == uint8Data_[0], 'stringData_ bad parameters');
-        _takeFee(_feeAmountAdvanced, native_);
-
-        ERC20Token token = new ERC20Token(
-            receiver_,
-            totalSupply_,
-            address(this),
-            totalAllocated,
-            decimals_,
-            name_,
-            symbol_
-        );
+        _takeFee(_feeAmount, native_);
+        _takeToken(totalAllocated, tokenAddress_);
         _register (
             uint8Data_,
             uint256Data_,
             addressData_,
             stringData_,
-            address(token)
+            tokenAddress_
         );
-        emit ContractDeployed(address(token));
         return true;
     }
 
@@ -250,7 +192,7 @@ contract Deployer is AccessControl, Initializable {
         if (native || _feeContractAddress == address(0)) {
             require(msg.value == amount, 'Fee amount does not match');
             payable(_feeReceiver).transfer(amount);
-        } else {
+        } else if (amount > 0) {
             if (_feeDiscount > 0) {
                 amount = amount * (DECIMALS - _feeDiscount) / DECIMALS;
             }
@@ -259,6 +201,18 @@ contract Deployer is AccessControl, Initializable {
                     'Fee transfer failed'
             );
         }
+        return true;
+    }
+
+    function _takeToken (
+        uint256 amount,
+        address tokenAddress // token address
+    ) internal returns (bool) {
+        if (amount == 0) return false;
+        require(
+            IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount),
+                'Token transfer failed'
+        );
         return true;
     }
 
@@ -374,15 +328,13 @@ contract Deployer is AccessControl, Initializable {
     function getFeeData () external view returns (
         address feeContractAddress,
         address feeReceiver,
-        uint256 feeAmountSimple,
-        uint256 feeAmountAdvanced,
+        uint256 feeAmount,
         uint256 feeDiscount
     ) {
         return (
             _feeContractAddress,
             _feeReceiver,
-            _feeAmountSimple,
-            _feeAmountAdvanced,
+            _feeAmount,
             _feeDiscount
         );
     }

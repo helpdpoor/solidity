@@ -9,7 +9,7 @@ d.totalSupply = 1000000;
 async function main() {
   d.signers = await ethers.getSigners();
   d.owner = d.signers[0];
-  const contractAddress = '0x21d30E41277EbcC71DEB1FfA94448B4A0D61bd39';
+  const contractAddress = '0x902d8a4eFF1AC8684F8B3ffDC244208c9aDEFF32';
 
   await hre.run("verify:verify", {
     address: contractAddress,

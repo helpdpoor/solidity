@@ -8,23 +8,12 @@ describe('Deployer contract testing', function () {
   beforeEach(async function () {
     d.signers = await ethers.getSigners();
     d.owner = d.signers[10];
-    d.feeReceiver = d.signers[9];
-    d.tokenDeployer = d.signers[8];
-    d.feeAmountSimple = 0.01;
-    d.feeAmountAdvanced = 0.05;
     d.zero = '0x0000000000000000000000000000000000000000';
     d.day = 3600 * 24;
     d.name = 'Token';
     d.symbol = 'TN';
     d.decimals = 8;
     d.totalSupply = 1000000;
-    d.feeDiscount = 1000;
-
-    d.ProxyAdmin = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
-    );
-    d.proxyAdmin = await d.ProxyAdmin.deploy();
-    await d.proxyAdmin.deployed();
   });
 
   it('Vesting', async function () {
@@ -32,35 +21,6 @@ describe('Deployer contract testing', function () {
     d.blockNumber = await ethers.provider.getBlockNumber();
     d.block = await ethers.provider.getBlock(d.blockNumber);
     d.now = d.block.timestamp;
-
-    d.Deployer = await ethers.getContractFactory("Deployer");
-    d.deployerImplementation = await d.Deployer.deploy();
-    await d.deployerImplementation.deployed();
-
-    d.ABI = [
-      "function initialize(address, address, address, uint256, uint256, uint256)"
-    ];
-    d.iface = new ethers.utils.Interface(d.ABI);
-    d.calldata = d.iface.encodeFunctionData("initialize", [
-      d.owner.address,
-      d.zero,
-      d.feeReceiver.address,
-      ethers.utils.parseUnits(d.feeAmountSimple.toString()),
-      ethers.utils.parseUnits(d.feeAmountAdvanced.toString()),
-      d.feeDiscount
-    ]);
-
-    d.Proxy = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
-    );
-    d.deployerProxy = await d.Proxy.deploy(
-      d.deployerImplementation.address,
-      d.proxyAdmin.address,
-      d.calldata
-    );
-    await d.deployerProxy.deployed();
-
-    d.deployer = await d.Deployer.attach(d.deployerProxy.address);
 
     d.allocationsNumber = 4;
     d.VestingStagesNumbers = [0,1,3,2];
@@ -102,6 +62,19 @@ describe('Deployer contract testing', function () {
       'Vesting 1',
       'Vesting 2',
     ];
+    d.feeReceiver = d.signers[9];
+    d.tokenDeployer = d.signers[8];
+    d.feeAmountSimple = 0.01;
+    d.feeAmountAdvanced = 0.05;
+    d.Deployer = await ethers.getContractFactory("Deployer");
+    d.deployer = await d.Deployer.deploy(
+      d.owner.address,
+      d.zero,
+      d.feeReceiver.address,
+      ethers.utils.parseUnits(d.feeAmountSimple.toString()),
+      ethers.utils.parseUnits(d.feeAmountAdvanced.toString())
+    );
+    await d.deployer.deployed();
 
     d.balance = Number(ethers.utils.formatUnits(
       await d.deployer.provider.getBalance(d.feeReceiver.address)
@@ -114,7 +87,6 @@ describe('Deployer contract testing', function () {
       d.decimals,
       d.name,
       d.symbol,
-      true,
       {value: ethers.utils.parseUnits(d.feeAmountSimple.toString())}
     );
     tx = await tx.wait();
@@ -139,7 +111,6 @@ describe('Deployer contract testing', function () {
       d.decimals,
       d.name,
       d.symbol,
-      true,
       {value: ethers.utils.parseUnits(d.feeAmountAdvanced.toString())}
     );
     tx = await tx.wait();
@@ -489,63 +460,6 @@ describe('Deployer contract testing', function () {
     d.block = await ethers.provider.getBlock(d.blockNumber);
     d.now = d.block.timestamp;
 
-    d.PaymentToken = await ethers.getContractFactory("PaymentToken");
-    d.paymentToken = await d.PaymentToken.deploy(
-      d.owner.address,
-      ethers.utils.parseUnits(d.totalSupply.toString()),
-      'Payment token',
-      'Payment token'
-    );
-    await d.paymentToken.deployed();
-    await d.paymentToken.connect(d.owner).transfer(
-      d.signers[0].address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
-    );
-    await d.paymentToken.connect(d.owner).transfer(
-      d.signers[1].address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
-    );
-    await d.paymentToken.connect(d.owner).transfer(
-      d.signers[2].address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
-    );
-
-    d.Deployer = await ethers.getContractFactory("Deployer");
-    d.deployerImplementation = await d.Deployer.deploy();
-    await d.deployerImplementation.deployed();
-
-    d.ABI = [
-      "function initialize(address, address, address, uint256, uint256, uint256)"
-    ];
-    d.iface = new ethers.utils.Interface(d.ABI);
-    d.calldata = d.iface.encodeFunctionData("initialize", [
-      d.owner.address,
-      d.paymentToken.address,
-      d.feeReceiver.address,
-      ethers.utils.parseUnits(d.feeAmountSimple.toString()),
-      ethers.utils.parseUnits(d.feeAmountAdvanced.toString()),
-      d.feeDiscount
-    ]);
-
-    d.Proxy = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
-    );
-    d.deployerProxy = await d.Proxy.deploy(
-      d.deployerImplementation.address,
-      d.proxyAdmin.address,
-      d.calldata
-    );
-    await d.deployerProxy.deployed();
-
-    d.deployer = await d.Deployer.attach(d.deployerProxy.address);
-
-    await d.paymentToken.connect(d.signers[0]).approve(
-      d.deployer.address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
-    );
-    await d.paymentToken.connect(d.signers[1]).approve(
-      d.deployer.address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
-    );
-    await d.paymentToken.connect(d.signers[2]).approve(
-      d.deployer.address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
-    );
-
     d.allocationsNumber = 4;
     d.VestingStagesNumbers = [0,1,3,2];
     d.uint8Data = [d.allocationsNumber].concat(d.VestingStagesNumbers);
@@ -586,6 +500,48 @@ describe('Deployer contract testing', function () {
       'Vesting 1',
       'Vesting 2',
     ];
+    d.feeReceiver = d.signers[9];
+    d.tokenDeployer = d.signers[8];
+    d.feeAmountSimple = 0.01;
+    d.feeAmountAdvanced = 0.05;
+
+    d.PaymentToken = await ethers.getContractFactory("PaymentToken");
+    d.paymentToken = await d.PaymentToken.deploy(
+      d.owner.address,
+      ethers.utils.parseUnits(d.totalSupply.toString()),
+      'Payment token',
+      'Payment token'
+    );
+    await d.paymentToken.deployed();
+    await d.paymentToken.connect(d.owner).transfer(
+      d.signers[0].address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
+    );
+    await d.paymentToken.connect(d.owner).transfer(
+      d.signers[1].address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
+    );
+    await d.paymentToken.connect(d.owner).transfer(
+      d.signers[2].address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
+    );
+
+    d.Deployer = await ethers.getContractFactory("Deployer");
+    d.deployer = await d.Deployer.deploy(
+      d.owner.address,
+      d.paymentToken.address,
+      d.feeReceiver.address,
+      ethers.utils.parseUnits(d.feeAmountSimple.toString()),
+      ethers.utils.parseUnits(d.feeAmountAdvanced.toString())
+    );
+    await d.deployer.deployed();
+
+    await d.paymentToken.connect(d.signers[0]).approve(
+      d.deployer.address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
+    );
+    await d.paymentToken.connect(d.signers[1]).approve(
+      d.deployer.address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
+    );
+    await d.paymentToken.connect(d.signers[2]).approve(
+      d.deployer.address, ethers.utils.parseUnits((d.feeAmountSimple + d.feeAmountAdvanced).toString())
+    );
 
     d.balance = Number(ethers.utils.formatUnits(
       await d.paymentToken.balanceOf(d.feeReceiver.address)
@@ -598,8 +554,7 @@ describe('Deployer contract testing', function () {
       d.decimals,
       d.name,
       d.symbol,
-      false,
-      {}
+      {value: ethers.utils.parseUnits(d.feeAmountSimple.toString())}
     );
     tx = await tx.wait();
     for (let i = 0; i < tx.events.length; i ++) {
@@ -611,7 +566,7 @@ describe('Deployer contract testing', function () {
     }
     expect(Number(ethers.utils.formatUnits(
       await d.paymentToken.balanceOf(d.feeReceiver.address)
-    ))).to.equal(d.balance + d.feeAmountSimple * (10000 - d.feeDiscount) / 10000);
+    ))).to.equal(d.balance + d.feeAmountSimple);
 
     tx = await d.deployer.deployAdvanced(
       d.uint8Data,
@@ -623,8 +578,7 @@ describe('Deployer contract testing', function () {
       d.decimals,
       d.name,
       d.symbol,
-      false,
-      {}
+      {value: ethers.utils.parseUnits(d.feeAmountAdvanced.toString())}
     );
     tx = await tx.wait();
     for (let i = 0; i < tx.events.length; i ++) {
@@ -637,9 +591,7 @@ describe('Deployer contract testing', function () {
 
     expect(Number(ethers.utils.formatUnits(
       await d.paymentToken.balanceOf(d.feeReceiver.address)
-    ))).to.equal(roundTo(
-      d.balance + (d.feeAmountSimple + d.feeAmountAdvanced) * (10000 - d.feeDiscount) / 10000, 8
-    ));
+    ))).to.equal(roundTo(d.balance + d.feeAmountSimple + d.feeAmountAdvanced, 8));
 
     expect(
       await d.simpleToken.name()
@@ -1047,34 +999,19 @@ describe('Deployer contract testing', function () {
       'Vesting 10',
     ];
 
+    d.feeReceiver = d.signers[9];
+    d.tokenDeployer = d.signers[8];
+    d.feeAmountSimple = 0.01;
+    d.feeAmountAdvanced = 0.05;
     d.Deployer = await ethers.getContractFactory("Deployer");
-    d.deployerImplementation = await d.Deployer.deploy();
-    await d.deployerImplementation.deployed();
-
-    d.ABI = [
-      "function initialize(address, address, address, uint256, uint256, uint256)"
-    ];
-    d.iface = new ethers.utils.Interface(d.ABI);
-    d.calldata = d.iface.encodeFunctionData("initialize", [
+    d.deployer = await d.Deployer.deploy(
       d.owner.address,
       d.zero,
       d.feeReceiver.address,
       ethers.utils.parseUnits(d.feeAmountSimple.toString()),
-      ethers.utils.parseUnits(d.feeAmountAdvanced.toString()),
-      d.feeDiscount
-    ]);
-
-    d.Proxy = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
+      ethers.utils.parseUnits(d.feeAmountAdvanced.toString())
     );
-    d.deployerProxy = await d.Proxy.deploy(
-      d.deployerImplementation.address,
-      d.proxyAdmin.address,
-      d.calldata
-    );
-    await d.deployerProxy.deployed();
-
-    d.deployer = await d.Deployer.attach(d.deployerProxy.address);
+    await d.deployer.deployed();
 
     d.ERC20Token = await ethers.getContractFactory("ERC20Token");
     let tx = await d.deployer.deploySimple(
@@ -1083,7 +1020,6 @@ describe('Deployer contract testing', function () {
       d.decimals,
       d.name,
       d.symbol,
-      true,
       {value: ethers.utils.parseUnits(d.feeAmountSimple.toString())}
     );
     tx = await tx.wait();
@@ -1105,7 +1041,6 @@ describe('Deployer contract testing', function () {
       d.decimals,
       d.name,
       d.symbol,
-      true,
       {value: ethers.utils.parseUnits(d.feeAmountAdvanced.toString())}
     );
     tx = await tx.wait();
