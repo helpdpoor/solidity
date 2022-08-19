@@ -1,15 +1,21 @@
 // scripts/deploy.js
 const fs = require('fs');
 const path = require('path');
-const { deployer, scanApiKeys } = require(path.join(__dirname, '../../secrets.json'));
 const { ethers } = require("hardhat");
 const axios = require("axios");
-const d = {
-  deployed: {}
-};
+const d = {};
+d.networkName = hre.network.name;
+const jsonPath = path.join(__dirname, `../deployed-contracts/${d.networkName}.json`);
+d.options = {};
 
 async function main() {
-  d.gasPriceApi = `https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=${scanApiKeys.polygon}`
+  if (d.networkName === 'polygonMainnet') {
+    const gasPrice = Number(await getGasPrice());
+    d.options.gasPrice = gasPrice > 30000000000 ? gasPrice : 50000000000;
+    d.options.gasLimit = 10000000;
+  }
+  const now = Math.round(Date.now() / 1000);
+  const deployedContracts = require(jsonPath);
   d.signers = await ethers.getSigners();
   d.owner = d.signers[0];
   d.zero = '0x0000000000000000000000000000000000000000';
@@ -42,12 +48,6 @@ async function main() {
     platinum: [4,8,12,16,17,18,19,20,21,22,23,24],
   };
 
-  d.response = await axios(d.gasPriceApi);
-  d.result = Number(d.response.data.result.ProposeGasPrice);
-  if (!(d.result > 0)) d.result = 56;
-  d.gasPrice = ethers.utils.parseUnits(d.result.toString(), 'gwei');
-  d.options = {gasPrice: d.gasPrice};
-
   d.PancakeRouter = await ethers.getContractFactory('PancakeRouter');
   d.router = await d.PancakeRouter.attach(d.addresses.router);
 
@@ -62,7 +62,18 @@ async function main() {
     d.options
   );
   await d.exchangeRouterPancakeSwap.deployed();
-  d.deployed.exchangeRouterPancakeSwap = d.exchangeRouterPancakeSwap.address;
+
+  if (!(deployedContracts.exchangeRouterPancakeSwap)) deployedContracts.exchangeRouterPancakeSwap = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.exchangeRouterPancakeSwap.latest = d.exchangeRouterPancakeSwap.address;
+  deployedContracts.exchangeRouterPancakeSwap.all.push({
+    address: d.exchangeRouterPancakeSwap.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
   console.log("Exchange router default implementation deployed to:", d.exchangeRouterPancakeSwap.address);
 
   d.ExchangeRouterProxyAdmin = await ethers.getContractFactory(
@@ -70,14 +81,36 @@ async function main() {
   );
   d.exchangeRouterProxyAdmin = await d.ExchangeRouterProxyAdmin.deploy(d.options);
   await d.exchangeRouterProxyAdmin.deployed();
-  d.deployed.exchangeRouterProxyAdmin = d.exchangeRouterProxyAdmin.address;
+
+  if (!(deployedContracts.exchangeRouterProxyAdmin)) deployedContracts.exchangeRouterProxyAdmin = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.exchangeRouterProxyAdmin.latest = d.exchangeRouterProxyAdmin.address;
+  deployedContracts.exchangeRouterProxyAdmin.all.push({
+    address: d.exchangeRouterProxyAdmin.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
   console.log("Exchange router proxy admin deployed to:", d.exchangeRouterProxyAdmin.address);
 
   d.ExchangeRouter = await ethers.getContractFactory("ExchangeRouter");
-  d.exchangeRouter = await d.ExchangeRouter.deploy(d.options);
-  await d.exchangeRouter.deployed();
-  d.deployed.exchangeRouter = d.exchangeRouter.address;
-  console.log("Exchange router deployed to:", d.exchangeRouter.address);
+  d.exchangeRouterImplementation = await d.ExchangeRouter.deploy(d.options);
+  await d.exchangeRouterImplementation.deployed();
+
+  if (!(deployedContracts.exchangeRouterImplementation)) deployedContracts.exchangeRouterImplementation = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.exchangeRouterImplementation.latest = d.exchangeRouterImplementation.address;
+  deployedContracts.exchangeRouterImplementation.all.push({
+    address: d.exchangeRouterImplementation.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
+  console.log("Exchange router deployed to:", d.exchangeRouterImplementation.address);
 
   d.ABI = [
     "function initialize(address newOwner, address defaultImplementation)"
@@ -92,18 +125,29 @@ async function main() {
   );
 
   d.exchangeRouterProxy = await d.ExchangeRouterProxy.deploy(
-    d.exchangeRouter.address,
+    d.exchangeRouterImplementation.address,
     d.exchangeRouterProxyAdmin.address,
     d.calldata,
     d.options
   );
   await d.exchangeRouterProxy.deployed();
-  d.deployed.exchangeRouterProxy = d.exchangeRouterProxy.address;
+
+  if (!(deployedContracts.exchangeRouterProxy)) deployedContracts.exchangeRouterProxy = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.exchangeRouterProxy.latest = d.exchangeRouterProxy.address;
+  deployedContracts.exchangeRouterProxy.all.push({
+    address: d.exchangeRouterProxy.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
   console.log("Exchange router proxy deployed to:", d.exchangeRouterProxy.address);
 
   d.exchangeRouterConnect = new ethers.Contract(
     d.exchangeRouterProxy.address,
-    d.exchangeRouter.interface.format(ethers.utils.FormatTypes.json),
+    d.exchangeRouterImplementation.interface.format(ethers.utils.FormatTypes.json),
     d.exchangeRouterProxy.provider
   );
 
@@ -115,20 +159,42 @@ async function main() {
   d.mtb = await d.BEP20Token.attach(d.addresses.mtb);
 
   d.Baa = await ethers.getContractFactory("Baa");
-  d.baa = await d.Baa.deploy(d.options);
-  await d.baa.deployed();
-  d.deployed.baa = d.baa.address;
-  console.log("Baa deployed to:", d.baa.address);
+  d.baaImplementation = await d.Baa.deploy(d.options);
+  await d.baaImplementation.deployed();
+
+  if (!(deployedContracts.baaImplementation)) deployedContracts.baaImplementation = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.baaImplementation.latest = d.baaImplementation.address;
+  deployedContracts.baaImplementation.all.push({
+    address: d.baaImplementation.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
+  console.log("Baa deployed to:", d.baaImplementation.address);
 
   d.UpgradeableBeacon = await ethers.getContractFactory(
     "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol:UpgradeableBeacon"
   );
   d.upgradeableBeacon = await d.UpgradeableBeacon.deploy(
-    d.baa.address,
+    d.baaImplementation.address,
     d.options
   );
   await d.upgradeableBeacon.deployed();
-  d.deployed.upgradeableBeacon = d.upgradeableBeacon.address;
+
+  if (!(deployedContracts.upgradeableBeacon)) deployedContracts.upgradeableBeacon = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.upgradeableBeacon.latest = d.upgradeableBeacon.address;
+  deployedContracts.upgradeableBeacon.all.push({
+    address: d.upgradeableBeacon.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
   console.log("Beacon deployed to:", d.upgradeableBeacon.address);
 
   d.BorrowingLending= await ethers.getContractFactory("BorrowingLending");
@@ -145,7 +211,18 @@ async function main() {
     d.options
   );
   await d.borrowingPower.deployed();
-  d.deployed.borrowingPower = d.borrowingPower.address;
+
+  if (!(deployedContracts.borrowingPower)) deployedContracts.borrowingPower = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.borrowingPower.latest = d.borrowingPower.address;
+  deployedContracts.borrowingPower.all.push({
+    address: d.borrowingPower.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
   console.log("BorrowingPower deployed to:", d.borrowingPower.address);
 
   await d.borrowingPower.setBronzeStakingProfileIds(
@@ -174,14 +251,36 @@ async function main() {
   );
   d.accessVaultProxyAdmin = await d.AccessVaultProxyAdmin.deploy(d.options);
   await d.accessVaultProxyAdmin.deployed();
-  d.deployed.accessVaultProxyAdmin = d.accessVaultProxyAdmin.address;
+
+  if (!(deployedContracts.accessVaultProxyAdmin)) deployedContracts.accessVaultProxyAdmin = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.accessVaultProxyAdmin.latest = d.accessVaultProxyAdmin.address;
+  deployedContracts.accessVaultProxyAdmin.all.push({
+    address: d.accessVaultProxyAdmin.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
   console.log("Access vault proxy admin deployed to:", d.accessVaultProxyAdmin.address);
 
   d.AccessVault = await ethers.getContractFactory("AccessVault");
-  d.accessVault = await d.AccessVault.deploy(d.options);
-  await d.accessVault.deployed();
-  d.deployed.accessVault = d.accessVault.address;
-  console.log("Access vault deployed to:", d.accessVault.address);
+  d.accessVaultImplementation = await d.AccessVault.deploy(d.options);
+  await d.accessVaultImplementation.deployed();
+
+  if (!(deployedContracts.accessVaultImplementation)) deployedContracts.accessVaultImplementation = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.accessVaultImplementation.latest = d.accessVaultImplementation.address;
+  deployedContracts.accessVaultImplementation.all.push({
+    address: d.accessVaultImplementation.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
+  console.log("Access vault deployed to:", d.accessVaultImplementation.address);
 
   d.ABI = [
     "function initialize(address newOwner, address borrowingLendingAddress, address borrowingPowerAddress, address baaBeaconAddress, uint256 borrowingFee)"
@@ -199,23 +298,29 @@ async function main() {
     "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
   );
   d.accessVaultProxy = await d.AccessVaultProxy.deploy(
-    d.accessVault.address,
+    d.accessVaultImplementation.address,
     d.accessVaultProxyAdmin.address,
     d.calldata,
     d.options
   );
   await d.accessVaultProxy.deployed();
-  d.deployed.accessVaultProxy = d.accessVaultProxy.address;
-  console.log("Access vault proxy deployed to:", d.accessVaultProxy.address);
 
-  // fs.writeFileSync(
-  //   path.join(__dirname, '../../deployed-contracts/polygon.json'),
-  //   JSON.stringify(d.deployed, null, 4)
-  // );
+  if (!(deployedContracts.accessVaultProxy)) deployedContracts.accessVaultProxy = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.accessVaultProxy.latest = d.accessVaultProxy.address;
+  deployedContracts.accessVaultProxy.all.push({
+    address: d.accessVaultProxy.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
+  console.log("Access vault proxy deployed to:", d.accessVaultProxy.address);
 
   d.accessVaultConnect = new ethers.Contract(
     d.accessVaultProxy.address,
-    d.accessVault.interface.format(ethers.utils.FormatTypes.json),
+    d.accessVaultImplementation.interface.format(ethers.utils.FormatTypes.json),
     d.owner
   );
   await d.accessVaultConnect.setStablecoinProfileId(
@@ -249,6 +354,22 @@ async function main() {
     ethers.utils.parseUnits(d.marginSwapFee.toString(), 18), d.options
   );
   console.log('Deployment completed');
+}
+
+function saveToJson(jsonData) {
+  fs.writeFileSync(
+    jsonPath,
+    JSON.stringify(jsonData, null, 4)
+  );
+}
+
+async function getGasPrice () {
+  const gasPriceApi = 'https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=F1PQ752FZMGWKUW6YG1M73ZNG4RZAVHW1T';
+  const response = await axios(gasPriceApi);
+  const json = response.data;
+  let gasPrice = Number(json?.result?.ProposeGasPrice);
+  gasPrice = gasPrice > 0 ? gasPrice : 50;
+  return ethers.utils.parseUnits(gasPrice.toString(), 'gwei');
 }
 
 main()

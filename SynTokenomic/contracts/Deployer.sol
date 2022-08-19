@@ -4,11 +4,22 @@
 pragma solidity 0.8.2;
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './AccessControl.sol';
 import './ERC20Token.sol';
 import 'hardhat/console.sol';
 
-contract Deployer is AccessControl, Initializable {
+/**
+ * @dev Partial interface of the Rates contract.
+ */
+interface IRates {
+    function getUsdRate (
+        address contractAddress,
+        bool realTime
+    ) external view returns (uint256);
+}
+
+contract Deployer is AccessControl, Initializable, ReentrancyGuard {
     event ContractDeployed (address tokenAddress);
     struct VestingStage {
         uint256 amount;
@@ -35,8 +46,10 @@ contract Deployer is AccessControl, Initializable {
     mapping(address => mapping(address => uint256)) internal _userAllocationId;
     // user address => token address => allocation Id
     mapping(address => uint256[]) internal _tokenAllocationIds;
-    address internal _feeContractAddress; // Syntrum token address
+    IRates internal _ratesContract; // rates contract
+    address internal _feeTokenAddress; // token address for fee payment
     address internal _feeReceiver;
+
     uint256 internal _feeAmountSimple;
     uint256 internal _feeAmountAdvanced;
     uint256 internal _feeDiscount; // Applied when payment in tokens is selected, % * 100 (1000 == 10%)
@@ -45,7 +58,8 @@ contract Deployer is AccessControl, Initializable {
 
     function initialize (
         address newOwner,
-        address feeContractAddress,
+        address ratesContractAddress,
+        address feeTokenAddress,
         address feeReceiver,
         uint256 feeAmountSimple,
         uint256 feeAmountAdvanced,
@@ -53,11 +67,13 @@ contract Deployer is AccessControl, Initializable {
     ) public initializer returns (bool) {
         require(newOwner != address(0), 'Owner address can not be zero');
         require(feeReceiver != address(0), 'Fee receiver address can not be zero');
+        require(ratesContractAddress != address(0), 'Rates contract address can not be zero');
         _owner = newOwner;
+        _ratesContract = IRates(ratesContractAddress);
         _grantRole(MANAGER, newOwner);
         _maxAllocationsNumber = 10;
         _maxVestingStagesNumber = 10;
-        _feeContractAddress = feeContractAddress;
+        _feeTokenAddress = feeTokenAddress;
         _feeReceiver = feeReceiver;
         _feeAmountSimple = feeAmountSimple;
         _feeAmountAdvanced = feeAmountAdvanced;
@@ -66,12 +82,22 @@ contract Deployer is AccessControl, Initializable {
     }
 
     /**
+     * @dev Set rates contract
+     */
+    function setRatesContract (
+        address ratesContractAddress
+    ) external hasRole(MANAGER) returns (bool) {
+        _ratesContract = IRates(ratesContractAddress);
+        return true;
+    }
+
+    /**
      * @dev Set fee currency address
      */
-    function setFeeContractAddress (
-        address feeContractAddress
+    function setFeeTokenAddress (
+        address feeTokenAddress
     ) external hasRole(MANAGER) returns (bool) {
-        _feeContractAddress = feeContractAddress;
+        _feeTokenAddress = feeTokenAddress;
         return true;
     }
 
@@ -245,17 +271,24 @@ contract Deployer is AccessControl, Initializable {
     function _takeFee (
         uint256 amount,
         bool native
-    ) internal returns (bool) {
+    ) internal nonReentrant returns (bool) {
         if (amount == 0) return false;
-        if (native || _feeContractAddress == address(0)) {
-            require(msg.value == amount, 'Fee amount does not match');
+        if (native || _feeTokenAddress == address(0)) {
+            uint256 usdRate = _ratesContract.getUsdRate(address(0), false);
+            amount = amount * 1 ether / usdRate;
+            require(msg.value >= amount, 'Not enough fee amount');
             payable(_feeReceiver).transfer(amount);
+            uint256 remains = msg.value - amount;
+            if (remains > 0) payable(msg.sender).transfer(remains);
         } else {
+            require(msg.value == 0, 'Payment should be in tokens');
+            uint256 usdRate = _ratesContract.getUsdRate(_feeTokenAddress, false);
+            amount = amount * 1 ether / usdRate;
             if (_feeDiscount > 0) {
                 amount = amount * (DECIMALS - _feeDiscount) / DECIMALS;
             }
             require(
-                IERC20(_feeContractAddress).transferFrom(msg.sender, _feeReceiver, amount),
+                IERC20(_feeTokenAddress).transferFrom(msg.sender, _feeReceiver, amount),
                     'Fee transfer failed'
             );
         }
@@ -372,14 +405,16 @@ contract Deployer is AccessControl, Initializable {
      * @dev Returns fee data (currency address and amount)
      */
     function getFeeData () external view returns (
-        address feeContractAddress,
+        address ratesContractAddress,
+        address feeTokenAddress,
         address feeReceiver,
         uint256 feeAmountSimple,
         uint256 feeAmountAdvanced,
         uint256 feeDiscount
     ) {
         return (
-            _feeContractAddress,
+            address(_ratesContract),
+            _feeTokenAddress,
             _feeReceiver,
             _feeAmountSimple,
             _feeAmountAdvanced,

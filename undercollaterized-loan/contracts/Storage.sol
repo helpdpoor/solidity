@@ -94,7 +94,7 @@ contract Storage {
      * 14.2 - Nothing to withdraw
      * 15.1 - Margin swap not found or not active
      * 15.2 - Fee should be paid first
-     * 15.3 - marginRate requirements is not met
+     * 15.3 - marginRate requirements are not met
      * 15.4 - swap request to the BAA failed
      * 17.1 - Borrowing lending contract address can not be zero
      * 18.1 - BorrowingPower contract address can not be zero

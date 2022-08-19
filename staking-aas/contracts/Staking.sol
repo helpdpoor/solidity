@@ -143,7 +143,11 @@ contract Staking is AccessControl {
             _depositProfiles[depositProfileId].active, 'This vault is disabled'
         );
         require(
-            reStakeAvailable(depositProfileId), 'Restake is not available'
+            _depositProfiles[depositProfileId].endTime > block.timestamp,
+            'This pool is expired'
+        );
+        require(
+            isReStakeAvailable(depositProfileId), 'Restake is not available'
         );
         uint256 depositId = _usersDepositIndexes[msg.sender][depositProfileId];
         require(depositId > 0, 'Deposit is not found');
@@ -186,6 +190,12 @@ contract Staking is AccessControl {
                 _depositProfiles[depositProfileId].endTime < block.timestamp,
                     'Assets are locked yet'
             );
+            if (_depositProfiles[depositProfileId].endTime > block.timestamp) {
+                uint256 period = _depositProfiles[depositProfileId].endTime
+                    - block.timestamp;
+                _depositProfiles[depositProfileId].totalYield -= amount * period *
+                    _depositProfiles[depositProfileId].apr / DECIMALS / YEAR;
+            }
         }
         _updateUserYield(depositId);
         _updateTotalYield(depositProfileId);
@@ -264,6 +274,16 @@ contract Staking is AccessControl {
         return true;
     }
 
+    function getYieldRemains (
+        uint256 depositProfileId
+    ) public view returns (uint256) {
+        uint256 yieldMaxAmount = _depositProfiles[depositProfileId].poolSize
+        * _depositProfiles[depositProfileId].apr
+        * _depositProfiles[depositProfileId].period
+        / DECIMALS / YEAR;
+        return yieldMaxAmount - _depositProfiles[depositProfileId].totalYield;
+    }
+
     function withdrawYieldRemains (
         uint256 depositProfileId
     ) public returns (bool) {
@@ -283,19 +303,13 @@ contract Staking is AccessControl {
                 _depositProfiles[depositProfileId].endTime < block.timestamp,
                     'Vault is not expired yet'
         );
-        uint256 yieldMaxAmount = _depositProfiles[depositProfileId].poolSize
-            * _depositProfiles[depositProfileId].apr
-            * _depositProfiles[depositProfileId].period
-            / DECIMALS / YEAR;
-        uint256 amount = yieldMaxAmount - _depositProfiles[depositProfileId].totalYield;
+        uint256 amount = getYieldRemains(depositProfileId);
+        require(amount > 0, 'Nothing to withdraw');
         amount = amount * 1000000 / 1000001; // to avoid rounding errors when pool owner
         // withdraw locked yield before users withdraw yield
         _depositProfiles[depositProfileId].active = false;
 
         IERC20 tokenContract = IERC20(_depositProfiles[depositProfileId].yieldContractAddress);
-        uint256 balance = tokenContract.balanceOf(address(this));
-        if (amount > balance) amount = balance;
-        require(amount > 0, 'Nothing to withdraw');
         tokenContract.transfer(msg.sender, amount);
         return true;
     }
@@ -362,9 +376,6 @@ contract Staking is AccessControl {
     ) public view returns (uint256) {
         if (apr) {
            return _lockProfiles[lockProfileId].amount;
-        }
-        if (_favoriteTokens[depositContractAddress]) {
-           return _lockProfiles[lockProfileId].reducedAmount;
         }
         address token0;
         address token1;
@@ -710,7 +721,7 @@ contract Staking is AccessControl {
         return _tax;
     }
 
-    function reStakeAvailable (
+    function isReStakeAvailable (
         uint256 depositProfileId
     ) public view returns (bool) {
         return _depositProfiles[depositProfileId].depositContractAddress ==

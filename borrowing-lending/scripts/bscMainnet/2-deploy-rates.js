@@ -121,7 +121,6 @@ async function main() {
   await d.ratesContract.setAlias(
     tokenAddresses.NETNA,
     tokenAddresses.ETNA,
-    options
   );
 }
 

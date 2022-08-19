@@ -1,0 +1,22 @@
+User can select simple or advanced deployment.
+Both simple and advanced deployment have fee (in native currency - BNB or MATIC), they should be displayed.
+It is possible to pay fee in Syntrum tokens (with discount). User should be able to choose he wants to pay fee in native currency or in Syntrum tokens with discount.
+For simple deployment user will fill in fields:
+1. Total supply
+2. Decimals
+3. Name
+4. Symbol
+For advanced deployment:
+1. Total supply
+2. Decimals
+3. Name
+4. Symbol
+5. Number of allocations
+When user enter number of allocations he should be able to fill in fields for each allocation:
+6. Allocation name
+7. Allocation amount
+8. Allocation receiver address
+9. Vesting stages number
+When user enter vesting stages number he should be able to fill in fields for each vesting stage:
+10. Date and time
+11. Amount

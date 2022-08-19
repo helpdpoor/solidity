@@ -54,7 +54,7 @@ const aprLendingMin = 500;
 const aprLendingMax = 1000;
 
 async function main() {
-  const contractAddress = '0x7e31ffCefe928bF2Ba5c717cBd0F67dEb5E1e3Ae';
+  const contractAddress = '0xD2C2bd609045d750539DBB8a87D76d3F4CAE6494';
   const ABI = [
     "function initialize(address, address, address, address)"
   ];
@@ -68,6 +68,8 @@ async function main() {
   await hre.run("verify:verify", {
     address: contractAddress,
     constructorArguments: [
+      OWNER,
+      OWNER
     ],
   });
 }

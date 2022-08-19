@@ -9,11 +9,15 @@
         ]
     },
     "rates": {
-        "latest": "0xD382509f48eeFe4C618350D28Ad1Cfb520F76dD2",
+        "latest": "0xD2C2bd609045d750539DBB8a87D76d3F4CAE6494",
         "all": [
             {
                 "address": "0xD382509f48eeFe4C618350D28Ad1Cfb520F76dD2",
                 "timestamp": 1657684888
+            },
+            {
+                "address": "0xD2C2bd609045d750539DBB8a87D76d3F4CAE6494",
+                "timestamp": 1660302446
             }
         ]
     },

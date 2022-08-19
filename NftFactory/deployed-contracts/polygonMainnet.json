@@ -1,0 +1,60 @@
+{
+    "ratesContract": {
+        "latest": "0xD2C2bd609045d750539DBB8a87D76d3F4CAE6494"
+    },
+    "paymentToken": {
+        "latest": "0xF2b65Fd32ca4B5EC5595ee97a833eb6bAd9e0C89"
+    },
+    "factoryERC721": {
+        "latest": "0x49BF408661155E74700cc8787A92F2E57f935f6D",
+        "all": [
+            {
+                "address": "0xC4DFB21214EC4B91359b1D79fd0a6FaEa94F5A47",
+                "timestamp": 1660822351
+            },
+            {
+                "address": "0x49BF408661155E74700cc8787A92F2E57f935f6D",
+                "timestamp": 1660875365
+            }
+        ]
+    },
+    "implementationERC721": {
+        "latest": "0xe8be68B17d167AddD9D2e9c2592e4AaA0FACEdf9",
+        "all": [
+            {
+                "address": "0x1ec2D476c6F68C60cC10C342766FaE0A5A96237c",
+                "timestamp": 1660822419
+            },
+            {
+                "address": "0xe8be68B17d167AddD9D2e9c2592e4AaA0FACEdf9",
+                "timestamp": 1660875365
+            }
+        ]
+    },
+    "factoryERC1155": {
+        "latest": "0x1661B310Cd194d08973b2c377fc39056A23056fc",
+        "all": [
+            {
+                "address": "0x03B1f6277e218a9F49b90C68C90ca8C91FE139eF",
+                "timestamp": 1660822419
+            },
+            {
+                "address": "0x1661B310Cd194d08973b2c377fc39056A23056fc",
+                "timestamp": 1660875365
+            }
+        ]
+    },
+    "implementationERC1155": {
+        "latest": "0xdC9f68Caf2542c5B25A90490f8F4cB3F23bD5BDF",
+        "all": [
+            {
+                "address": "0xEB1CbcCDa221a212C2ED0281622d1174793fFaa7",
+                "timestamp": 1660822419
+            },
+            {
+                "address": "0xdC9f68Caf2542c5B25A90490f8F4cB3F23bD5BDF",
+                "timestamp": 1660875365
+            }
+        ]
+    }
+}

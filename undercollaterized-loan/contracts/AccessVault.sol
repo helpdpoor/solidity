@@ -42,7 +42,7 @@ contract AccessVault is Initializable, Storage {
     event MarginSwapSet (
         address baaAddress,
         uint256 amountOut,
-        uint256 marginRate,
+        uint256 marginRate, // calculated as amount / amountOut * 10 ** 22
         bool reversed,
         bool below,
         bool active
@@ -211,7 +211,9 @@ contract AccessVault is Initializable, Storage {
             abi.encodeWithSignature(
                 'withdraw(address,uint256)',
                 _baaRegistry[baaAddress].stablecoinAddress, amount
-            ), '5.7'
+            ),
+            '5.7',
+            false
         );
 
         uint256 fee;
@@ -223,7 +225,11 @@ contract AccessVault is Initializable, Storage {
         if (fee > 0) {
             amount -= fee;
             _baaRegistry[baaAddress].accumulatedFee -= fee;
-            _baaRegistry[baaAddress].lastFeePaymentTime = block.timestamp;
+
+            // lastFeePaymentTime is set to current time only if fee is paid totally
+            if (fee == _baaRegistry[baaAddress].accumulatedFee) {
+                _baaRegistry[baaAddress].lastFeePaymentTime = block.timestamp;
+            }
             uint256 ownerFee = fee * _feeOwnerFactor / DECIMALS;
             if (ownerFee > 0) {
                 TransferHelper.safeTransfer(
@@ -251,6 +257,11 @@ contract AccessVault is Initializable, Storage {
                     baaOwner,
                     depositAmount
                 );
+            }
+
+            // if loan is fully repaid lastFeePaymentTime is resettled to 0
+            if (_baaRegistry[baaAddress].depositAmount == 0) {
+                _baaRegistry[baaAddress].lastFeePaymentTime = 0;
             }
         }
         emit ReturnLoan(baaAddress, depositAmount, amount, fee);
@@ -386,7 +397,9 @@ contract AccessVault is Initializable, Storage {
             baaAddress,
             abi.encodeWithSignature(
                     'withdraw(address,uint256)', tokenAddress, amount
-            ), '12.2'
+            ),
+            '12.2',
+            false
         );
         return true;
     }
@@ -399,10 +412,47 @@ contract AccessVault is Initializable, Storage {
         bool below,
         bool active
     ) external payable returns (bool) {
+        require(_baaRegistry[baaAddress].ownerAddress == msg.sender, '4.2');
+        require(amount > 0, '4.1');
+        require(canTrade(baaAddress) == 10, '15.2');
         require(msg.value == _marginSwapFee, '13.1');
-        require(
-            _baaRegistry[baaAddress].ownerAddress != address(0), '13.2'
+
+        uint256 amountOut = _getMarginSwapAmount (
+            baaAddress,
+            amount,
+            reversed
         );
+        uint256 rate = _getMarginSwapRate(
+            baaAddress,
+            amount,
+            amountOut,
+            reversed
+        );
+
+        if (
+            amountOut > 0 && below && rate <= marginRate
+                || amountOut > 0 && !below && rate >= marginRate
+        ) {
+            if (
+                _functionCall(
+                    baaAddress,
+                    abi.encodeWithSignature(
+                        'swap(uint256,uint256,uint8,bool)',
+                        amount,
+                        amountOut,
+                        2,
+                        reversed
+                    ),
+                    '15.4',
+                    true
+                )
+            ) {
+                if (_marginSwapRegistry[baaAddress].active) {
+                    _marginSwapRegistry[baaAddress].active = false;
+                }
+                return true;
+            }
+        }
         _marginSwapRegistry[baaAddress].amount = amount;
         _marginSwapRegistry[baaAddress].marginRate = marginRate;
         _marginSwapRegistry[baaAddress].reversed = reversed;
@@ -465,41 +515,53 @@ contract AccessVault is Initializable, Storage {
         return true;
     }
 
-    function proceedMarginSwap (
-        address baaAddress
-    ) external onlyManager returns(bool) {
-        require(
-            _marginSwapRegistry[baaAddress].active, '15.1'
-        );
-        require(canTrade(baaAddress) == 10, '15.2');
+    function _getMarginSwapAmount (
+        address baaAddress,
+        uint256 amount,
+        bool reversed
+    ) internal returns (uint256) {
         address tokenInAddress;
         address tokenOutAddress;
-        if (_marginSwapRegistry[baaAddress].reversed) {
+        if (reversed) {
             tokenInAddress = _baaRegistry[baaAddress].tokenAddress;
             tokenOutAddress = _baaRegistry[baaAddress].stablecoinAddress;
         } else {
             tokenInAddress = _baaRegistry[baaAddress].stablecoinAddress;
             tokenOutAddress = _baaRegistry[baaAddress].tokenAddress;
         }
-        uint256 amountOut = _getSwapAmount(
+        return _getSwapAmount(
             _getImplementationAddress(tokenInAddress, tokenOutAddress),
             tokenInAddress,
             tokenOutAddress,
-            _marginSwapRegistry[baaAddress].amount
+            amount
         );
+    }
 
+    function proceedMarginSwap (
+        address baaAddress
+    ) external onlyManager returns(bool) {
+        require(_marginSwapRegistry[baaAddress].active, '15.1');
+        require(canTrade(baaAddress) == 10, '15.2');
+
+        uint256 amountOut = _getMarginSwapAmount (
+            baaAddress,
+            _marginSwapRegistry[baaAddress].amount,
+            _marginSwapRegistry[baaAddress].reversed
+        );
+        require(amountOut > 0, '15.3');
+
+        uint256 rate = _getMarginSwapRate(
+            baaAddress,
+            _marginSwapRegistry[baaAddress].amount,
+            amountOut,
+            _marginSwapRegistry[baaAddress].reversed
+        );
         if (_marginSwapRegistry[baaAddress].below) {
-            require(
-                _marginSwapRegistry[baaAddress].amount * SHIFT / amountOut <=
-                    _marginSwapRegistry[baaAddress].marginRate, '15.3'
-            );
+            require(rate <= _marginSwapRegistry[baaAddress].marginRate, '15.3');
         } else {
-            require(
-                _marginSwapRegistry[baaAddress].amount * SHIFT / amountOut >=
-                    _marginSwapRegistry[baaAddress].marginRate, '15.3'
-            );
+            require(rate >= _marginSwapRegistry[baaAddress].marginRate, '15.3');
         }
-        // todo add some slippage for amountOut
+
         _functionCall(
             baaAddress,
             abi.encodeWithSignature(
@@ -508,13 +570,38 @@ contract AccessVault is Initializable, Storage {
                 amountOut,
                 2,
                 _marginSwapRegistry[baaAddress].reversed
-            ), '15.4'
+            ),
+            '15.4',
+            false
         );
         _marginSwapRegistry[baaAddress].active = false;
         return true;
     }
 
-    // todo function for stablecoin transfer from one BAA to another ???
+    function _getMarginSwapRate (
+        address baaAddress,
+        uint256 amountIn,
+        uint256 amountOut,
+        bool reversed
+    ) internal view returns (uint256) {
+        uint8 inDecimals;
+        uint8 outDecimals;
+        if (reversed) {
+            inDecimals = IERC20(_baaRegistry[baaAddress].tokenAddress).decimals();
+            outDecimals = IERC20(_baaRegistry[baaAddress].stablecoinAddress).decimals();
+        } else {
+            inDecimals = IERC20(_baaRegistry[baaAddress].stablecoinAddress).decimals();
+            outDecimals = IERC20(_baaRegistry[baaAddress].tokenAddress).decimals();
+        }
+        if (inDecimals < 18) {
+            amountIn *= 10 ** (18 - inDecimals);
+        }
+        if (outDecimals < 18) {
+            amountOut *= 10 ** (18 - outDecimals);
+        }
+
+        return amountOut * SHIFT * DECIMALS / amountIn;
+    }
 
     function setStablecoinProfileId (
         address stablecoinAddress,
@@ -645,7 +732,9 @@ contract AccessVault is Initializable, Storage {
                     0,
                     3,
                     true
-                ), '22.3'
+                ),
+                '22.3',
+                false
             );
         }
         balance = stablecoin.balanceOf(baaAddress);
@@ -662,7 +751,9 @@ contract AccessVault is Initializable, Storage {
             abi.encodeWithSignature(
                 'withdraw(address,uint256)',
                     _baaRegistry[baaAddress].stablecoinAddress, withdrawAmount
-            ), '22.4'
+            ),
+            '22.4',
+            false
         );
 
         _baaRegistry[baaAddress].depositAmount = 0;
@@ -678,10 +769,14 @@ contract AccessVault is Initializable, Storage {
 
     // internal functions
     function _functionCall (
-        address contractAddress, bytes memory callData, string memory revertMessage
+        address contractAddress,
+        bytes memory callData,
+        string memory revertMessage,
+        bool canFail
     ) internal returns (bool) {
         (bool success, bytes memory data) = contractAddress.call(callData);
         (bool result) = abi.decode(data, (bool));
+        if (canFail) return success && result;
         require(success && result, revertMessage);
         return true;
     }
@@ -917,6 +1012,7 @@ contract AccessVault is Initializable, Storage {
                 false
             )
         ) return 1; // BAA is at liquidation
+
         if (
             _baaRegistry[baaAddress].lastFeePaymentTime > 0
                 && block.timestamp - _baaRegistry[baaAddress].lastFeePaymentTime

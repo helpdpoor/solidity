@@ -4,10 +4,11 @@
 pragma solidity 0.8.2;
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './AccessControl.sol';
 import 'hardhat/console.sol';
 
-contract Vesting is AccessControl, Initializable {
+contract Vesting is AccessControl, Initializable, ReentrancyGuard {
     struct VestingStage {
         uint256 amount;
         uint256 unlockTime;
@@ -150,7 +151,7 @@ contract Vesting is AccessControl, Initializable {
         uint8[] memory uint8Data_, // allocations number, vesting stages numbers
         uint256[] memory uint256Data_, // allocation amounts, vesting timestamps, vesting amounts
         address[] memory addressData_, // allocation receivers
-        string[] memory stringData_ ,// allocation names
+        string[] memory stringData_,// allocation names
         address tokenAddress_ // token address
     ) internal returns (bool) {
         require(
@@ -187,12 +188,13 @@ contract Vesting is AccessControl, Initializable {
     function _takeFee (
         uint256 amount,
         bool native
-    ) internal returns (bool) {
+    ) internal nonReentrant returns (bool) {
         if (amount == 0) return false;
         if (native || _feeContractAddress == address(0)) {
             require(msg.value == amount, 'Fee amount does not match');
             payable(_feeReceiver).transfer(amount);
-        } else if (amount > 0) {
+        } else {
+            require(msg.value == 0, 'Payment should be in tokens');
             if (_feeDiscount > 0) {
                 amount = amount * (DECIMALS - _feeDiscount) / DECIMALS;
             }

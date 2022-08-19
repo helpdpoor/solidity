@@ -1,0 +1,140 @@
+{
+    "exchangeRouterPancakeSwap": {
+        "latest": "0x7107b05a6AB833B0F28Ff7ef5aa3A5da7b7a0B5f",
+        "all": [
+            {
+                "address": "0x7107b05a6AB833B0F28Ff7ef5aa3A5da7b7a0B5f",
+                "timestamp": 1654142996
+            }
+        ]
+    },
+    "exchangeRouterProxyAdmin": {
+        "latest": "0x8Aa669A89D5867B266348928b1B4c8f8BbF751A8",
+        "all": [
+            {
+                "address": "0x8Aa669A89D5867B266348928b1B4c8f8BbF751A8",
+                "timestamp": 1654142996
+            }
+        ]
+    },
+    "exchangeRouterImplementation": {
+        "latest": "0x836F26C566225e51147f147346af25C46888D98a",
+        "all": [
+            {
+                "address": "0x836F26C566225e51147f147346af25C46888D98a",
+                "timestamp": 1654142996
+            }
+        ]
+    },
+    "exchangeRouterProxy": {
+        "latest": "0xbe04923C2cf65642e2E7aDA6A7BB908BaF6C73B4",
+        "all": [
+            {
+                "address": "0xbe04923C2cf65642e2E7aDA6A7BB908BaF6C73B4",
+                "timestamp": 1654142996
+            }
+        ]
+    },
+    "baaImplementation": {
+        "latest": "0x582F7Ed179E113C9b5A6FeA802555B41ed086AE4",
+        "all": [
+            {
+                "address": "0x205EBF8034200a9F6D24Cd5850f7067e7De5E083",
+                "timestamp": 1654142996
+            },
+            {
+                "address": "0x582F7Ed179E113C9b5A6FeA802555B41ed086AE4",
+                "timestamp": 1654747796
+            }
+        ]
+    },
+    "upgradeableBeacon": {
+        "latest": "0x3Dcf962488589447c974F980314Fbe6D0F4FD69e",
+        "all": [
+            {
+                "address": "0x3Dcf962488589447c974F980314Fbe6D0F4FD69e",
+                "timestamp": 1654142996
+            }
+        ]
+    },
+    "borrowingPower": {
+        "latest": "0x5793F0C7750F5FaF9bd05381886A3ff0274D76b1",
+        "all": [
+            {
+                "address": "0x5793F0C7750F5FaF9bd05381886A3ff0274D76b1",
+                "timestamp": 1654142996
+            }
+        ]
+    },
+    "accessVaultProxyAdmin": {
+        "latest": "0xf1c9A781AbFC635fB765D2e3f2516d8ef13d264B",
+        "all": [
+            {
+                "address": "0xf1c9A781AbFC635fB765D2e3f2516d8ef13d264B",
+                "timestamp": 1654142996
+            }
+        ]
+    },
+    "accessVaultImplementation": {
+        "latest": "0x33950FC4d76Fdf7A7a89C94f7DE5939647bB7122",
+        "all": [
+            {
+                "address": "0x98e6b9F54F58F6BB40B0Ef67E6e14e62e3B4E992",
+                "timestamp": 1654142996
+            },
+            {
+                "address": "0x719D7a7A23C4361dD2B44A753D8f5AA5E8614e87",
+                "timestamp": 1654315796
+            },
+            {
+                "address": "0xe66f0AB5fA02e9A20b3CBfC44dD9B8e4027C07De",
+                "timestamp": 1654315796
+            },
+            {
+                "address": "0x7897096b5Db4883800F728A6C33FA2cb696Bb19b",
+                "timestamp": 1654488596
+            },
+            {
+                "address": "0x84F8FC4b1A87E104555A9edCD1D8ed39B5dbE03b",
+                "timestamp": 1654488596
+            },
+            {
+                "address": "0x542f1822AaD571CEcBCbC8caE9A75D1Ea2A14D15",
+                "timestamp": 1654747796
+            },
+            {
+                "address": "0xfc5F7fa9f7C9851e9bC493483419E755De31ad60",
+                "timestamp": 1654747796
+            },
+            {
+                "address": "0x0fBc945045BeA6ac16EE6C50E0625ad502826707",
+                "timestamp": 1654834196
+            },
+            {
+                "address": "0x627d479CAf4fC670570C91F018047918B637Fe3c",
+                "timestamp": 1660532996
+            },
+            {
+                "address": "0x1b7aA5C9Ab421d5bC06a108380A8b54516D57d45",
+                "timestamp": 1660706189
+            },
+            {
+                "address": "0xad3639dc4ff008778A0ac746651647896FdDa96a",
+                "timestamp": 1660713354
+            },
+            {
+                "address": "0x33950FC4d76Fdf7A7a89C94f7DE5939647bB7122",
+                "timestamp": 1660787532
+            }
+        ]
+    },
+    "accessVaultProxy": {
+        "latest": "0x83c17a593b2e5a3d3567d82d014BbeeE90D35AbF",
+        "all": [
+            {
+                "address": "0x83c17a593b2e5a3d3567d82d014BbeeE90D35AbF",
+                "timestamp": 1654142996
+            }
+        ]
+    }
+}

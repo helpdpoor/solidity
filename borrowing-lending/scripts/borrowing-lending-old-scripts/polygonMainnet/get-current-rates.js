@@ -7,7 +7,7 @@ const hre = require("hardhat");
 const {ethers} = require("hardhat");
 
 async function main() {
-  const RATES = '0xD382509f48eeFe4C618350D28Ad1Cfb520F76dD2';
+  const RATES = '0xD2C2bd609045d750539DBB8a87D76d3F4CAE6494';
   const NEW_PROXY = '0x6Da88dCE0AD9F850d4F1b5C147815c492E7A6dED';
 
   const Rates = await ethers.getContractFactory("Rates");
@@ -26,7 +26,7 @@ async function main() {
   };
 
   for (let id in contracts) {
-    const rate1 = ethers.utils.formatUnits(await ratesContract.getUsdRate(contracts[id], false), 0);
+    const rate1 = ethers.utils.formatUnits(await ratesContract['getUsdRate(address)'](contracts[id]), 0);
     const rate2 = ethers.utils.formatUnits(await newProxyContract.getUsdRate(contracts[id]), 0);
     console.log(id, rate1);
     console.log(id, rate2);

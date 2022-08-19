@@ -354,8 +354,8 @@ describe('swapTesting.js - Swap testing', function () {
   it('Margin swap', async function () {
     d.loan = 100;
     d.marginAmount = 30;
-    d.marginRate = 0.11;
-    d.marginRateBelow = 0.12;
+    d.marginRate = 1 / 0.12;
+    d.marginRateBelow = 1 / 0.11;
     d.marginSwapFee = 0.1
     await d.busd.connect(d.owner).transfer(
       d.accessVaultConnect.address, ethers.utils.parseUnits(d.initialTransfer.toString())
@@ -397,21 +397,23 @@ describe('swapTesting.js - Swap testing', function () {
         d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
           d.baaBusd.address,
           ethers.utils.parseUnits(d.marginAmount.toString(), 6),
-          ethers.utils.parseUnits(d.marginRate.toString(), 6),
+          ethers.utils.parseUnits(d.marginRate.toString(), 22),
           false,
           true,
           true
         )
       ).to.be.revertedWith('13.1');
+
     await d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
       d.baaUsdt.address,
       ethers.utils.parseUnits(d.marginAmount.toString(), 6),
-      ethers.utils.parseUnits(d.marginRate.toString(), 6),
+      ethers.utils.parseUnits(d.marginRate.toString(), 22),
       false,
       true,
       true,
       {value: ethers.utils.parseUnits(d.marginSwapFee.toString())}
     );
+
     d.balances.owner_bnb = Number(ethers.utils.formatUnits(
       await ethers.provider.getBalance(d.owner.address)
     ));
@@ -422,6 +424,7 @@ describe('swapTesting.js - Swap testing', function () {
       d.zero,
       ethers.utils.parseUnits(d.marginSwapFee.toString())
     );
+
     expect(roundTo(Number(ethers.utils.formatUnits(
       await ethers.provider.getBalance(d.owner.address)
     )), 3)).to.equal(roundTo(d.balances.owner_bnb + d.marginSwapFee, 3));
@@ -433,7 +436,7 @@ describe('swapTesting.js - Swap testing', function () {
     await d.accessVaultConnect.connect(d.owner).setMarginSwapFee(0);
     d.result = await d.accessVaultConnect.getMarginSwapData(d.baaUsdt.address);
     expect(Number(ethers.utils.formatUnits(d.result.amount, 6))).to.equal(d.marginAmount);
-    expect(Number(ethers.utils.formatUnits(d.result.marginRate, 6))).to.equal(d.marginRate);
+    expect(Number(ethers.utils.formatUnits(d.result.marginRate, 22))).to.equal(d.marginRate);
     expect(d.result.reversed).to.be.false;
     expect(d.result.below).to.be.true;
     expect(d.result.active).to.be.true;
@@ -450,45 +453,49 @@ describe('swapTesting.js - Swap testing', function () {
     await d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
       d.baaUsdt.address,
       ethers.utils.parseUnits(d.marginAmount.toString(), 6),
-      ethers.utils.parseUnits(d.marginRate.toString(), 6),
+      ethers.utils.parseUnits(d.marginRate.toString(), 22),
       false,
       false,
       true
     );
-    await d.accessVaultConnect.connect(d.manager).proceedMarginSwap(
-      d.baaUsdt.address
-    );
-    d.result = await d.accessVaultConnect.getMarginSwapData(d.baaUsdt.address);
-    expect(d.result.active).to.be.false;
+
     await expect(
       d.accessVaultConnect.connect(d.manager).proceedMarginSwap(
         d.baaUsdt.address
       )
     ).to.be.revertedWith('15.1');
+
+    d.result = await d.accessVaultConnect.getMarginSwapData(d.baaUsdt.address);
+    expect(d.result.active).to.be.false;
+
     expect(Number(ethers.utils.formatUnits(
       await d.usdt.balanceOf(d.baaUsdt.address), 6
     ))).to.equal(d.loan - d.marginAmount);
     expect(Number(ethers.utils.formatUnits(
       await d.etna.balanceOf(d.baaUsdt.address)
-    ))).to.be.lessThanOrEqual(d.marginAmount / d.marginRate);
+    ))).to.be.greaterThanOrEqual(d.marginAmount * d.marginRate);
+
+    d.etnaBalanceBaa = Number(ethers.utils.formatUnits(
+      await d.etna.balanceOf(d.baaUsdt.address)
+    ));
+
     await d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
       d.baaUsdt.address,
       ethers.utils.parseUnits(d.marginAmount.toString(), 6),
-      ethers.utils.parseUnits(d.marginRateBelow.toString(), 6),
+      ethers.utils.parseUnits(d.marginRateBelow.toString(), 22),
       false,
       true,
       true
     );
     d.result = await d.accessVaultConnect.getMarginSwapData(d.baaUsdt.address);
-    expect(d.result.active).to.be.true;
-    d.etnaBalanceBaa = Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.baaUsdt.address)
-    ));
-    await d.accessVaultConnect.connect(d.manager).proceedMarginSwap(
-      d.baaUsdt.address
-    );
-    d.result = await d.accessVaultConnect.getMarginSwapData(d.baaUsdt.address);
     expect(d.result.active).to.be.false;
+
+    await expect(
+      d.accessVaultConnect.connect(d.manager).proceedMarginSwap(
+        d.baaUsdt.address
+      )
+    ).to.be.revertedWith('15.1');
+
     expect(Number(ethers.utils.formatUnits(
       await d.usdt.balanceOf(d.baaUsdt.address), 6
     ))).to.equal(d.loan - d.marginAmount - d.marginAmount);

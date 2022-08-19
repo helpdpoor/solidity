@@ -1,15 +1,21 @@
 // scripts/deploy.js
 const fs = require('fs');
 const path = require('path');
-const { deployer, scanApiKeys } = require(path.join(__dirname, '../../secrets.json'));
 const { ethers } = require("hardhat");
 const axios = require("axios");
-const d = {
-  deployed: {}
-};
+const d = {};
+d.networkName = hre.network.name;
+const jsonPath = path.join(__dirname, `../deployed-contracts/${d.networkName}.json`);
+d.options = {};
 
 async function main() {
-  d.gasPriceApi = `https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=${scanApiKeys.polygon}`
+  if (d.networkName === 'polygonMainnet') {
+    const gasPrice = Number(await getGasPrice());
+    d.options.gasPrice = gasPrice > 30000000000 ? gasPrice : 50000000000;
+    d.options.gasLimit = 5000000;
+  }
+  const now = Math.round(Date.now() / 1000);
+  const deployedContracts = require(jsonPath);
   d.signers = await ethers.getSigners();
   d.owner = d.signers[0];
   d.zero = '0x0000000000000000000000000000000000000000';
@@ -41,25 +47,46 @@ async function main() {
     platinum: [4,8,12,16,17,18,19,20,21,22,23,24],
   };
 
-  d.response = await axios(d.gasPriceApi);
-  d.result = Number(d.response.data.result.ProposeGasPrice);
-  if (!(d.result > 0)) d.result = 56;
-  d.gasPrice = ethers.utils.parseUnits(d.result.toString(), 'gwei');
-  d.options = {gasPrice: d.gasPrice};
-
   d.UpgradeableBeacon = await ethers.getContractFactory(
     "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol:UpgradeableBeacon"
   );
   d.upgradeableBeacon = await d.UpgradeableBeacon.attach(d.addresses.upgradeableBeacon);
 
   d.Baa = await ethers.getContractFactory("Baa");
-  d.baa = await d.Baa.deploy(d.options);
-  await d.baa.deployed();
-  d.deployed.baa = d.baa.address;
-  console.log("Baa deployed to:", d.baa.address);
+  d.baaImplementation = await d.Baa.deploy(d.options);
+  await d.baaImplementation.deployed();
 
-  await d.upgradeableBeacon.upgradeTo(d.baa.address);
+  if (!(deployedContracts.baaImplementation)) deployedContracts.baaImplementation = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.baaImplementation.latest = d.baaImplementation.address;
+  deployedContracts.baaImplementation.all.push({
+    address: d.baaImplementation.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
+  console.log("Baa deployed to:", d.baaImplementation.address);
+
+  await d.upgradeableBeacon.upgradeTo(d.baaImplementation.address);
   console.log('Update completed');
+}
+
+function saveToJson(jsonData) {
+  fs.writeFileSync(
+    jsonPath,
+    JSON.stringify(jsonData, null, 4)
+  );
+}
+
+async function getGasPrice () {
+  const gasPriceApi = 'https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=F1PQ752FZMGWKUW6YG1M73ZNG4RZAVHW1T';
+  const response = await axios(gasPriceApi);
+  const json = response.data;
+  let gasPrice = Number(json?.result?.ProposeGasPrice);
+  gasPrice = gasPrice > 0 ? gasPrice : 50;
+  return ethers.utils.parseUnits(gasPrice.toString(), 'gwei');
 }
 
 main()

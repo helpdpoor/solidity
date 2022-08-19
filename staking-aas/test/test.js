@@ -260,7 +260,7 @@ describe("Testing Staking contract", function () {
       );
 
     expect(
-      await stakingContract.reStakeAvailable(1)
+      await stakingContract.isReStakeAvailable(1)
     ).to.be.false;
 
     hre.timeAndMine.increaseTime('10 day');
@@ -1143,7 +1143,7 @@ describe("Testing Staking contract", function () {
       );
 
     expect(
-      await stakingContract.reStakeAvailable(1)
+      await stakingContract.isReStakeAvailable(1)
     ).to.be.true;
 
     hre.timeAndMine.increaseTime('10 day');
@@ -1261,7 +1261,7 @@ describe("Testing Staking contract", function () {
       );
 
     expect(
-      await stakingContract.reStakeAvailable(1)
+      await stakingContract.isReStakeAvailable(1)
     ).to.be.true;
 
     hre.timeAndMine.increaseTime('10 day');

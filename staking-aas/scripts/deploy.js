@@ -14,8 +14,8 @@ d.options = {};
 const jsonPath = path.join(__dirname, `../deployed-contracts/${d.networkName}.json`);
 
 async function main() {
-  const gasPrice = Number(await getGasPrice());
   if (d.networkName === 'polygonMainnet') {
+    const gasPrice = Number(await getGasPrice());
     d.options.gasPrice = gasPrice > 30000000000 ? gasPrice : 50000000000;
     d.options.gasLimit = 5000000;
   }

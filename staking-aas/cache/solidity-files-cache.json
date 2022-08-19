@@ -70,8 +70,8 @@
       ]
     },
     "/home/sergei/Работа/web/Мое/NFT/ETNA-Team/solidity/staking-aas/contracts/Staking.sol": {
-      "lastModificationDate": 1659666363700,
-      "contentHash": "16ed36f25c0b5423552350e42fe82afa",
+      "lastModificationDate": 1660789697583,
+      "contentHash": "ea609149b3d104a0e67b404bcb6816cd",
       "sourceName": "contracts/Staking.sol",
       "solcConfig": {
         "version": "0.8.0",

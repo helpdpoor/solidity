@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.2;
-import '../common/AccessControl.sol';
+import './AccessControl.sol';
 
 /**
  * @dev Partial interface of the ERC20.
@@ -232,13 +232,12 @@ contract Rates is AccessControl {
      * Getting of the usd rate for specific token. Rate is given using
      * decimals point shifting. Decimal exponent uses formula
      * 18 + (18 - token decimals). For any token when amount is multiplied
-     * to the rate it will be equal to usd rate with 18 decimals, if realTime == true
-     * and Chainlink feed is not present current lp rate is returned
+     * to the rate it will be equal to usd rate with 18 decimals
      */
     function getUsdRate (
         address contractAddress,
         bool realTime
-    ) public view returns (uint256) {
+    ) external view returns (uint256) {
         if (_alias[contractAddress] != address(0)) {
            contractAddress = _alias[contractAddress];
         }
@@ -252,16 +251,6 @@ contract Rates is AccessControl {
         }
         require(rate > 0, 'Price feed error');
         return rate;
-    }
-
-    /**
-     * Getting of the usd rate for specific token. Function for backward compatability
-     * with debank contract
-     */
-    function getUsdRate (
-        address contractAddress
-    ) external view returns (uint256) {
-        return getUsdRate(contractAddress, false);
     }
 
     /**

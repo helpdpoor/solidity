@@ -1,1 +1,15 @@
-{}
+{
+    "rates": {
+        "latest": "0x43E39a7b159c2b0804f377D3aC238f70dA2363A8",
+        "all": [
+            {
+                "address": "0x3a61e4F678EfB253e9A7c37113BC27517Eb856D2",
+                "timestamp": 1660140379
+            },
+            {
+                "address": "0x43E39a7b159c2b0804f377D3aC238f70dA2363A8",
+                "timestamp": 1660296885
+            }
+        ]
+    }
+}
