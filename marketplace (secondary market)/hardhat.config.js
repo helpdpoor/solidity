@@ -55,10 +55,6 @@ module.exports = {
     ],
   },
   networks: {
-    bscTestnet: {
-      url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
-      accounts: [`${deployer.privateKey}`]
-    },
     bscMainnet: {
       url: 'https://proud-patient-forest.bsc.quiknode.pro/8fffb4d84f42ec02686c35631b566c819138e876/',
       accounts: [`${deployer.privateKey}`]
@@ -67,7 +63,7 @@ module.exports = {
       url: 'https://polygon-mainnet.infura.io/v3/a8192b3af98c4fa7b02136e60c754897',
       accounts: [`${deployer.privateKey}`]
     },
-    kovan: {
+    testnet: {
       url: 'https://kovan.infura.io/v3/a8192b3af98c4fa7b02136e60c754897',
       accounts: [`${deployer.privateKey}`]
     }

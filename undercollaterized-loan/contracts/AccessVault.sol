@@ -41,11 +41,18 @@ contract AccessVault is Initializable, Storage {
     );
     event MarginSwapSet (
         address baaAddress,
-        uint256 amountOut,
-        uint256 marginRate, // calculated as amount / amountOut * 10 ** 22
+        uint256 amount,
+        uint256 marginRate, // calculated as amount / amountBack * 10 ** 22
         bool reversed,
         bool below,
         bool active
+    );
+    event MarginSwapNewSet (
+        address baaAddress,
+        uint256 amount,
+        uint256 amountBack,
+        bool reversed,
+        uint8 status // 0 - disabled, 1 - waiting, 2 - completed
     );
     event BaaDeployed (
         address baaAddress,
@@ -407,64 +414,60 @@ contract AccessVault is Initializable, Storage {
     function setMarginSwap (
         address baaAddress,
         uint256 amount,
-        uint256 marginRate,
-        bool reversed,
-        bool below,
-        bool active
+        uint256 amountBack,
+        bool reversed
     ) external payable returns (bool) {
+        uint8 status = 1;
         require(_baaRegistry[baaAddress].ownerAddress == msg.sender, '4.2');
-        require(amount > 0, '4.1');
+
+        require(amount > 0 && amountBack > 0, '4.1');
         require(canTrade(baaAddress) == 10, '15.2');
         require(msg.value == _marginSwapFee, '13.1');
 
-        uint256 amountOut = _getMarginSwapAmount (
-            baaAddress,
-            amount,
-            reversed
-        );
-        uint256 rate = _getMarginSwapRate(
-            baaAddress,
-            amount,
-            amountOut,
-            reversed
-        );
+        _marginSwapRegistryNew[baaAddress][reversed].amount = amount;
+        _marginSwapRegistryNew[baaAddress][reversed].amountBack = amountBack;
 
-        if (
-            amountOut > 0 && below && rate <= marginRate
-                || amountOut > 0 && !below && rate >= marginRate
+        if ( // try to swap immediately with canFail option
+            _functionCall(
+                baaAddress,
+                abi.encodeWithSignature(
+                    'swap(uint256,uint256,uint8,bool)',
+                    amount,
+                    amountBack,
+                    2,
+                    reversed
+                ),
+                '15.4',
+                true
+            )
         ) {
-            if (
-                _functionCall(
-                    baaAddress,
-                    abi.encodeWithSignature(
-                        'swap(uint256,uint256,uint8,bool)',
-                        amount,
-                        amountOut,
-                        2,
-                        reversed
-                    ),
-                    '15.4',
-                    true
-                )
-            ) {
-                if (_marginSwapRegistry[baaAddress].active) {
-                    _marginSwapRegistry[baaAddress].active = false;
-                }
-                return true;
-            }
+            status = 2;
         }
-        _marginSwapRegistry[baaAddress].amount = amount;
-        _marginSwapRegistry[baaAddress].marginRate = marginRate;
-        _marginSwapRegistry[baaAddress].reversed = reversed;
-        _marginSwapRegistry[baaAddress].below = below;
-        _marginSwapRegistry[baaAddress].active = active;
-        emit MarginSwapSet(
+
+        _marginSwapRegistryNew[baaAddress][reversed].status = status;
+        emit MarginSwapNewSet(
             baaAddress,
             amount,
-            marginRate,
+            amountBack,
             reversed,
-            below,
-            active
+            status
+        );
+        return true;
+    }
+
+    function disableMarginSwap (
+        address baaAddress,
+        bool reversed
+    ) external returns (bool) {
+        require(_baaRegistry[baaAddress].ownerAddress == msg.sender, '4.2');
+        require(_marginSwapRegistryNew[baaAddress][reversed].status == 1, '15.1');
+        _marginSwapRegistryNew[baaAddress][reversed].status = 0;
+        emit MarginSwapNewSet(
+            baaAddress,
+            _marginSwapRegistryNew[baaAddress][reversed].amount,
+            _marginSwapRegistryNew[baaAddress][reversed].amountBack,
+            reversed,
+            _marginSwapRegistryNew[baaAddress][reversed].status
         );
         return true;
     }
@@ -538,69 +541,33 @@ contract AccessVault is Initializable, Storage {
     }
 
     function proceedMarginSwap (
-        address baaAddress
+        address baaAddress,
+        bool reversed
     ) external onlyManager returns(bool) {
-        require(_marginSwapRegistry[baaAddress].active, '15.1');
+        require(_marginSwapRegistryNew[baaAddress][reversed].status == 1, '15.1');
         require(canTrade(baaAddress) == 10, '15.2');
-
-        uint256 amountOut = _getMarginSwapAmount (
-            baaAddress,
-            _marginSwapRegistry[baaAddress].amount,
-            _marginSwapRegistry[baaAddress].reversed
-        );
-        require(amountOut > 0, '15.3');
-
-        uint256 rate = _getMarginSwapRate(
-            baaAddress,
-            _marginSwapRegistry[baaAddress].amount,
-            amountOut,
-            _marginSwapRegistry[baaAddress].reversed
-        );
-        if (_marginSwapRegistry[baaAddress].below) {
-            require(rate <= _marginSwapRegistry[baaAddress].marginRate, '15.3');
-        } else {
-            require(rate >= _marginSwapRegistry[baaAddress].marginRate, '15.3');
-        }
 
         _functionCall(
             baaAddress,
             abi.encodeWithSignature(
                 'swap(uint256,uint256,uint8,bool)',
-                _marginSwapRegistry[baaAddress].amount,
-                amountOut,
+                _marginSwapRegistryNew[baaAddress][reversed].amount,
+                _marginSwapRegistryNew[baaAddress][reversed].amountBack,
                 2,
-                _marginSwapRegistry[baaAddress].reversed
+                reversed
             ),
-            '15.4',
+            '15.3',
             false
         );
-        _marginSwapRegistry[baaAddress].active = false;
+        _marginSwapRegistryNew[baaAddress][reversed].status = 2;
+        emit MarginSwapNewSet(
+            baaAddress,
+            _marginSwapRegistryNew[baaAddress][reversed].amount,
+            _marginSwapRegistryNew[baaAddress][reversed].amountBack,
+            reversed,
+            _marginSwapRegistryNew[baaAddress][reversed].status
+        );
         return true;
-    }
-
-    function _getMarginSwapRate (
-        address baaAddress,
-        uint256 amountIn,
-        uint256 amountOut,
-        bool reversed
-    ) internal view returns (uint256) {
-        uint8 inDecimals;
-        uint8 outDecimals;
-        if (reversed) {
-            inDecimals = IERC20(_baaRegistry[baaAddress].tokenAddress).decimals();
-            outDecimals = IERC20(_baaRegistry[baaAddress].stablecoinAddress).decimals();
-        } else {
-            inDecimals = IERC20(_baaRegistry[baaAddress].stablecoinAddress).decimals();
-            outDecimals = IERC20(_baaRegistry[baaAddress].tokenAddress).decimals();
-        }
-        if (inDecimals < 18) {
-            amountIn *= 10 ** (18 - inDecimals);
-        }
-        if (outDecimals < 18) {
-            amountOut *= 10 ** (18 - outDecimals);
-        }
-
-        return amountOut * SHIFT * DECIMALS / amountIn;
     }
 
     function setStablecoinProfileId (
@@ -775,9 +742,11 @@ contract AccessVault is Initializable, Storage {
         bool canFail
     ) internal returns (bool) {
         (bool success, bytes memory data) = contractAddress.call(callData);
+        if (canFail && !success) return false;
+        require(success, revertMessage);
         (bool result) = abi.decode(data, (bool));
-        if (canFail) return success && result;
-        require(success && result, revertMessage);
+        if (canFail) return result;
+        require(result, revertMessage);
         return true;
     }
 
@@ -1014,7 +983,7 @@ contract AccessVault is Initializable, Storage {
         ) return 1; // BAA is at liquidation
 
         if (
-            _baaRegistry[baaAddress].lastFeePaymentTime > 0
+            calculateFee(baaAddress, true) > 0
                 && block.timestamp - _baaRegistry[baaAddress].lastFeePaymentTime
                     >= _maxFeeUnpaidPeriod
         ) return 2; // BAA fee payment is expired
@@ -1066,10 +1035,10 @@ contract AccessVault is Initializable, Storage {
         uint256 negativeVolatilityThreshold;
         if (notification) {
             negativeVolatilityThreshold = _baaRegistry[baaAddress].depositAmount
-            * _negativeFactor * _notificationFactor / DECIMALS / DECIMALS;
+                * _negativeFactor * _notificationFactor / DECIMALS / DECIMALS;
         } else {
             negativeVolatilityThreshold = _baaRegistry[baaAddress].depositAmount
-            * _negativeFactor / DECIMALS;
+                * _negativeFactor / DECIMALS;
         }
 //        console.log('baaBalance', baaBalance);
 //        console.log('_baaRegistry[baaAddress].depositAmount', _baaRegistry[baaAddress].depositAmount);
@@ -1096,7 +1065,7 @@ contract AccessVault is Initializable, Storage {
         );
     }
 
-    function getMarginSwapData (
+    function getMarginSwapOldData (
         address baaAddress
     ) external view returns (
         uint256 amount,
@@ -1111,6 +1080,21 @@ contract AccessVault is Initializable, Storage {
             _marginSwapRegistry[baaAddress].reversed,
             _marginSwapRegistry[baaAddress].below,
             _marginSwapRegistry[baaAddress].active
+        );
+    }
+
+    function getMarginSwapData (
+        address baaAddress,
+        bool reversed
+    ) external view returns (
+        uint256 amount,
+        uint256 amountBack,
+        uint8 status
+    ) {
+        return (
+            _marginSwapRegistryNew[baaAddress][reversed].amount,
+            _marginSwapRegistryNew[baaAddress][reversed].amountBack,
+            _marginSwapRegistryNew[baaAddress][reversed].status
         );
     }
 }

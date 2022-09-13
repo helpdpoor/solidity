@@ -17,3 +17,4 @@
 
 2. There should be 2 contracts (erc721 and erc1155) for minting tokens and a marketplace contract that can keep user's tokens and send it to the buyer or mint tokens to the buyer's address if non existed token is sold.
 
+

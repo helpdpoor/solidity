@@ -4,34 +4,46 @@ d.name = 'Token';
 d.symbol = 'TN';
 d.decimals = 8;
 d.totalSupply = 1000000;
-
+d.parameters = {
+  marketplace: {
+    feeReceiver: '',
+    fee: 10, // %
+  },
+  erc721: {
+    name: 'ERC721 test minting',
+    symbol: 'ERC721',
+  },
+  erc1155: {
+    uri: '',
+  }
+};
+d.networkName = hre.network.name;
 
 async function main() {
   d.signers = await ethers.getSigners();
   d.owner = d.signers[0];
   d.zero = '0x0000000000000000000000000000000000000000';
-  const contractAddress = '0xF66b5507EfDA400abc31b1c055022FdE969aE9be';
-
-
-  const ABI = [
-    "function initialize(address, address, address, uint256, uint256, uint256)"
-  ];
-  const iface = new ethers.utils.Interface(ABI);
-  const calldata = iface.encodeFunctionData("initialize", [
-    d.owner.address,
-    d.zero,
-    d.owner.address,
-    0,
-    0,
-    0
-  ]);
+  if (d.networkName === 'testnet') {
+    d.parameters.marketplace.feeReceiver = d.owner.address;
+  }
+  const contractAddress = '0x178eE86fEe287EE77b24af007ce52E7848F8c959';
 
   await hre.run("verify:verify", {
     address: contractAddress,
     constructorArguments: [
-      // '0x6987f2A1ff39DbF369A0629c06bf529327ebea25',
-      // '0xecBB155027262635ccE355a4F13e9643F8A37Df4',
-      // calldata,
+      // ERC721Minting
+      // d.owner.address,
+      // d.parameters.erc721.name,
+      // d.parameters.erc721.symbol
+
+      // ERC1155Minting
+      // d.owner.address,
+      // d.parameters.erc1155.uri
+
+      // Marketplace
+      d.owner.address,
+      d.parameters.marketplace.feeReceiver,
+      d.parameters.marketplace.fee * 100
     ],
   });
 }

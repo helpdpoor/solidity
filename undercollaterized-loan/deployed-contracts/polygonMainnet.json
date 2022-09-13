@@ -76,7 +76,7 @@
         ]
     },
     "accessVaultImplementation": {
-        "latest": "0x33950FC4d76Fdf7A7a89C94f7DE5939647bB7122",
+        "latest": "0xbe6B7Ae8cBA359918beC336705d338EBe9E6A6c9",
         "all": [
             {
                 "address": "0x98e6b9F54F58F6BB40B0Ef67E6e14e62e3B4E992",
@@ -125,6 +125,18 @@
             {
                 "address": "0x33950FC4d76Fdf7A7a89C94f7DE5939647bB7122",
                 "timestamp": 1660787532
+            },
+            {
+                "address": "0xB23c0a8AEb398Ea99Ae144E40765c5DA349AD214",
+                "timestamp": 1662719436
+            },
+            {
+                "address": "0xe496a37253558228FD33726E6dF8C4094B019382",
+                "timestamp": 1662720565
+            },
+            {
+                "address": "0xbe6B7Ae8cBA359918beC336705d338EBe9E6A6c9",
+                "timestamp": 1663043788
             }
         ]
     },
@@ -134,6 +146,15 @@
             {
                 "address": "0x83c17a593b2e5a3d3567d82d014BbeeE90D35AbF",
                 "timestamp": 1654142996
+            }
+        ]
+    },
+    "exchangeRouterLiquidationTesting": {
+        "latest": "0x42C4F0F5CD55040c9FF557281893993bA2B819A0",
+        "all": [
+            {
+                "address": "0x42C4F0F5CD55040c9FF557281893993bA2B819A0",
+                "timestamp": 1663035086
             }
         ]
     }

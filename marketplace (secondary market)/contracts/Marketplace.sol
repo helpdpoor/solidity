@@ -73,23 +73,14 @@ import 'hardhat/console.sol';
  * 15.4 Auction is not over yet
  */
 contract Marketplace is AccessControl, ReentrancyGuard {
-    event SaleCreated (
-        address indexed sellerAddress,
+    event SaleModified (
         uint256 indexed saleId,
-        bool secondary
-    );
-    event SaleCancelled (
-        address indexed sellerAddress,
-        uint256 indexed saleId
-    );
-    event SaleCompleted (
-        address indexed sellerAddress,
-        uint256 indexed saleId
+        bytes32 action
     );
     event Bid (
         uint256 indexed saleId,
         uint256 amount,
-        address buyer
+        address bidder
     );
     modifier CanModify (
         uint256 saleId
@@ -270,7 +261,7 @@ contract Marketplace is AccessControl, ReentrancyGuard {
             _sales[_salesNumber].tokenUri = tokenUri;
         }
 
-        emit SaleCreated(msg.sender, _salesNumber, tokenId > 0);
+        emit SaleModified(_salesNumber, keccak256(abi.encode('Created')));
         return true;
     }
 
@@ -497,7 +488,7 @@ contract Marketplace is AccessControl, ReentrancyGuard {
             );
         }
         _sales[saleId].cancelledAt = block.timestamp;
-        emit SaleCancelled(_sales[saleId].sellerAddress, saleId);
+        emit SaleModified(saleId, keccak256(abi.encode('Cancelled')));
         return true;
     }
 
@@ -536,7 +527,7 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         } else {
             _sales[saleId].tokenId = _mintToken(saleId);
         }
-        emit SaleCompleted(_sales[saleId].sellerAddress, saleId);
+        emit SaleModified(saleId, keccak256(abi.encode('Completed')));
         return true;
     }
 
@@ -603,13 +594,15 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         uint256 saleId
     ) internal returns(bool) {
         if (_sales[saleId].lastBid == 0) {
-            // no bid happened, send ERC721 token to the refund address
-            _sendToken(
-                _sales[saleId].tokenAddress,
-                _sales[saleId].sellerAddress,
-                _sales[saleId].tokenId,
-                _sales[saleId].amount
-            );
+            if (_sales[saleId].tokenId > 0) {
+                // no bid was maid, send ERC721 token to the seller address
+                _sendToken(
+                    _sales[saleId].tokenAddress,
+                    _sales[saleId].sellerAddress,
+                    _sales[saleId].tokenId,
+                    _sales[saleId].amount
+                );
+            }
         } else {
             _sales[saleId].buyerAddress = _sales[saleId].lastBidSender;
             if (_sales[saleId].tokenId > 0) {
@@ -639,7 +632,7 @@ contract Marketplace is AccessControl, ReentrancyGuard {
                 amount
             );
         }
-        emit SaleCompleted(_sales[saleId].sellerAddress, saleId);
+        emit SaleModified(saleId, keccak256(abi.encode('Completed')));
         return true;
     }
 
@@ -649,7 +642,7 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     function _proceedBid (
         uint256 saleId,
         uint256 amount,
-        address buyer
+        address bidder
     ) internal returns(bool) {
         if (
             _sales[saleId].lastBidSender != address(0)
@@ -661,13 +654,10 @@ contract Marketplace is AccessControl, ReentrancyGuard {
                 _sales[saleId].lastBid
             );
         }
-        _sales[saleId].lastBidSender = buyer;
+        _sales[saleId].lastBidSender = bidder;
         _sales[saleId].lastBid = amount;
-        emit Bid(
-            saleId,
-            amount,
-            buyer
-        );
+        emit SaleModified(saleId, keccak256(abi.encode('Bid')));
+        emit Bid(saleId, amount, bidder);
         return true;
     }
 
@@ -738,6 +728,45 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     }
 
     /**
+     * @dev Returns all sale record data
+     */
+    function getSale (
+        uint256 saleId
+    ) external view returns (
+        address[] memory saleAddresses,
+        uint256[] memory saleNumbers,
+        string memory tokenUri,
+        bool erc1155
+    ) {
+        address[] memory saleAddresses = new address[](5);
+        saleAddresses[0] = _sales[saleId].sellerAddress;
+        saleAddresses[1] = _sales[saleId].buyerAddress;
+        saleAddresses[2] = _sales[saleId].tokenAddress;
+        saleAddresses[3] = _sales[saleId].paymentAddress;
+        saleAddresses[4] = _sales[saleId].lastBidSender;
+        uint256[] memory saleNumbers = new uint256[](13);
+        saleNumbers[0] = _sales[saleId].price;
+        saleNumbers[1] = _sales[saleId].tokenId;
+        saleNumbers[2] = _sales[saleId].amount;
+        saleNumbers[3] = _sales[saleId].createdAt;
+        saleNumbers[4] = _sales[saleId].completedAt;
+        saleNumbers[5] = _sales[saleId].cancelledAt;
+        saleNumbers[6] = _sales[saleId].step;
+        saleNumbers[7] = _sales[saleId].startBid;
+        saleNumbers[8] = _sales[saleId].lastBid;
+        saleNumbers[9] = _sales[saleId].singlePaymentValue;
+        saleNumbers[10] = _sales[saleId].singlePaymentPercent;
+        saleNumbers[11] = _sales[saleId].startTime;
+        saleNumbers[12] = _sales[saleId].endTime;
+        return (
+            saleAddresses,
+            saleNumbers,
+            _sales[saleId].tokenUri,
+            _erc1155[_sales[saleId].tokenAddress]
+        );
+    }
+
+    /**
      * @dev Returns sale record addresses data
      */
     function getSaleAddresses (
@@ -746,13 +775,15 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         address sellerAddress,
         address buyerAddress,
         address tokenAddress,
-        address paymentAddress
+        address paymentAddress,
+        bool erc1155
     ) {
         return (
             _sales[saleId].sellerAddress,
             _sales[saleId].buyerAddress,
             _sales[saleId].tokenAddress,
-            _sales[saleId].paymentAddress
+            _sales[saleId].paymentAddress,
+            _erc1155[_sales[saleId].tokenAddress]
         );
     }
 

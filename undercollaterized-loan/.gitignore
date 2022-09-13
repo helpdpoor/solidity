@@ -8,3 +8,7 @@ secrets.json
 #Hardhat files
 cache
 artifacts
+
+
+/scripts/deploy-test-implementation.js
+/contracts/ExchangeRouterLiquidationTesting.sol

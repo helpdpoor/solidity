@@ -9,75 +9,104 @@ const fs = require('fs');
 const path = require('path');
 const d = {};
 d.zero = '0x0000000000000000000000000000000000000000';
+d.parameters = {
+  marketplace: {
+    feeReceiver: '',
+    fee: 10, // %
+  },
+  erc721: {
+    name: 'ERC721 test minting',
+    symbol: 'ERC721',
+  },
+  erc1155: {
+    uri: '',
+  }
+};
 d.networkName = hre.network.name;
 d.options = {};
-if (d.networkName === 'polygonMainnet') {
-  d.options.gasPrice = 50000000000;
-}
 const jsonPath = path.join(__dirname, `../deployed-contracts/${d.networkName}.json`);
 
 async function main() {
+  if (d.networkName === 'polygonMainnet') {
+    const gasPrice = Number(await getGasPrice());
+    d.options.gasPrice = gasPrice > 30000000000 ? gasPrice : 50000000000;
+    d.options.gasLimit = 5000000;
+  }
   d.signers = await ethers.getSigners();
   d.owner = d.signers[0];
+  if (d.networkName === 'testnet') {
+    d.parameters.marketplace.feeReceiver = d.owner.address;
+  }
   const now = Math.round(Date.now() / 1000);
   const deployedContracts = require(jsonPath);
 
-  d.ProxyAdmin = await ethers.getContractFactory(
-    "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
-  );
-  if (!deployedContracts.proxyAdmin) throw new Error('Proxy admin contract is not defined');
-  d.proxyAdmin = await d.ProxyAdmin.attach(deployedContracts.proxyAdmin.latest);
+  // d.ERC721Minting = await ethers.getContractFactory("ERC721Minting");
+  // d.erc721Minting = await d.ERC721Minting.deploy(
+  //   d.owner.address,
+  //   d.parameters.erc721.name,
+  //   d.parameters.erc721.symbol,
+  //   d.options
+  // );
+  // await d.erc721Minting.deployed();
+  // if (!(deployedContracts.erc721Minting)) deployedContracts.erc721Minting = {
+  //   latest: '',
+  //   all: [],
+  // };
+  // deployedContracts.erc721Minting.latest = d.erc721Minting.address;
+  // deployedContracts.erc721Minting.all.push({
+  //   address: d.erc721Minting.address,
+  //   timestamp: now,
+  // });
+  // saveToJson(deployedContracts);
+  // console.log(`ERC721 minting contract deployed to ${d.erc721Minting.address}`);
+  //
+  // d.ERC1155Minting = await ethers.getContractFactory("ERC1155Minting");
+  // d.erc1155Minting = await d.ERC1155Minting.deploy(
+  //   d.owner.address,
+  //   d.parameters.erc1155.uri,
+  //   d.options
+  // );
+  // await d.erc1155Minting.deployed();
+  // if (!(deployedContracts.erc1155Minting)) deployedContracts.erc1155Minting = {
+  //   latest: '',
+  //   all: [],
+  // };
+  // deployedContracts.erc1155Minting.latest = d.erc1155Minting.address;
+  // deployedContracts.erc1155Minting.all.push({
+  //   address: d.erc1155Minting.address,
+  //   timestamp: now,
+  // });
+  // saveToJson(deployedContracts);
+  // console.log(`ERC1155 minting contract deployed to ${d.erc1155Minting.address}`);
 
-  d.Deployer = await ethers.getContractFactory("Deployer");
-  d.deployerImplementation = await d.Deployer.deploy(d.options);
-  await d.deployerImplementation.deployed();
-  if (!(deployedContracts.deployerImplementation)) deployedContracts.deployerImplementation = {
-    latest: '',
-    all: [],
-  };
-
-  deployedContracts.deployerImplementation.latest = d.deployerImplementation.address;
-  deployedContracts.deployerImplementation.all.push({
-    address: d.deployerImplementation.address,
-    timestamp: now,
-  });
-  saveToJson(deployedContracts);
-  console.log(`Deployer implementation contract deployed to ${d.deployerImplementation.address}`);
-
-  d.ABI = [
-    "function initialize(address, address, address, uint256, uint256, uint256)"
-  ];
-  d.iface = new ethers.utils.Interface(d.ABI);
-  d.calldata = d.iface.encodeFunctionData("initialize", [
+  d.Marketplace = await ethers.getContractFactory("Marketplace");
+  d.marketplace = await d.Marketplace.deploy(
     d.owner.address,
-    d.zero,
-    d.owner.address,
-    0,
-    0,
-    0
-  ]);
-
-  d.Proxy = await ethers.getContractFactory(
-    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
-  );
-  d.deployerProxy = await d.Proxy.deploy(
-    d.deployerImplementation.address,
-    d.proxyAdmin.address,
-    d.calldata,
+    d.parameters.marketplace.feeReceiver,
+    d.parameters.marketplace.fee * 100,
     d.options
   );
-  await d.deployerProxy.deployed();
-  if (!(deployedContracts.deployerProxy)) deployedContracts.deployerProxy = {
+  await d.marketplace.deployed();
+  if (!(deployedContracts.marketplace)) deployedContracts.marketplace = {
     latest: '',
     all: [],
   };
-  deployedContracts.deployerProxy.latest = d.deployerProxy.address;
-  deployedContracts.deployerProxy.all.push({
-    address: d.deployerProxy.address,
+  deployedContracts.marketplace.latest = d.marketplace.address;
+  deployedContracts.marketplace.all.push({
+    address: d.marketplace.address,
     timestamp: now,
   });
   saveToJson(deployedContracts);
-  console.log(`Deployer proxy contract deployed to ${d.deployerProxy.address}`);
+  console.log(`Marketplace contract deployed to ${d.marketplace.address}`);
+}
+
+async function getGasPrice () {
+  const gasPriceApi = 'https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=F1PQ752FZMGWKUW6YG1M73ZNG4RZAVHW1T';
+  const response = await axios(gasPriceApi);
+  const json = response.data;
+  let gasPrice = Number(json?.result?.ProposeGasPrice);
+  gasPrice = gasPrice > 0 ? gasPrice : 50;
+  return ethers.utils.parseUnits(gasPrice.toString(), 'gwei');
 }
 
 function saveToJson(jsonData) {

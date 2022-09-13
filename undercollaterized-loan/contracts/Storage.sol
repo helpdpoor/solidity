@@ -92,10 +92,9 @@ contract Storage {
      * 13.3 - Amount can not be greater than loan amount
      * 14.1 - Caller has outstanding balance
      * 14.2 - Nothing to withdraw
-     * 15.1 - Margin swap not found or not active
+     * 15.1 - Margin swap record not found or not active
      * 15.2 - Fee should be paid first
-     * 15.3 - marginRate requirements are not met
-     * 15.4 - swap request to the BAA failed
+     * 15.3 - swap request to the BAA failed
      * 17.1 - Borrowing lending contract address can not be zero
      * 18.1 - BorrowingPower contract address can not be zero
      * 19.1 - Exchange router contract address can not be zero
@@ -127,6 +126,11 @@ contract Storage {
         bool reversed; // true if token was swapped to stablecoin
         bool below;
         bool active;
+    }
+    struct MarginSwapNew {
+        uint256 amount;
+        uint256 amountBack; // minimal amount user wants to get when swap
+        uint8 status; // 0 - disabled, 1 - waiting, 2 - completed
     }
     mapping(address => Baa) internal _baaRegistry;
     // BAA contract address => Baa object
@@ -176,4 +180,6 @@ contract Storage {
     // exponent shifting when calculation with decimals for market index and usd rate
     uint256 internal constant DECIMALS = 10000;
     // exponent shifting when calculation with decimals for percents
+    mapping(address => mapping(bool => MarginSwapNew)) internal _marginSwapRegistryNew;
+    // BAA contract address => Margin Swap object
 }
