@@ -86,12 +86,12 @@ describe("priceFeed.js - Testing rates contract", function () {
       ethers.utils.parseUnits('1.23')
     );
     expect(Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(zeroAddress, false)
+      await d.ratesContract['getUsdRate(address,bool)'](zeroAddress, false)
     ))).to.equal(
       1.23
     );
     expect(Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(zeroAddress, true)
+      await d.ratesContract['getUsdRate(address,bool)'](zeroAddress, true)
     ))).to.equal(
       1.23
     );
@@ -103,7 +103,7 @@ describe("priceFeed.js - Testing rates contract", function () {
       d.chainLinkFeed.address
     );
     d.rate = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, false)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, false)
     ));
     d.result = await d.chainLinkFeed.latestRoundData();
     d.answer = Number(ethers.utils.formatUnits(d.result.answer, 8));
@@ -122,7 +122,7 @@ describe("priceFeed.js - Testing rates contract", function () {
     expect(Number(d.result.decimals1)).to.equal(6);
     expect(d.result.reversed).to.be.false;
     d.rate = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, false)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, false)
     ));
     d.result = await d.lpFeed.getReserves();
     d.lpRate = Number(d.result._reserve1 * 10 ** 12)
@@ -139,10 +139,10 @@ describe("priceFeed.js - Testing rates contract", function () {
     );
 
     d.rate = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, false)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, false)
     ));
     d.rateReal = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, true)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, true)
     ));
     expect(roundToPrecision(d.rate, 4)).to.equal(roundToPrecision(d.rateReal, 4));
     expect(roundToPrecision(d.rate, 8)).to.not.equal(roundToPrecision(d.rateReal, 8));
@@ -158,7 +158,7 @@ describe("priceFeed.js - Testing rates contract", function () {
     expect(Number(d.result.decimals1)).to.equal(6);
     expect(d.result.reversed).to.be.true;
     d.rate = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.usdt, false), 30
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.usdt, false), 30
     ));
     d.result = await d.lpFeed.getReserves();
     d.lpRate = Number(d.result._reserve0) / Number(d.result._reserve1 * 10 ** 12);
@@ -170,7 +170,7 @@ describe("priceFeed.js - Testing rates contract", function () {
     );
 
     d.rateDai = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.dai, false), 30
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.dai, false), 30
     ));
 
     expect(d.rate).to.equal(d.rateDai);
@@ -192,10 +192,10 @@ describe("priceFeed.js - Testing rates contract", function () {
     );
 
     d.rate = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, false)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, false)
     ));
     d.rateReal = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, true)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, true)
     ));
     expect(roundToPrecision(d.rate, 4)).to.equal(roundToPrecision(d.rateReal, 4));
     expect(roundToPrecision(d.rate, 8)).to.not.equal(roundToPrecision(d.rateReal, 8));
@@ -207,10 +207,10 @@ describe("priceFeed.js - Testing rates contract", function () {
     await d.ratesContract.connect(d.ratesUpdater).saveUsdRate(d.addresses.weth);
 
     d.rate = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, false)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, false)
     ));
     d.rateReal = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, true)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, true)
     ));
     expect(roundToPrecision(d.rate, 4)).to.equal(roundToPrecision(d.rateReal, 4));
     expect(roundToPrecision(d.rate, 8)).to.not.equal(roundToPrecision(d.rateReal, 8));
@@ -224,10 +224,10 @@ describe("priceFeed.js - Testing rates contract", function () {
     await d.ratesContract.connect(d.ratesUpdater).saveUsdRate(d.addresses.weth);
 
     d.newRate = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, false)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, false)
     ));
     d.newRateReal = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, true)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, true)
     ));
     expect(roundToPrecision(d.newRate, 8)).to.equal(roundToPrecision(d.rate, 8));
 
@@ -240,10 +240,10 @@ describe("priceFeed.js - Testing rates contract", function () {
     await d.ratesContract.connect(d.ratesUpdater).saveUsdRate(d.addresses.weth);
 
     d.newRate = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, false)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, false)
     ));
     d.newRateReal = Number(ethers.utils.formatUnits(
-      await d.ratesContract.getUsdRate(d.addresses.weth, true)
+      await d.ratesContract['getUsdRate(address,bool)'](d.addresses.weth, true)
     ));
 
     expect(roundToPrecision(d.newRate, 8)).to.not.equal(roundToPrecision(d.rate, 8));

@@ -59,51 +59,21 @@ describe('exchangeRouter.js - Exchange router testing', function () {
       {value: ethers.utils.parseUnits('10')}
     );
 
-    d.ExchangeRouterPancakeSwap = await ethers.getContractFactory("ExchangeRouterPancakeSwap");
-    d.exchangeRouterPancakeSwap = await d.ExchangeRouterPancakeSwap.connect(d.owner).deploy(
+    d.UniSwapConnector = await ethers.getContractFactory("UniSwapConnector");
+    d.uniSwapConnector = await d.UniSwapConnector.connect(d.owner).deploy(
       d.owner.address,
       d.router.address,
       d.factory.address
     );
-    await d.exchangeRouterPancakeSwap.deployed();
-
-    d.ExchangeRouterProxyAdmin = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
-    );
-    d.exchangeRouterProxyAdmin = await d.ExchangeRouterProxyAdmin.connect(d.owner).deploy();
-    await d.exchangeRouterProxyAdmin.deployed();
-    // console.log("Exchange router proxy admin deployed to:", d.exchangeRouterProxyAdmin.address);
+    await d.uniSwapConnector.deployed();
 
     d.ExchangeRouter = await ethers.getContractFactory("ExchangeRouter");
-    d.exchangeRouterImplementation = await d.ExchangeRouter.connect(d.owner).deploy();
-    await d.exchangeRouterImplementation.deployed();
-    // console.log("Exchange router deployed to:", d.exchangeRouter.address);
-
-    d.ABI = [
-      "function initialize(address newOwner, address defaultImplementation)"
-    ];
-    d.iface = new ethers.utils.Interface(d.ABI);
-    d.calldata = d.iface.encodeFunctionData("initialize", [
+    d.exchangeRouter = await d.ExchangeRouter.connect(d.owner).deploy(
       d.owner.address,
-      d.exchangeRouterPancakeSwap.address
-    ]);
-    d.ExchangeRouterProxy = await ethers.getContractFactory(
-      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"
+      d.uniSwapConnector.address
     );
-
-    d.exchangeRouterProxy = await d.ExchangeRouterProxy.connect(d.owner).deploy(
-      d.exchangeRouterImplementation.address,
-      d.exchangeRouterProxyAdmin.address,
-      d.calldata
-    );
-    await d.exchangeRouterProxy.deployed();
-    // console.log("Exchange router proxy deployed to:", d.exchangeRouterProxy.address);
-
-    d.exchangeRouter = new ethers.Contract(
-      d.exchangeRouterProxy.address,
-      d.exchangeRouterImplementation.interface.format(ethers.utils.FormatTypes.json),
-      d.exchangeRouterImplementation.provider
-    );
+    await d.exchangeRouter.deployed();
+    // console.log("Exchange router deployed to:", d.exchangeRouter.address);
 
     d.BEP20Token = await ethers.getContractFactory("BEP20Token");
     d.busd = await d.BEP20Token.attach(d.addresses.dai);
@@ -271,7 +241,7 @@ describe('exchangeRouter.js - Exchange router testing', function () {
     await d.accessVaultImplementation.deployed();
 
     d.ABI = [
-      "function initialize(address newOwner, address borrowingLendingAddress, address borrowingPowerAddress, address baaBeaconAddress, uint256 borrowingFee)"
+      "function initialize(address newOwner, address borrowingLendingAddress, address borrowingPowerAddress, address baaBeaconAddress, address exchangeRouterAddress, uint256 borrowingFee)"
     ];
     d.iface = new ethers.utils.Interface(d.ABI);
     d.calldata = d.iface.encodeFunctionData("initialize", [
@@ -279,6 +249,7 @@ describe('exchangeRouter.js - Exchange router testing', function () {
       d.borrowingLending.address,
       d.borrowingPower.address,
       d.upgradeableBeacon.address,
+      d.exchangeRouter.address,
       d.borrowingFee
     ]);
 
@@ -316,25 +287,9 @@ describe('exchangeRouter.js - Exchange router testing', function () {
   });
 
   // Test case
-  it('Exchange router get rate', async function () {
-    expect(
-      await d.exchangeRouter.getImplementationContract(d.usdt.address, d.etna.address)
-    ).to.equal(d.exchangeRouterPancakeSwap.address);
-    d.pairAddressUsdt = await d.factory.getPair(d.usdt.address, d.etna.address);
-    d.UniswapV2Pair = await ethers.getContractFactory('contracts/testing/UniswapV2Pair.sol:UniswapV2Pair');
-    d.lpUsdt = await d.UniswapV2Pair.attach(d.pairAddressUsdt);
-    d.result = await d.lpUsdt.getReserves();
-    expect(roundTo(Number(ethers.utils.formatUnits(
-      await d.exchangeRouterPancakeSwap.getSwapRate(d.usdt.address, d.etna.address)
-    )), 6)).to.equal(roundTo(d.result._reserve0 / (d.result._reserve1 * 10**12), 6));
-    await expect(
-      d.exchangeRouterPancakeSwap.getSwapRate(d.busd.address, d.etna.address)
-    ).to.be.reverted;
-  });
-
   it('Exchange router get amount out', async function () {
     d.swapOut = Number(ethers.utils.formatUnits(
-      await d.exchangeRouterPancakeSwap.getSwapAmount(
+      await d.uniSwapConnector.getSwapAmount(
         d.usdt.address,
         d.etna.address,
         ethers.utils.parseUnits('1', 6)
@@ -352,31 +307,6 @@ describe('exchangeRouter.js - Exchange router testing', function () {
       [d.usdt.address, d.etna.address],
       d.signers[0].address,
       d.neverLate
-    );
-    expect(roundTo(Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.signers[0].address)
-    )), 6)).to.equal(roundTo(d.balances.s0_etna + d.swapOut, 6));
-  });
-
-  it('Exchange router swap tokens', async function () {
-    d.swapOut = Number(ethers.utils.formatUnits(
-      await d.exchangeRouterPancakeSwap.getSwapAmount(
-        d.usdt.address,
-        d.etna.address,
-        ethers.utils.parseUnits('1', 6)
-      )
-    ));
-    d.balances.s0_etna = Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.signers[0].address)
-    ));
-    await d.usdt.connect(d.signers[0]).approve(
-      d.exchangeRouterPancakeSwap.address, ethers.utils.parseUnits('1', 6)
-    );
-    await d.exchangeRouterPancakeSwap.connect(d.signers[0]).swapTokens(
-      d.usdt.address,
-      d.etna.address,
-      ethers.utils.parseUnits('1', 6),
-      0
     );
     expect(roundTo(Number(ethers.utils.formatUnits(
       await d.etna.balanceOf(d.signers[0].address)

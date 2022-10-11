@@ -104,5 +104,165 @@
                 "timestamp": 1657692178
             }
         ]
+    },
+    "exchangeRouterPancakeSwap": {
+        "latest": "0xdc5FC9687e0ba8B1606Cf5E250017EAB7cDd0864",
+        "all": [
+            {
+                "address": "0xFFEDf0410C87c2019191245DeA3fb2a016b865a6",
+                "timestamp": 1664458806
+            },
+            {
+                "address": "0xdc5FC9687e0ba8B1606Cf5E250017EAB7cDd0864",
+                "timestamp": 1664459131
+            }
+        ]
+    },
+    "exchangeRouterProxyAdmin": {
+        "latest": "0x937093D022180FC4f45d8B7Aad2c08881CF2E324",
+        "all": [
+            {
+                "address": "0xBeFD7CD31638FAEfC29a5F12C7E4a7029531ae59",
+                "timestamp": 1664458806
+            },
+            {
+                "address": "0x937093D022180FC4f45d8B7Aad2c08881CF2E324",
+                "timestamp": 1664459131
+            }
+        ]
+    },
+    "exchangeRouterImplementation": {
+        "latest": "0x163FbB64Da57dd3288c430638197bba388E1D9c7",
+        "all": [
+            {
+                "address": "0x40798D5390c1C2b55bd11005249ea8D04bf8D74f",
+                "timestamp": 1664458806
+            },
+            {
+                "address": "0x163FbB64Da57dd3288c430638197bba388E1D9c7",
+                "timestamp": 1664459131
+            }
+        ]
+    },
+    "exchangeRouterProxy": {
+        "latest": "0xC3dC8242497Bbe5B8D272Ffe3B274938184fFaB7",
+        "all": [
+            {
+                "address": "0xeF967B68CE08e1B9342219B7a1605D9fd6504919",
+                "timestamp": 1664458806
+            },
+            {
+                "address": "0xC3dC8242497Bbe5B8D272Ffe3B274938184fFaB7",
+                "timestamp": 1664459131
+            }
+        ]
+    },
+    "baaImplementation": {
+        "latest": "0x882Bd31c38D077595Ff4521EF7B073C3BC237C2C",
+        "all": [
+            {
+                "address": "0xe748e86C3898Ff5850D7b2660E6A8f3f0369d7c8",
+                "timestamp": 1664458806
+            },
+            {
+                "address": "0x8Ab5f75c2021260Cc1D6F88d53FA75C8C51e5598",
+                "timestamp": 1664459131
+            },
+            {
+                "address": "0x882Bd31c38D077595Ff4521EF7B073C3BC237C2C",
+                "timestamp": 1665458100
+            }
+        ]
+    },
+    "upgradeableBeacon": {
+        "latest": "0x798B32a5CDA557F23c76eEC1f0cc706677594b59",
+        "all": [
+            {
+                "address": "0x7bAa971412fa152f32683f380e26Aa5593086C12",
+                "timestamp": 1664459131
+            },
+            {
+                "address": "0x798B32a5CDA557F23c76eEC1f0cc706677594b59",
+                "timestamp": 1665458100
+            }
+        ]
+    },
+    "borrowingPower": {
+        "latest": "0xa4Bc6674c9739b29781b693C7784302cD5c99c91",
+        "all": [
+            {
+                "address": "0xb24b570b546a8e36ffb5D098729a5Be00FE242a8",
+                "timestamp": 1664459131
+            },
+            {
+                "address": "0xa4Bc6674c9739b29781b693C7784302cD5c99c91",
+                "timestamp": 1665458100
+            }
+        ]
+    },
+    "accessVaultProxyAdmin": {
+        "latest": "0x5A9e4870720Fd44EED73c9EC19165Ad14AF720Fd",
+        "all": [
+            {
+                "address": "0x32be53f913632d901a11d61827f54e7C88794387",
+                "timestamp": 1664459131
+            },
+            {
+                "address": "0x5A9e4870720Fd44EED73c9EC19165Ad14AF720Fd",
+                "timestamp": 1665458100
+            }
+        ]
+    },
+    "accessVaultImplementation": {
+        "latest": "0x5E92A1b25f6bF093648b1663d70c6263095c74c3",
+        "all": [
+            {
+                "address": "0xb6be672b96fBbf2735E4e68Eae2D170641A73539",
+                "timestamp": 1664459131
+            },
+            {
+                "address": "0x1a9C306B6f3396544C03604E78bCd65be3Aa1185",
+                "timestamp": 1664537292
+            },
+            {
+                "address": "0xd9772B0fD1AAE2f2efD67748ba63378796218c4B",
+                "timestamp": 1664537582
+            },
+            {
+                "address": "0x5E92A1b25f6bF093648b1663d70c6263095c74c3",
+                "timestamp": 1665458100
+            }
+        ]
+    },
+    "accessVaultProxy": {
+        "latest": "0xF46E8FefeBD8E3D3bD6adA0F9f83C572C446c36C",
+        "all": [
+            {
+                "address": "0xFfa13E1AB871b5f1Ead1D9948F218adA2474723d",
+                "timestamp": 1664459131
+            },
+            {
+                "address": "0xF46E8FefeBD8E3D3bD6adA0F9f83C572C446c36C",
+                "timestamp": 1665458100
+            }
+        ]
+    },
+    "uniSwapConnector": {
+        "latest": "0x0E1E94386BeC8ac2A4B86f29cfcFe1f71d415797",
+        "all": [
+            {
+                "address": "0x0E1E94386BeC8ac2A4B86f29cfcFe1f71d415797",
+                "timestamp": 1665458100
+            }
+        ]
+    },
+    "exchangeRouter": {
+        "latest": "0x9AF9701fce27bd5572a63184Fb3C710cC1a8D763",
+        "all": [
+            {
+                "address": "0x9AF9701fce27bd5572a63184Fb3C710cC1a8D763",
+                "timestamp": 1665458100
+            }
+        ]
     }
 }

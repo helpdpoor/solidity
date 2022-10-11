@@ -47,13 +47,13 @@ contract Storage {
      * Error codes
      * 1.1 - Caller is not the manager
      * 1.2 - Caller is not the BAA contract
-     * 1.3 - Caller is not the Borrowing Lending contract
      * 2.1 - Owner address can not be zero
      * 2.2 - BorrowingLending contract address can not be zero
      * 2.3 - BorrowingPower contract address can not be zero
      * 3.1 - This stablecoin is not available for borrowing
      * 3.2 - This token is not available for trading
      * 3.3 - BAA contract is already deployed
+     * 3.4 - Paid amount mismatch activation fee
      * 4.1 - Amount should be greater than zero
      * 4.2 - BAA address is not valid
      * 5.1 - Amount should be greater than zero
@@ -79,10 +79,9 @@ contract Storage {
      * 13.3 - Amount can not be greater than loan amount
      * 14.1 - Caller has outstanding balance
      * 14.2 - Nothing to withdraw
-     * 15.1 - Margin swap not found or not active
-     * 15.2 - Fee should be paid first
-     * 15.3 - marginRate requirements is not met
-     * 15.4 - swap request to the BAA failed
+     * 15.1 - Margin swap record not found or not active
+     * 15.2 - Margin swap is unavailable for this BAA, check canTrade function
+     * 15.3 - Swap request to the BAA failed
      * 17.1 - Borrowing lending contract address can not be zero
      * 18.1 - BorrowingPower contract address can not be zero
      * 19.1 - Exchange router contract address can not be zero
@@ -93,7 +92,7 @@ contract Storage {
      * 22.3 - swap request to the BAA failed
      * 22.4 - withdraw request to the BAA failed
      * 23.1 - getImplementationAddress request to the ExchangeRouter failed
-     * 24.1 - Reentrancy not allowed
+     * 24.1 - Paid amount is less than a margin swap fee
      */
     struct Baa {
         address ownerAddress; // address of the BAA owner
@@ -108,19 +107,22 @@ contract Storage {
         uint256 lastMarketIndex; // market index value when fee was updated last time
     }
     struct MarginSwap {
+        address baaAddress;
         uint256 amount;
-        uint256 marginRate; // when pair rate is below (below == true) or above marginRate
-        // margin swap can be proceeded (* SHIFT * tokenIn decimals / tokenOut decimals)
-        bool reversed; // true if token was swapped to stablecoin
-        bool below;
-        bool active;
+        uint256 rate; // * 10 ** 18
+        uint256 amountBack; // minimal amount user wants to get when swap
+        // = amount * rate / 10 ** 18
+        bool reversed; // false when buy, true when sell
+        uint8 status; // 0 - disabled, 1 - waiting, 2 - completed
     }
     mapping(address => Baa) internal _baaRegistry;
     // BAA contract address => Baa object
     mapping(address => mapping(address => mapping(address => address))) internal _baaAddresses;
     // user address => stablecoin address => token address => BAA contract address
-    mapping(address => MarginSwap) internal _marginSwapRegistry;
-    // BAA contract address => Margin Swap object
+    mapping(uint256 => MarginSwap) internal _marginSwapRegistry;
+    // BAA contract address => Index => Margin Swap object
+    mapping(address => uint256) internal _marginSwapFeeDeposit;
+    // user address => user's Margin Swap fee deposit
     mapping(address => uint256) internal _stablecoinProfileId;
     // Stablecoin contract address => profile id in the borrowing lending contract
     mapping(address => bool) internal _tokenAvailable;
@@ -141,12 +143,14 @@ contract Storage {
     address[] internal _stablecoins;
     IBorrowingPower internal _borrowingPowerContract;
     // BorrowingPower contract is used for a borrowing power calculation
-    address internal _borrowingLending; // debank contract address
-    address internal _baaBeaconAddress; // beacon contract address where BAA implementation address
-    // is stored
+    address internal _borrowingLendingAddress; // debank contract address
+    address internal _baaBeaconAddress; // beacon contract address where BAA
+    // implementation address is stored
     address internal _exchangeRouterAddress; // decentralised exchange router address
     address internal _owner; // contract owner
+    uint256 internal _marginSwapNumber; // Number of margin swap records
     uint256 internal _marginSwapFee; // fee in BNB/Matic for margin swap proceeding
+    uint256 internal _activationFee; // fee in BNB/Matic for BAA creation
     uint256 internal _maxFeeUnpaidPeriod; // max period when fee can be unpaid
     // (after this period end user should pay fee in order to trade or withdraw)
     uint256 internal _borrowingFeeFactor; // borrowing fee (* DECIMALS)
@@ -163,7 +167,4 @@ contract Storage {
     // exponent shifting when calculation with decimals for market index and usd rate
     uint256 internal constant DECIMALS = 10000;
     // exponent shifting when calculation with decimals for percents
-    uint8 internal constant _NOT_ENTERED = 1; // reentrancy service constant
-    uint8 internal constant _ENTERED = 2; // reentrancy service constant
-    uint8 internal _reentrancyStatus; // reentrancy indicator
 }

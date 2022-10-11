@@ -2,8 +2,9 @@ require("@nomiclabs/hardhat-waffle");
 require("@atixlabs/hardhat-time-n-mine");
 require("hardhat-tracer");
 require('hardhat-contract-sizer');
-require("hardhat-gas-reporter");
+// require("hardhat-gas-reporter");
 require("@nomiclabs/hardhat-etherscan");
+
 const { deployer, scanApiKeys } = require('./secrets.json');
 
 // This is a sample Hardhat task. To learn how to create your own go to

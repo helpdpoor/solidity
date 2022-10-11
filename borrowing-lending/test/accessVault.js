@@ -189,13 +189,12 @@ describe('accessVault.js - Access vault testing', function () {
     await d.borrowingPower.connect(d.owner).setBorrowingPowerData(
       d.borrowingPowerData
     );
-
     d.AccessVault = await ethers.getContractFactory("AccessVault");
     d.accessVaultImplementation = await d.AccessVault.connect(d.owner).deploy();
     await d.accessVaultImplementation.deployed();
 
     d.ABI = [
-      "function initialize(address newOwner, address borrowingLendingAddress, address borrowingPowerAddress, address baaBeaconAddress, uint256 borrowingFee)"
+      "function initialize(address newOwner, address borrowingLendingAddress, address borrowingPowerAddress, address baaBeaconAddress, address exchangeRouterAddress, uint256 borrowingFee)"
     ];
     d.iface = new ethers.utils.Interface(d.ABI);
     d.calldata = d.iface.encodeFunctionData("initialize", [
@@ -203,6 +202,7 @@ describe('accessVault.js - Access vault testing', function () {
       d.borrowingLending.address,
       d.borrowingPower.address,
       d.upgradeableBeacon.address,
+      d.exchangeRouter.address,
       d.borrowingFee
     ]);
 

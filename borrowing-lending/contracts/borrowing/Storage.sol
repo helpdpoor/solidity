@@ -310,6 +310,7 @@ contract Storage {
             _accessVault,
             amount
         );
+        _accessVaultFund[tokenAddress] -= amount;
         emit AccessVaultReturn(
             tokenAddress,
             amount,

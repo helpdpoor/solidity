@@ -69,6 +69,8 @@ contract Baa is Initializable {
     address private _stablecoinAddress; // stablecoin address
     address private _tokenAddress; // traded token address
     address private _owner;
+    uint256 private _stablecoinDecimals;
+    uint256 private _tokenDecimals;
     uint256 internal constant DECIMALS = 10000;
     // exponent shifting when calculation with decimals for percents
     uint256 internal constant SHIFT = 1 ether;
@@ -86,6 +88,8 @@ contract Baa is Initializable {
         _owner = ownerAddress;
         _stablecoinAddress = stablecoinAddress;
         _tokenAddress = tokenAddress;
+        _stablecoinDecimals = IERC20(stablecoinAddress).decimals();
+        _tokenDecimals = IERC20(tokenAddress).decimals();
         return true;
     }
     
@@ -205,5 +209,11 @@ contract Baa is Initializable {
             _stablecoinAddress,
             _tokenAddress
         );
+    }
+
+    function getDecimals () external view returns (
+        uint256 stablecoinDecimals, uint256 tokenDecimals
+    ) {
+        return (_stablecoinDecimals, _tokenDecimals);
     }
 }

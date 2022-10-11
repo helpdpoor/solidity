@@ -5,7 +5,7 @@ const d = {};
 const { alchemyApiKey } = require('../secrets.json');
 
 // Start test block
-describe.only('swapTesting.js - Swap testing', function () {
+describe('swapTesting.js - Swap testing', function () {
   beforeEach(async function () {
     await hre.network.provider.request({
       method: "hardhat_reset",
@@ -40,6 +40,7 @@ describe.only('swapTesting.js - Swap testing', function () {
       chiliz: '0x3506424F91fD33084466F402d5D97f05F8e3b4AF',
     };
     d.initialTransfer = 1000;
+    d.activationFee = 0.1;
 
     d.PancakeRouter = await ethers.getContractFactory('PancakeRouter');
     d.router = await d.PancakeRouter.attach(d.addresses.router);
@@ -107,20 +108,20 @@ describe.only('swapTesting.js - Swap testing', function () {
     );
 
     d.BEP20Token = await ethers.getContractFactory("BEP20Token");
-    d.busd = await d.BEP20Token.attach(d.addresses.dai);
-    await d.busd.connect(d.owner).transfer(
+    d.dai = await d.BEP20Token.attach(d.addresses.dai);
+    await d.dai.connect(d.owner).transfer(
       d.signers[0].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
-    await d.busd.connect(d.owner).transfer(
+    await d.dai.connect(d.owner).transfer(
       d.signers[1].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
-    await d.busd.connect(d.owner).transfer(
+    await d.dai.connect(d.owner).transfer(
       d.signers[2].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
-    await d.busd.connect(d.owner).transfer(
+    await d.dai.connect(d.owner).transfer(
       d.signers[3].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
-    await d.busd.connect(d.owner).transfer(
+    await d.dai.connect(d.owner).transfer(
       d.signers[4].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
 
@@ -141,20 +142,20 @@ describe.only('swapTesting.js - Swap testing', function () {
       d.signers[4].address, ethers.utils.parseUnits(d.initialTransfer.toString(), 6)
     );
 
-    d.etna = await d.BEP20Token.attach(d.addresses.chiliz);
-    await d.etna.connect(d.owner).transfer(
+    d.chiliz = await d.BEP20Token.attach(d.addresses.chiliz);
+    await d.chiliz.connect(d.owner).transfer(
       d.signers[0].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
-    await d.etna.connect(d.owner).transfer(
+    await d.chiliz.connect(d.owner).transfer(
       d.signers[1].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
-    await d.etna.connect(d.owner).transfer(
+    await d.chiliz.connect(d.owner).transfer(
       d.signers[2].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
-    await d.etna.connect(d.owner).transfer(
+    await d.chiliz.connect(d.owner).transfer(
       d.signers[3].address, ethers.utils.parseUnits(d.initialTransfer.toString())
-  );
-    await d.etna.connect(d.owner).transfer(
+    );
+    await d.chiliz.connect(d.owner).transfer(
       d.signers[4].address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
 
@@ -173,11 +174,11 @@ describe.only('swapTesting.js - Swap testing', function () {
 
     d.BorrowingLending= await ethers.getContractFactory("BorrowingLending");
     d.borrowingLending = await d.BorrowingLending.connect(d.owner).deploy(
-      d.busd.address, d.usdt.address
+      d.dai.address, d.usdt.address
     );
     await d.borrowingLending.deployed();
     // console.log("Borrowing Lending deployed to:", d.borrowingLending.address);
-    await d.busd.connect(d.owner).transfer(
+    await d.dai.connect(d.owner).transfer(
       d.borrowingLending.address, ethers.utils.parseUnits('10000')
     );
     await d.usdt.connect(d.owner).transfer(
@@ -212,7 +213,7 @@ describe.only('swapTesting.js - Swap testing', function () {
 
     d.BorrowingPower = await ethers.getContractFactory('BorrowingPower');
     d.borrowingPower = await d.BorrowingPower.connect(d.owner).deploy(
-      d.etna.address,
+      d.chiliz.address,
       d.staking.address,
       d.minimalStake
     );
@@ -276,13 +277,13 @@ describe.only('swapTesting.js - Swap testing', function () {
       d.manager.address
     );
     await d.accessVaultConnect.connect(d.manager).setStablecoinProfileId(
-      d.busd.address, 1
+      d.dai.address, 1
     );
     await d.accessVaultConnect.connect(d.manager).setStablecoinProfileId(
       d.usdt.address, 2
     );
     await d.accessVaultConnect.connect(d.manager).setTokenAvailable(
-      d.etna.address, true
+      d.chiliz.address, true
     );
     await d.accessVaultConnect.connect(d.manager).setExchangeRouter(
       d.exchangeRouterConnect.address
@@ -295,41 +296,52 @@ describe.only('swapTesting.js - Swap testing', function () {
   // Test case
   it('Baa swap', async function () {
     d.loan = 100;
-    await d.busd.connect(d.owner).transfer(
+    await d.dai.connect(d.owner).transfer(
       d.accessVaultConnect.address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
     await d.usdt.connect(d.owner).transfer(
       d.accessVaultConnect.address, ethers.utils.parseUnits(d.initialTransfer.toString(), 6)
     );
     await d.accessVaultConnect.connect(d.signers[0])
-      .deployBaa(d.busd.address, d.etna.address);
-    d.baaBusdAddress = await d.accessVaultConnect.getUserBaaAddress(
-      d.signers[0].address, d.busd.address, d.etna.address
+      .deployBaa(d.dai.address, d.chiliz.address);
+    d.baaDaiAddress = await d.accessVaultConnect.getUserBaaAddress(
+      d.signers[0].address, d.dai.address, d.chiliz.address
     );
-    d.baaBusd = new ethers.Contract(
-      d.baaBusdAddress,
+    d.baaDai = new ethers.Contract(
+      d.baaDaiAddress,
       d.baa.interface.format(ethers.utils.FormatTypes.json),
       d.signers[0]
     );
+    d.fee = ethers.utils.parseUnits(d.activationFee.toString());
+    await d.accessVaultConnect.connect(d.owner)
+      .setActivationFee(d.fee);
+    await expect(
+      d.accessVaultConnect.connect(d.signers[0])
+      .deployBaa(d.usdt.address, d.chiliz.address)
+    ).to.be.revertedWith('3.4');
     await d.accessVaultConnect.connect(d.signers[0])
-      .deployBaa(d.usdt.address, d.etna.address);
+      .deployBaa(
+        d.usdt.address,
+        d.chiliz.address,
+        {value: d.fee}
+      );
     d.baaUsdtAddress = await d.accessVaultConnect.getUserBaaAddress(
-      d.signers[0].address, d.usdt.address, d.etna.address
+      d.signers[0].address, d.usdt.address, d.chiliz.address
     );
     d.baaUsdt = new ethers.Contract(
       d.baaUsdtAddress,
       d.baa.interface.format(ethers.utils.FormatTypes.json),
       d.signers[0]
     );
-    await d.busd.connect(d.signers[0]).approve(
+    await d.dai.connect(d.signers[0]).approve(
       d.accessVaultConnect.address, ethers.utils.parseUnits(d.loan.toString())
     );
     await d.accessVaultConnect.connect(d.signers[0]).borrow(
-      d.baaBusd.address,
+      d.baaDai.address,
       ethers.utils.parseUnits(d.loan.toString())
     );
     await expect(
-      d.baaBusd.swap(
+      d.baaDai.swap(
         ethers.utils.parseUnits(d.loan.toString()),
         0,
         1,
@@ -351,22 +363,25 @@ describe.only('swapTesting.js - Swap testing', function () {
     );
   });
 
-  it.only('Margin swap', async function () {
+  it('Margin swap', async function () {
     d.loan = 100;
-    d.busd.custom = {
-      decimals: Number(await d.busd.decimals())
+    d.dai.custom = {
+      decimals: Number(await d.dai.decimals())
     };
     d.usdt.custom = {
       decimals: Number(await d.usdt.decimals())
     };
-    d.etna.custom = {
-      decimals: Number(await d.etna.decimals())
+    d.chiliz.custom = {
+      decimals: Number(await d.chiliz.decimals())
     };
     d.marginAmount = 30;
-    d.marginAmountBack = 250; // rate = amountBack / amountIn
+    d.marginRate = 8;
+    d.marginRate2 = 9;
+    d.marginAmountBack = d.marginAmount * d.marginRate; // rate = amountBack / amountIn
+    d.marginAmountBack2 = d.marginAmount * d.marginRate2;
     d.reversed = false;
     d.marginSwapFee = 0.1;
-    await d.busd.connect(d.owner).transfer(
+    await d.dai.connect(d.owner).transfer(
       d.accessVaultConnect.address, ethers.utils.parseUnits(d.initialTransfer.toString())
     );
     await d.accessVaultConnect.connect(d.owner).setMarginSwapFee(ethers.utils.parseUnits(
@@ -376,19 +391,19 @@ describe.only('swapTesting.js - Swap testing', function () {
       d.accessVaultConnect.address, ethers.utils.parseUnits(d.initialTransfer.toString(), 6)
     );
     await d.accessVaultConnect.connect(d.signers[0])
-      .deployBaa(d.busd.address, d.etna.address);
-    d.baaBusdAddress = await d.accessVaultConnect.getUserBaaAddress(
-      d.signers[0].address, d.busd.address, d.etna.address
+      .deployBaa(d.dai.address, d.chiliz.address);
+    d.baaDaiAddress = await d.accessVaultConnect.getUserBaaAddress(
+      d.signers[0].address, d.dai.address, d.chiliz.address
     );
-    d.baaBusd = new ethers.Contract(
-      d.baaBusdAddress,
+    d.baaDai = new ethers.Contract(
+      d.baaDaiAddress,
       d.baa.interface.format(ethers.utils.FormatTypes.json),
       d.signers[0]
     );
     await d.accessVaultConnect.connect(d.signers[0])
-      .deployBaa(d.usdt.address, d.etna.address);
+      .deployBaa(d.usdt.address, d.chiliz.address);
     d.baaUsdtAddress = await d.accessVaultConnect.getUserBaaAddress(
-      d.signers[0].address, d.usdt.address, d.etna.address
+      d.signers[0].address, d.usdt.address, d.chiliz.address
     );
     d.baaUsdt = new ethers.Contract(
       d.baaUsdtAddress,
@@ -404,12 +419,12 @@ describe.only('swapTesting.js - Swap testing', function () {
     );
     await expect(
       d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
-        d.baaBusd.address,
+        d.baaDai.address,
         ethers.utils.parseUnits(
-          d.marginAmount.toString(), d.busd.custom.decimals
+          d.marginAmount.toString(), d.dai.custom.decimals
         ),
         ethers.utils.parseUnits(
-          d.marginAmountBack.toString(), d.etna.custom.decimals
+          d.marginRate.toString()
         ),
         d.reversed
       )
@@ -417,37 +432,77 @@ describe.only('swapTesting.js - Swap testing', function () {
 
     await expect(
       d.accessVaultConnect.connect(d.signers[1]).setMarginSwap(
-        d.baaBusd.address,
+        d.baaDai.address,
         ethers.utils.parseUnits(
-          d.marginAmount.toString(), d.busd.custom.decimals
+          d.marginAmount.toString(), d.dai.custom.decimals
         ),
         ethers.utils.parseUnits(
-          d.marginAmountBack.toString(), d.etna.custom.decimals
+          d.marginRate.toString()
         ),
-        d.reversed,
-        {value: ethers.utils.parseUnits(d.marginSwapFee.toString())}
+        d.reversed
       )
     ).to.be.revertedWith('4.2');
+
+    await expect(
+      d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
+        d.baaDai.address,
+        ethers.utils.parseUnits(
+          d.marginAmount.toString(), d.dai.custom.decimals
+        ),
+        ethers.utils.parseUnits(
+          d.marginRate.toString()
+        ),
+        d.reversed
+      )
+    ).to.be.revertedWith('13.1');
+
 
     d.balances.accessVaultConnect_bnb = Number(ethers.utils.formatUnits(
       await ethers.provider.getBalance(d.accessVaultConnect.address)
     ));
 
-    await d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
-      d.baaBusd.address,
-      ethers.utils.parseUnits(
-        d.marginAmount.toString(), d.busd.custom.decimals
-      ),
-      ethers.utils.parseUnits(
-        d.marginAmountBack.toString(), d.etna.custom.decimals
-      ),
-      d.reversed,
-      {value: ethers.utils.parseUnits(d.marginSwapFee.toString())}
+    await d.accessVaultConnect.connect(d.signers[0]).depositMarginSwapFee(
+      {
+        value: ethers.utils.parseUnits(
+          d.marginSwapFee.toString()
+        )
+      }
     );
-
     expect(Number(ethers.utils.formatUnits(
       await ethers.provider.getBalance(d.accessVaultConnect.address)
     ))).to.equal(d.balances.accessVaultConnect_bnb + d.marginSwapFee);
+
+    expect(Number(ethers.utils.formatUnits(
+      await d.accessVaultConnect.getMarginSwapFeeDeposit(d.signers[0].address)
+    ))).to.equal(d.marginSwapFee);
+
+    await d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
+      d.baaDai.address,
+      ethers.utils.parseUnits(
+        d.marginAmount.toString(), d.dai.custom.decimals
+      ),
+      ethers.utils.parseUnits(
+        d.marginRate.toString()
+      ),
+      d.reversed
+    );
+
+    expect(Number(ethers.utils.formatUnits(
+      await d.accessVaultConnect.getMarginSwapFeeDeposit(d.signers[0].address)
+    ))).to.equal(0);
+
+    await expect(
+      d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
+        d.baaDai.address,
+        ethers.utils.parseUnits(
+          d.marginAmount.toString(), d.dai.custom.decimals
+        ),
+        ethers.utils.parseUnits(
+          d.marginRate.toString()
+        ),
+        d.reversed
+      )
+    ).to.be.revertedWith('13.1');
 
     d.balances.owner_bnb = Number(ethers.utils.formatUnits(
       await ethers.provider.getBalance(d.owner.address)
@@ -466,69 +521,82 @@ describe.only('swapTesting.js - Swap testing', function () {
     ))).to.equal(d.balances.accessVaultConnect_bnb);
 
     await d.accessVaultConnect.connect(d.owner).setMarginSwapFee(0);
-    d.result = await d.accessVaultConnect.getMarginSwapData(
-      d.baaBusd.address, d.reversed
-    );
+    d.result = await d.accessVaultConnect.getMarginSwapData(1);
     expect(Number(ethers.utils.formatUnits(
-      d.result.amount, d.busd.custom.decimals
+      d.result.amount, d.dai.custom.decimals
     ))).to.equal(d.marginAmount);
     expect(Number(ethers.utils.formatUnits(
-      d.result.amountBack, d.etna.custom.decimals
+      d.result.rate
+    ))).to.equal(d.marginRate);
+    expect(Number(ethers.utils.formatUnits(
+      d.result.amountBack, d.chiliz.custom.decimals
     ))).to.equal(d.marginAmountBack);
     await expect(
-      d.accessVaultConnect.connect(d.manager).proceedMarginSwap(
-        d.baaBusd.address, d.reversed
-      )
+      d.accessVaultConnect.connect(d.manager).proceedMarginSwap(1)
     ).to.be.revertedWith('15.3');
 
-    d.result = await d.accessVaultConnect.getMarginSwapData(
-      d.baaUsdt.address, d.reversed
-    );
-    expect(Number(ethers.utils.formatUnits(
-      d.result.amount, d.usdt.custom.decimals
-    ))).to.equal(0);
-    expect(Number(ethers.utils.formatUnits(
-      d.result.amountBack, d.etna.custom.decimals
-    ))).to.equal(0);
-    expect(Number(
-      d.result.status
-    )).to.equal(0);
-    await expect(
-      d.accessVaultConnect.connect(d.manager).proceedMarginSwap(
-        d.baaUsdt.address, d.reversed
-      )
-    ).to.be.revertedWith('15.1');
     await d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
       d.baaUsdt.address,
       ethers.utils.parseUnits(d.marginAmount.toString(), d.usdt.custom.decimals),
-      ethers.utils.parseUnits(d.marginAmountBack.toString(), d.etna.custom.decimals),
+      ethers.utils.parseUnits(d.marginRate.toString()),
       d.reversed
     );
-    d.result = await d.accessVaultConnect.getMarginSwapData(
-      d.baaUsdt.address, d.reversed
-    );
+    d.result = await d.accessVaultConnect.getMarginSwapData(2);
     expect(Number(
       d.result.status
     )).to.equal(2);
 
     await expect(
-      d.accessVaultConnect.connect(d.manager).proceedMarginSwap(
-        d.baaUsdt.address, d.reversed
-      )
+      d.accessVaultConnect.connect(d.manager).proceedMarginSwap(2)
     ).to.be.revertedWith('15.1');
 
     expect(Number(ethers.utils.formatUnits(
       await d.usdt.balanceOf(d.baaUsdt.address), d.usdt.custom.decimals
     ))).to.equal(d.loan - d.marginAmount);
     expect(Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.baaUsdt.address)
+      await d.chiliz.balanceOf(d.baaUsdt.address)
     ))).to.be.greaterThanOrEqual(d.marginAmountBack);
 
+    await d.accessVaultConnect.connect(d.signers[0]).setMarginSwap(
+      d.baaUsdt.address,
+      ethers.utils.parseUnits(d.marginAmount.toString(), d.usdt.custom.decimals),
+      ethers.utils.parseUnits(d.marginRate2.toString()),
+      d.reversed
+    );
+    d.result = await d.accessVaultConnect.getMarginSwapData(3);
+    expect(Number(
+      d.result.status
+    )).to.equal(1);
+
     await expect(
-      d.accessVaultConnect.connect(d.manager).proceedMarginSwap(
-        d.baaUsdt.address, d.reversed
-      )
-    ).to.be.revertedWith('15.1');
+      d.accessVaultConnect.connect(d.manager).proceedMarginSwap(3)
+    ).to.be.revertedWith('15.3');
+
+    await d.chiliz.connect(d.owner).approve(
+      d.router.address,
+      ethers.utils.parseUnits('1000', d.chiliz.custom.decimals)
+    );
+    await d.router.connect(d.owner).swapExactTokensForTokens(
+      ethers.utils.parseUnits('1000', d.chiliz.custom.decimals),
+      0,
+      [d.chiliz.address, d.usdt.address],
+      d.owner.address,
+      d.neverLate
+    );
+
+    await d.accessVaultConnect.connect(d.manager).proceedMarginSwap(3);
+
+    d.result = await d.accessVaultConnect.getMarginSwapData(3);
+    expect(Number(
+      d.result.status
+    )).to.equal(2);
+
+    expect(Number(ethers.utils.formatUnits(
+      await d.usdt.balanceOf(d.baaUsdt.address), d.usdt.custom.decimals
+    ))).to.equal(d.loan - d.marginAmount - d.marginAmount);
+    expect(Number(ethers.utils.formatUnits(
+      await d.chiliz.balanceOf(d.baaUsdt.address)
+    ))).to.be.greaterThanOrEqual(d.marginAmountBack + d.marginAmountBack2);
   });
 
   it('Liquidation', async function () {
@@ -537,9 +605,9 @@ describe.only('swapTesting.js - Swap testing', function () {
       d.accessVaultConnect.address, ethers.utils.parseUnits(d.initialTransfer.toString(), 6)
     );
     await d.accessVaultConnect.connect(d.signers[0])
-      .deployBaa(d.usdt.address, d.etna.address);
+      .deployBaa(d.usdt.address, d.chiliz.address);
     d.baaUsdtAddress = await d.accessVaultConnect.getUserBaaAddress(
-      d.signers[0].address, d.usdt.address, d.etna.address
+      d.signers[0].address, d.usdt.address, d.chiliz.address
     );
     d.baaUsdt = new ethers.Contract(
       d.baaUsdtAddress,
@@ -556,7 +624,7 @@ describe.only('swapTesting.js - Swap testing', function () {
     await d.accessVaultConnect.connect(d.manager).setBorrowingFeeFactor(5000);
     expect(
       await d.accessVaultConnect.atLiquidation(
-        d.exchangeRouterPancakeSwap.address, d.baaUsdt.address, false
+        d.baaUsdt.address, false
       )
     ).to.be.false;
     await hre.timeAndMine.increaseTime('240 days');
@@ -566,7 +634,7 @@ describe.only('swapTesting.js - Swap testing', function () {
     });
     expect(
       await d.accessVaultConnect.atLiquidation(
-        d.exchangeRouterPancakeSwap.address, d.baaUsdt.address, false
+        d.baaUsdt.address, false
       )
     ).to.be.true;
     await expect(
@@ -583,7 +651,7 @@ describe.only('swapTesting.js - Swap testing', function () {
     );
     expect(
       await d.accessVaultConnect.atLiquidation(
-        d.exchangeRouterPancakeSwap.address, d.baaUsdt.address, false
+        d.baaUsdt.address, false
       )
     ).to.be.false;
     await expect(
@@ -603,7 +671,7 @@ describe.only('swapTesting.js - Swap testing', function () {
     );
     expect(
       await d.accessVaultConnect.atLiquidation(
-        d.exchangeRouterPancakeSwap.address, d.baaUsdt.address, false
+        d.baaUsdt.address, false
       )
     ).to.be.false;
     await expect(
@@ -618,7 +686,7 @@ describe.only('swapTesting.js - Swap testing', function () {
     });
     expect(
       await d.accessVaultConnect.atLiquidation(
-        d.exchangeRouterPancakeSwap.address, d.baaUsdt.address, false
+        d.baaUsdt.address, false
       )
     ).to.be.true;
     await d.accessVaultConnect.connect(d.manager).liquidate(
@@ -644,10 +712,10 @@ describe.only('swapTesting.js - Swap testing', function () {
     await d.usdt.connect(d.owner).transfer(
       d.accessVaultConnect.address, ethers.utils.parseUnits(d.initialTransfer.toString(), 6)
     );
-    await d.accessVaultConnect.connect(d.signers[0]).deployBaa(d.usdt.address, d.etna.address);
+    await d.accessVaultConnect.connect(d.signers[0]).deployBaa(d.usdt.address, d.chiliz.address);
     d.baaUsdt = {
       address: await d.accessVaultConnect.getUserBaaAddress(
-        d.signers[0].address, d.usdt.address, d.etna.address
+        d.signers[0].address, d.usdt.address, d.chiliz.address
       ),
     }
     d.baaUsdt = new ethers.Contract(
@@ -702,21 +770,21 @@ describe.only('swapTesting.js - Swap testing', function () {
       1,
       false
     );
-    d.balances.baaUsdt_etna = Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.baaUsdt.address)
+    d.balances.baaUsdt_chiliz = Number(ethers.utils.formatUnits(
+      await d.chiliz.balanceOf(d.baaUsdt.address)
     ));
     d.balances.baaUsdt_usdt = Number(ethers.utils.formatUnits(
       await d.usdt.balanceOf(d.baaUsdt.address), 6
     ));
 
     await d.baaUsdt.swap(
-      ethers.utils.parseUnits(((d.balances.baaUsdt_etna / 2).toFixed(6))),
+      ethers.utils.parseUnits(((d.balances.baaUsdt_chiliz / 2).toFixed(6))),
       0,
       1,
       true
     );
-    d.balances.baaUsdt_etna = Number(ethers.utils.formatUnits(
-      await d.etna.balanceOf(d.baaUsdt.address)
+    d.balances.baaUsdt_chiliz = Number(ethers.utils.formatUnits(
+      await d.chiliz.balanceOf(d.baaUsdt.address)
     ));
     d.balances.baaUsdt_usdt = Number(ethers.utils.formatUnits(
       await d.usdt.balanceOf(d.baaUsdt.address), 6
