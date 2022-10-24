@@ -42,7 +42,8 @@ contract Baa is Initializable {
     event SwapProceeded (
         uint256 amount,
         uint256 returnedAmount,
-        uint8 swapType, // 1 - swap by owner, 2 - margin swap, 3 - liquidation swap
+        uint8 swapType, // 1 - swap by owner, 2 - margin swap, 3 - liquidation swap, 4 - arbitrage in
+        // 5 - arbitrage out
         bool reversed
     );
 
@@ -217,6 +218,171 @@ contract Baa is Initializable {
             amountIn,
             returnedAmount,
             1,
+            reversed
+        );
+        return true;
+    }
+
+    /**
+     * @dev Function for arbitrage.
+     */
+    function arbitrage (
+        address dexConnector1,
+        address dexConnector2,
+        uint256 amountIn, // stablecoin amount (or token amount if reversed)
+        uint256 profitMin,
+        uint256 swapTimeLimit1,
+        uint256 swapTimeLimit2,
+        bool reversed // true if token should be swapped to stablecoin
+    ) external onlyOwner returns (bool) {
+        uint8 result = IAccessVault(_accessVaultAddress).canTrade(address(this));
+        require(result >= 1, 'canTrade request to the Access vault failed');
+        if (result == 1) revert('BAA is at liquidation');
+        if (result == 2) revert('Fee payment is expired');
+        if (result == 3) revert('BAA owner has an outstanding balance after liquidation');
+        if (result < 10) revert('BAA can not trade');
+        address tokenIn;
+        address tokenOut;
+        if (reversed) {
+            tokenIn = _tokenAddress;
+            tokenOut = _stablecoinAddress;
+        } else {
+            tokenIn = _stablecoinAddress;
+            tokenOut = _tokenAddress;
+        }
+        require(
+            IExchangeRouter(_exchangeRouterAddress).isDexConnectorRegistered(dexConnector1),
+            'dexConnector is not registered'
+        );
+        require(
+            IExchangeRouter(_exchangeRouterAddress).isDexConnectorRegistered(dexConnector2),
+            'dexConnector is not registered'
+        );
+
+        (bool success, bytes memory data) = dexConnector1.delegatecall(
+            abi.encodeWithSignature(
+                'swapTokens(address,address,address,uint256,uint256,uint256)',
+                address(this),
+                tokenIn,
+                tokenOut,
+                amountIn,
+                0,
+                swapTimeLimit1
+            )
+        );
+        require(success, 'Swap request failed');
+        uint256 returnedAmount1 = abi.decode(data, (uint256));
+        require(returnedAmount1 > 0, 'Swap1 request failed');
+        emit SwapProceeded(
+            amountIn,
+            returnedAmount1,
+            4,
+            reversed
+        );
+
+        (success, data) = dexConnector2.delegatecall(
+            abi.encodeWithSignature(
+                'swapTokens(address,address,address,uint256,uint256,uint256)',
+                address(this),
+                tokenOut,
+                tokenIn,
+                returnedAmount1,
+                0,
+                swapTimeLimit2
+            )
+        );
+        require(success, 'Swap request failed');
+        uint256 returnedAmount2 = abi.decode(data, (uint256));
+        require(returnedAmount2 > 0, 'Swap2 request failed');
+        require(returnedAmount2 >= amountIn + profitMin, 'Minimal profit requirements were not met');
+
+        emit SwapProceeded(
+            returnedAmount1,
+            returnedAmount2,
+            5,
+            reversed
+        );
+        return true;
+    }
+
+    /**
+     * @dev Function for arbitrage with arbitrary path
+     */
+    function arbitrage (
+        address dexConnector1,
+        address dexConnector2,
+        address[] memory path1,
+        address[] memory path2,
+        uint256 amountIn, // stablecoin amount (or token amount if reversed)
+        uint256 profitMin,
+        uint256 swapTimeLimit1,
+        uint256 swapTimeLimit2
+    ) external onlyOwner returns (bool) {
+        uint8 result = IAccessVault(_accessVaultAddress).canTrade(address(this));
+        require(result >= 1, 'canTrade request to the Access vault failed');
+        if (result == 1) revert('BAA is at liquidation');
+        if (result == 2) revert('Fee payment is expired');
+        if (result == 3) revert('BAA owner has an outstanding balance after liquidation');
+        if (result < 10) revert('BAA can not trade');
+        bool reversed;
+        if (path1[0] == _stablecoinAddress) {
+            require(path1[path1.length - 1] == _tokenAddress, 'Path is not valid');
+            require(path2[0] == _tokenAddress, 'Path is not valid');
+            require(path2[path2.length - 1] == _stablecoinAddress, 'Path is not valid');
+        } else if (path1[0] == _tokenAddress) {
+            reversed = true;
+            require(path1[path1.length - 1] == _stablecoinAddress, 'Path is not valid');
+            require(path2[0] == _stablecoinAddress, 'Path is not valid');
+            require(path2[path2.length - 1] == _tokenAddress, 'Path is not valid');
+        } else revert('Path is not valid');
+        require(
+            IExchangeRouter(_exchangeRouterAddress).isDexConnectorRegistered(dexConnector1),
+            'dexConnector is not registered'
+        );
+        require(
+            IExchangeRouter(_exchangeRouterAddress).isDexConnectorRegistered(dexConnector2),
+            'dexConnector is not registered'
+        );
+
+        (bool success, bytes memory data) = dexConnector1.delegatecall(
+            abi.encodeWithSignature(
+                'swapTokens(address,address[],uint256,uint256,uint256)',
+                address(this),
+                path1,
+                amountIn,
+                0,
+                swapTimeLimit1
+            )
+        );
+        require(success, 'Swap request failed');
+        uint256 returnedAmount1 = abi.decode(data, (uint256));
+        require(returnedAmount1 > 0, 'Swap1 request failed');
+        emit SwapProceeded(
+            amountIn,
+            returnedAmount1,
+            4,
+            reversed
+        );
+
+        (success, data) = dexConnector2.delegatecall(
+            abi.encodeWithSignature(
+                'swapTokens(address,address[],uint256,uint256,uint256)',
+                address(this),
+                path2,
+                returnedAmount1,
+                0,
+                swapTimeLimit2
+            )
+        );
+        require(success, 'Swap request failed');
+        uint256 returnedAmount2 = abi.decode(data, (uint256));
+        require(returnedAmount2 > 0, 'Swap2 request failed');
+        require(returnedAmount2 >= amountIn + profitMin, 'Minimal profit requirements were not met');
+
+        emit SwapProceeded(
+            returnedAmount1,
+            returnedAmount2,
+            5,
             reversed
         );
         return true;

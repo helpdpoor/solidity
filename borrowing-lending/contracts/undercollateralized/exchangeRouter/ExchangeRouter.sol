@@ -57,6 +57,7 @@ contract ExchangeRouter is Initializable {
         _owner = msg.sender;
         _managers[_owner] = true;
         _fallbackDexConnector = fallbackDexConnector;
+        _dexConnectorsRegistry[fallbackDexConnector] = true;
         _ownAddress = address(this);
     }
 

@@ -673,8 +673,8 @@ contract AccessVault is Initializable, Storage {
     }
 
     function depositMarginSwapFee () external payable returns (bool) {
-        require(msg.value >= _marginSwapFee, '24.1');
-        _marginSwapFeeDeposit[msg.sender] = msg.value;
+        require(_marginSwapFeeDeposit[msg.sender] + msg.value >= _marginSwapFee, '24.1');
+        _marginSwapFeeDeposit[msg.sender] += msg.value;
         return true;
     }
 

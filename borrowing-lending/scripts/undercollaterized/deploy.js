@@ -33,12 +33,13 @@ async function main() {
   d.addresses = {
     router: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',
     factory: '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32',
-    weth: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
     usdt: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
     usdc: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
     etna: '0x015C425f6dfabC31E1464cC4339954339f096061',
     mtb: '0x5eE0fE440a4cA7F41bCF06b20c2A30a404E21069',
-    staking: '0x579a0aEDBDBc75c1227997489B0e037EA67bF49D'
+    staking: '0x579a0aEDBDBc75c1227997489B0e037EA67bF49D',
+    apeSwapRouter: '0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607',
+    apeSwapFactory: '0xCf083Be4164828f00cAE704EC15a36D711491284',
   };
   d.profileIds = {
     bronze: [1,5,9,13],
@@ -93,6 +94,10 @@ async function main() {
   });
   saveToJson(deployedContracts);
   console.log("Exchange router deployed to:", d.exchangeRouter.address);
+
+  await d.exchangeRouter.connect(d.owner).registerDexConnector(
+    d.uniSwapConnector.address, true, d.options
+  );
 
   d.BEP20Token = await ethers.getContractFactory("BEP20Token");
 

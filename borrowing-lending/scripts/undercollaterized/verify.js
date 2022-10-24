@@ -1,7 +1,7 @@
 const {ethers} = require("hardhat");
 
 async function main() {
-  const contractAddress = '0x5E92A1b25f6bF093648b1663d70c6263095c74c3';
+  const contractAddress = '0x01A8Fc7feb6Ed0F9F64ba097D805acdCaa81CBEB';
   const d = {};
   d.addresses = {
     owner: '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA',

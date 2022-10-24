@@ -158,7 +158,7 @@
         ]
     },
     "baaImplementation": {
-        "latest": "0x882Bd31c38D077595Ff4521EF7B073C3BC237C2C",
+        "latest": "0xa69cCb44C018239178467D80372c485A9f6168E5",
         "all": [
             {
                 "address": "0xe748e86C3898Ff5850D7b2660E6A8f3f0369d7c8",
@@ -171,11 +171,19 @@
             {
                 "address": "0x882Bd31c38D077595Ff4521EF7B073C3BC237C2C",
                 "timestamp": 1665458100
+            },
+            {
+                "address": "0xe2Ee8dCC6C47522D8Bc1c2d87da72d46b90AD41B",
+                "timestamp": 1665715070
+            },
+            {
+                "address": "0xa69cCb44C018239178467D80372c485A9f6168E5",
+                "timestamp": 1666581601
             }
         ]
     },
     "upgradeableBeacon": {
-        "latest": "0x798B32a5CDA557F23c76eEC1f0cc706677594b59",
+        "latest": "0x5478f93e86504C394d5DD1a7a8E50Ca0d03Bebc6",
         "all": [
             {
                 "address": "0x7bAa971412fa152f32683f380e26Aa5593086C12",
@@ -184,11 +192,19 @@
             {
                 "address": "0x798B32a5CDA557F23c76eEC1f0cc706677594b59",
                 "timestamp": 1665458100
+            },
+            {
+                "address": "0x2624221FbED4eaEC7E71C4C01e66a6287744540B",
+                "timestamp": 1665715070
+            },
+            {
+                "address": "0x5478f93e86504C394d5DD1a7a8E50Ca0d03Bebc6",
+                "timestamp": 1666581601
             }
         ]
     },
     "borrowingPower": {
-        "latest": "0xa4Bc6674c9739b29781b693C7784302cD5c99c91",
+        "latest": "0xF51d54eba1662dDc6d518188C99211F0E8008D28",
         "all": [
             {
                 "address": "0xb24b570b546a8e36ffb5D098729a5Be00FE242a8",
@@ -197,11 +213,19 @@
             {
                 "address": "0xa4Bc6674c9739b29781b693C7784302cD5c99c91",
                 "timestamp": 1665458100
+            },
+            {
+                "address": "0xA414B871bB0C052364827776142114c4631Bc5FC",
+                "timestamp": 1665715070
+            },
+            {
+                "address": "0xF51d54eba1662dDc6d518188C99211F0E8008D28",
+                "timestamp": 1666581601
             }
         ]
     },
     "accessVaultProxyAdmin": {
-        "latest": "0x5A9e4870720Fd44EED73c9EC19165Ad14AF720Fd",
+        "latest": "0xCE2B8578e47f7bFe2497Ab64BD4D99adA4A3f3D3",
         "all": [
             {
                 "address": "0x32be53f913632d901a11d61827f54e7C88794387",
@@ -210,11 +234,19 @@
             {
                 "address": "0x5A9e4870720Fd44EED73c9EC19165Ad14AF720Fd",
                 "timestamp": 1665458100
+            },
+            {
+                "address": "0xd92C591D52Aa15bDA7A9174ce384825b88B15960",
+                "timestamp": 1665715070
+            },
+            {
+                "address": "0xCE2B8578e47f7bFe2497Ab64BD4D99adA4A3f3D3",
+                "timestamp": 1666581601
             }
         ]
     },
     "accessVaultImplementation": {
-        "latest": "0x5E92A1b25f6bF093648b1663d70c6263095c74c3",
+        "latest": "0x01A8Fc7feb6Ed0F9F64ba097D805acdCaa81CBEB",
         "all": [
             {
                 "address": "0xb6be672b96fBbf2735E4e68Eae2D170641A73539",
@@ -231,11 +263,19 @@
             {
                 "address": "0x5E92A1b25f6bF093648b1663d70c6263095c74c3",
                 "timestamp": 1665458100
+            },
+            {
+                "address": "0x1075b460FA607A66DA39E7fBff233863B843eF60",
+                "timestamp": 1665715070
+            },
+            {
+                "address": "0x01A8Fc7feb6Ed0F9F64ba097D805acdCaa81CBEB",
+                "timestamp": 1666581601
             }
         ]
     },
     "accessVaultProxy": {
-        "latest": "0xF46E8FefeBD8E3D3bD6adA0F9f83C572C446c36C",
+        "latest": "0x15221b445C82e9226CB5D6675c3bA7195AA18644",
         "all": [
             {
                 "address": "0xFfa13E1AB871b5f1Ead1D9948F218adA2474723d",
@@ -244,24 +284,57 @@
             {
                 "address": "0xF46E8FefeBD8E3D3bD6adA0F9f83C572C446c36C",
                 "timestamp": 1665458100
+            },
+            {
+                "address": "0x17ce29082A715c39222b4B68FE61D8a0a6d1a1e2",
+                "timestamp": 1665715070
+            },
+            {
+                "address": "0x15221b445C82e9226CB5D6675c3bA7195AA18644",
+                "timestamp": 1666581601
             }
         ]
     },
     "uniSwapConnector": {
-        "latest": "0x0E1E94386BeC8ac2A4B86f29cfcFe1f71d415797",
+        "latest": "0x2467db2e4f20f495900075B68b96BC52Fa6810f4",
         "all": [
             {
                 "address": "0x0E1E94386BeC8ac2A4B86f29cfcFe1f71d415797",
                 "timestamp": 1665458100
+            },
+            {
+                "address": "0xf9C04582d8359Bbb3fe56C19E7F05EA92d2629ae",
+                "timestamp": 1665715070
+            },
+            {
+                "address": "0x2467db2e4f20f495900075B68b96BC52Fa6810f4",
+                "timestamp": 1666581601
             }
         ]
     },
     "exchangeRouter": {
-        "latest": "0x9AF9701fce27bd5572a63184Fb3C710cC1a8D763",
+        "latest": "0xFfdA9fb5aa08ae774691E7Ef74C43457c34E27c2",
         "all": [
             {
                 "address": "0x9AF9701fce27bd5572a63184Fb3C710cC1a8D763",
                 "timestamp": 1665458100
+            },
+            {
+                "address": "0x82ABFfDC8283bFF0919478EE6e9271f2e7D0fBa7",
+                "timestamp": 1665715070
+            },
+            {
+                "address": "0xFfdA9fb5aa08ae774691E7Ef74C43457c34E27c2",
+                "timestamp": 1666581601
+            }
+        ]
+    },
+    "apeSwapConnector": {
+        "latest": "0x44721c217b093DEC737c7bC041E1F4A2f08E0236",
+        "all": [
+            {
+                "address": "0x44721c217b093DEC737c7bC041E1F4A2f08E0236",
+                "timestamp": 1666583731
             }
         ]
     }
