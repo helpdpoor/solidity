@@ -5,7 +5,7 @@ const d = {};
 const { alchemyApiKey } = require('../secrets.json');
 
 // Start test block
-describe.only('swapTesting.js - Swap testing', function () {
+describe('arbitrageTesting.js - Arbitrage testing', function () {
   beforeEach(async function () {
     await hre.network.provider.request({
       method: "hardhat_reset",
@@ -258,12 +258,12 @@ describe.only('swapTesting.js - Swap testing', function () {
       ethers.utils.parseUnits(d.loan.toString(), 6)
     );
 
-    d.amount1 = await d.uniSwapConnector.callStatic['getSwapAmount(address,address,uint256)'](
+    d.amount1 = await d.uniSwapConnector['getSwapAmount(address,address,uint256)'](
       d.usdt.address,
       d.ape.address,
       ethers.utils.parseUnits(d.loan.toString(), 6)
     );
-    d.amount2 = await d.uniSwapConnector.callStatic['getSwapAmount(address[],uint256)'](
+    d.amount2 = await d.uniSwapConnector['getSwapAmount(address[],uint256)'](
       [d.usdt.address,d.addresses.weth,d.ape.address],
       ethers.utils.parseUnits(d.loan.toString(), 6)
     );
@@ -341,6 +341,55 @@ describe.only('swapTesting.js - Swap testing', function () {
     expect(Number(ethers.utils.formatUnits(
       await d.usdt.balanceOf(d.baaUsdt.address), 6
     ))).to.be.greaterThan(d.signers[0].balance + d.loan / 10);
+  });
+
+  it('Estimating arbitrage profit amount', async function () {
+    d.amountIn = 10;
+
+    expect(Number(ethers.utils.formatUnits(
+      await d.exchangeRouter['getArbitrageProfit(address,address,address,address,uint256)'](
+        d.usdt.address,
+        d.ape.address,
+        d.uniSwapConnector.address,
+        d.sushiSwapConnector.address,
+        ethers.utils.parseUnits(d.amountIn.toString(), 6)
+      ), 6
+    ))).to.equal(0);
+
+    expect(Number(ethers.utils.formatUnits(
+      await d.exchangeRouter['getArbitrageProfit(address[],address[],address,address,uint256)'](
+        [d.usdt.address, d.addresses.weth, d.ape.address],
+        [d.ape.address, d.addresses.weth, d.usdt.address],
+        d.uniSwapConnector.address,
+        d.sushiSwapConnector.address,
+        ethers.utils.parseUnits(d.amountIn.toString(), 6)
+      ), 6
+    ))).to.equal(0);
+
+    await d.router2.connect(d.owner).swapExactETHForTokens(
+      0, [d.addresses.weth, d.addresses.ape], d.owner.address, d.neverLate,
+      {value: ethers.utils.parseUnits('1')}
+    );
+
+    expect(Number(ethers.utils.formatUnits(
+      await d.exchangeRouter['getArbitrageProfit(address,address,address,address,uint256)'](
+        d.usdt.address,
+        d.ape.address,
+        d.uniSwapConnector.address,
+        d.sushiSwapConnector.address,
+        ethers.utils.parseUnits(d.amountIn.toString(), 6)
+      ), 6
+    ))).to.be.greaterThan(0);
+
+    expect(Number(ethers.utils.formatUnits(
+      await d.exchangeRouter['getArbitrageProfit(address[],address[],address,address,uint256)'](
+        [d.usdt.address, d.addresses.weth, d.ape.address],
+        [d.ape.address, d.addresses.weth, d.usdt.address],
+        d.uniSwapConnector.address,
+        d.sushiSwapConnector.address,
+        ethers.utils.parseUnits(d.amountIn.toString(), 6)
+      ), 6
+    ))).to.be.greaterThan(0);
   });
 });
 

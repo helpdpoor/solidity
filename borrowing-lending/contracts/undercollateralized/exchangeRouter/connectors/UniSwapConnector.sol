@@ -38,7 +38,6 @@ interface IERC20_LP {
 }
 
 contract UniSwapConnector {
-    event SwapAmount(uint256 amount);
     modifier onlyOwner() {
         require(msg.sender == _owner, 'Caller is not the owner');
         _;
@@ -160,9 +159,8 @@ contract UniSwapConnector {
         address tokenInAddress,
         address tokenOutAddress,
         uint256 amountIn
-    ) external returns (uint256) {
+    ) external view returns (uint256) {
         (uint256 amountOut,) = _getSwapPath(tokenInAddress, tokenOutAddress, amountIn);
-        emit SwapAmount(amountOut);
         return amountOut;
     }
 
@@ -172,16 +170,9 @@ contract UniSwapConnector {
     function getSwapAmount (
         address[] memory path,
         uint256 amountIn
-    ) external returns (uint256) {
-        uint256 amountOut;
-        (bool success, bytes memory data) = address(_router).call(
-            abi.encodeWithSignature('getAmountsOut(uint256,address[])', amountIn, path)
-        );
-        if (success) {
-            uint256[] memory amounts = abi.decode(data, (uint256[]));
-            amountOut = amounts[amounts.length - 1];
-        }
-        return amountOut;
+    ) external view returns (uint256) {
+        uint256[] memory amounts = _router.getAmountsOut(amountIn, path);
+        return amounts[amounts.length - 1];
     }
 
     /**
@@ -191,7 +182,7 @@ contract UniSwapConnector {
         address tokenInAddress,
         address tokenOutAddress,
         uint256 amountIn
-    ) internal returns (
+    ) internal view returns (
         uint256 amountOut, address[] memory path
     ) {
         uint256 amountOut1;
@@ -205,23 +196,15 @@ contract UniSwapConnector {
         path2[2] = tokenOutAddress;
         bool success;
         bytes memory data;
-        uint256[] memory amounts;
 
-        (success, data) = address(_router).call(
-            abi.encodeWithSignature('getAmountsOut(uint256,address[])', amountIn, path1)
-        );
-        if (success) {
-            amounts = abi.decode(data, (uint256[]));
+        try _router.getAmountsOut(amountIn, path1) returns (uint256[] memory amounts) {
             amountOut1 = amounts[1];
-        }
+        } catch {}
 
-        (success, data) = address(_router).call(
-            abi.encodeWithSignature('getAmountsOut(uint256,address[])', amountIn, path2)
-        );
-        if (success) {
-            amounts = abi.decode(data, (uint256[]));
+        try _router.getAmountsOut(amountIn, path2) returns (uint256[] memory amounts) {
             amountOut2 = amounts[2];
-        }
+        } catch {}
+
         require(amountOut1 > 0 || amountOut2 > 0, 'Can not find route');
         if (amountOut2 > amountOut1) {
             return (amountOut2, path2);

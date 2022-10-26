@@ -289,7 +289,7 @@ describe('exchangeRouter.js - Exchange router testing', function () {
   // Test case
   it('Exchange router get amount out', async function () {
     d.swapOut = Number(ethers.utils.formatUnits(
-      await d.uniSwapConnector.getSwapAmount(
+      await d.uniSwapConnector['getSwapAmount(address,address,uint256)'](
         d.usdt.address,
         d.etna.address,
         ethers.utils.parseUnits('1', 6)

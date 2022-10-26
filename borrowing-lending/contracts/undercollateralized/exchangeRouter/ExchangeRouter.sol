@@ -20,6 +20,10 @@ interface IDexConnector {
         address tokenOut,
         uint256 amountIn
     ) external view returns (uint256);
+    function getSwapAmount (
+        address[] memory path,
+        uint256 amountIn
+    ) external view returns (uint256);
 }
 
 contract ExchangeRouter is Initializable {
@@ -182,5 +186,66 @@ contract ExchangeRouter is Initializable {
         address dexConnector
     ) public view returns (bool) {
         return _dexConnectorsRegistry[dexConnector];
+    }
+
+    /**
+     * @dev Function for estimating arbitrage profit.
+     */
+    function getArbitrageProfit (
+        address token1,
+        address token2,
+        address dexConnector1,
+        address dexConnector2,
+        uint256 amountIn // token1 amount
+    ) external view returns (uint256) {
+        require(
+            isDexConnectorRegistered(dexConnector1),
+            'dexConnector is not registered'
+        );
+        require(
+            isDexConnectorRegistered(dexConnector2),
+            'dexConnector is not registered'
+        );
+        uint256 amountOut1 = IDexConnector(dexConnector1).getSwapAmount(
+            token1, token2, amountIn
+        );
+        uint256 amountOut2 = IDexConnector(dexConnector2).getSwapAmount(
+            token2, token1, amountOut1
+        );
+
+        if (!(amountOut2 > amountIn)) return 0;
+        return amountOut2 - amountIn;
+    }
+
+    /**
+     * @dev Function for estimating arbitrage profit.
+     */
+    function getArbitrageProfit (
+        address[] memory path1,
+        address[] memory path2,
+        address dexConnector1,
+        address dexConnector2,
+        uint256 amountIn // path1[0] amount
+    ) external view returns (uint256) {
+        require(path2[path2.length - 1] == path1[0], 'Path is not valid');
+        require(path1[path1.length - 1] == path2[0], 'Path is not valid');
+        require(
+            isDexConnectorRegistered(dexConnector1),
+            'dexConnector is not registered'
+        );
+        require(
+            isDexConnectorRegistered(dexConnector2),
+            'dexConnector is not registered'
+        );
+
+        uint256 amountOut1 = IDexConnector(dexConnector1).getSwapAmount(
+            path1, amountIn
+        );
+        uint256 amountOut2 = IDexConnector(dexConnector2).getSwapAmount(
+            path2, amountOut1
+        );
+
+        if (!(amountOut2 > amountIn)) return 0;
+        return amountOut2 - amountIn;
     }
 }
