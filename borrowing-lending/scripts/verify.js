@@ -1,7 +1,5 @@
 const {ethers} = require("hardhat");
-const owner = '0x614379E5A8817a0b24f4eAa8583B0f55403C1F31';
-const paymentToken = '0x82473782776675707aF074c4964828EB23cA3b0e';
-const OWNER = '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA';
+const d = {};
 const tokenAddresses = {
   BUSD: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
   USDT: '0x55d398326f99059fF775485246999027B3197955',
@@ -54,22 +52,27 @@ const aprLendingMin = 500;
 const aprLendingMax = 1000;
 
 async function main() {
-  const contractAddress = '0xd9772B0fD1AAE2f2efD67748ba63378796218c4B';
-  const ABI = [
-    "function initialize(address, address, address, address)"
-  ];
-  const iface = new ethers.utils.Interface(ABI);
-  const calldata = iface.encodeFunctionData("initialize", [
-    tokenAddresses.MARKETPLACE,
-    tokenAddresses.NFT,
-    '0xbeE1BD28dB9171f83c92f4445EF1359F4e71F86f',
-    OWNER
-  ]);
+  const contractAddress = '0xf766deD7daD0BE3d013469DbFe034C9DeEd21A75';
+
+  d.signers = await ethers.getSigners();
+  d.owner = d.signers[0];
+  d.updater = d.signers[1];
+
+  // const ABI = [
+  //   "function initialize(address, address, address, address)"
+  // ];
+  // const iface = new ethers.utils.Interface(ABI);
+  // const calldata = iface.encodeFunctionData("initialize", [
+  //   tokenAddresses.MARKETPLACE,
+  //   tokenAddresses.NFT,
+  //   '0xbeE1BD28dB9171f83c92f4445EF1359F4e71F86f',
+  //   d.owner.address
+  // ]);
   await hre.run("verify:verify", {
     address: contractAddress,
     constructorArguments: [
-      // OWNER,
-      // OWNER
+      d.owner.address,
+      d.updater.address
     ],
   });
 }

@@ -49,37 +49,60 @@ async function main() {
   };
 
   d.PancakeRouter = await ethers.getContractFactory('PancakeRouter');
-  d.apeSwapRouter = await d.PancakeRouter.attach(d.addresses.apeSwapRouter);
+  d.router = await d.PancakeRouter.attach(d.addresses.router);
 
   d.UniswapV2Factory = await ethers.getContractFactory('UniswapV2Factory');
-  d.apeSwapFactory = await d.UniswapV2Factory.attach(d.addresses.apeSwapFactory);
+  d.factory = await d.UniswapV2Factory.attach(d.addresses.factory);
 
   d.UniSwapConnector = await ethers.getContractFactory("UniSwapConnector");
-  d.apeSwapConnector = await d.UniSwapConnector.connect(d.owner).deploy(
+  d.uniSwapConnector = await d.UniSwapConnector.connect(d.owner).deploy(
     d.owner.address,
-    d.apeSwapRouter.address,
-    d.apeSwapFactory.address
+    d.router.address,
+    d.factory.address
   );
-  await d.apeSwapConnector.deployed();
+  await d.uniSwapConnector.deployed();
 
-  if (!(deployedContracts.apeSwapConnector)) deployedContracts.apeSwapConnector = {
+  if (!(deployedContracts.uniSwapConnector)) deployedContracts.uniSwapConnector = {
     latest: '',
     all: [],
   };
 
-  deployedContracts.apeSwapConnector.latest = d.apeSwapConnector.address;
-  deployedContracts.apeSwapConnector.all.push({
-    address: d.apeSwapConnector.address,
+  deployedContracts.uniSwapConnector.latest = d.uniSwapConnector.address;
+  deployedContracts.uniSwapConnector.all.push({
+    address: d.uniSwapConnector.address,
     timestamp: now,
   });
   saveToJson(deployedContracts);
-  console.log("Ape Swap connector deployed to:", d.apeSwapConnector.address);
+  console.log("Exchange router default connector deployed to:", d.uniSwapConnector.address);
 
   d.ExchangeRouter = await ethers.getContractFactory("ExchangeRouter");
-  d.exchangeRouter = await d.ExchangeRouter.attach(deployedContracts.exchangeRouter.latest);
+  d.exchangeRouter = await d.ExchangeRouter.connect(d.owner).deploy(
+    d.owner.address,
+    d.uniSwapConnector.address
+  );
+  await d.exchangeRouter.deployed();
+
+  if (!(deployedContracts.exchangeRouter)) deployedContracts.exchangeRouter = {
+    latest: '',
+    all: [],
+  };
+
+  deployedContracts.exchangeRouter.latest = d.exchangeRouter.address;
+  deployedContracts.exchangeRouter.all.push({
+    address: d.exchangeRouter.address,
+    timestamp: now,
+  });
+  saveToJson(deployedContracts);
+  console.log("Exchange router deployed to:", d.exchangeRouter.address);
 
   await d.exchangeRouter.connect(d.owner).registerDexConnector(
-    d.apeSwapConnector.address, true, d.options
+    d.uniSwapConnector.address, true, d.options
+  );
+
+  d.AccessVault = await ethers.getContractFactory("AccessVault");
+  d.accessVault = await d.AccessVault.attach(deployedContracts.accessVaultProxy.latest);
+  await d.accessVault.connect(d.owner).setExchangeRouter(
+    d.exchangeRouter.address
   );
 
   console.log('Deployment completed');

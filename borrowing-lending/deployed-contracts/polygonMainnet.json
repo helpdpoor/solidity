@@ -9,7 +9,7 @@
         ]
     },
     "rates": {
-        "latest": "0xD2C2bd609045d750539DBB8a87D76d3F4CAE6494",
+        "latest": "0xf766deD7daD0BE3d013469DbFe034C9DeEd21A75",
         "all": [
             {
                 "address": "0xD382509f48eeFe4C618350D28Ad1Cfb520F76dD2",
@@ -18,6 +18,22 @@
             {
                 "address": "0xD2C2bd609045d750539DBB8a87D76d3F4CAE6494",
                 "timestamp": 1660302446
+            },
+            {
+                "address": "0xcCe198632Ee4b30a7E963159d3a82813Ac00024A",
+                "timestamp": 1669042859
+            },
+            {
+                "address": "0xe9b6f43ebAC402BCd8037C515250da9a1290df5B",
+                "timestamp": 1669104985
+            },
+            {
+                "address": "0x4d4721E518e51345a7F7e966c203CD0F8eED6D73",
+                "timestamp": 1669121335
+            },
+            {
+                "address": "0xf766deD7daD0BE3d013469DbFe034C9DeEd21A75",
+                "timestamp": 1669178721
             }
         ]
     },
@@ -296,7 +312,7 @@
         ]
     },
     "uniSwapConnector": {
-        "latest": "0x2467db2e4f20f495900075B68b96BC52Fa6810f4",
+        "latest": "0x6cFd99928AB17455535705aC3FFBA5Cb0fB854da",
         "all": [
             {
                 "address": "0x0E1E94386BeC8ac2A4B86f29cfcFe1f71d415797",
@@ -309,11 +325,15 @@
             {
                 "address": "0x2467db2e4f20f495900075B68b96BC52Fa6810f4",
                 "timestamp": 1666581601
+            },
+            {
+                "address": "0x6cFd99928AB17455535705aC3FFBA5Cb0fB854da",
+                "timestamp": 1666770150
             }
         ]
     },
     "exchangeRouter": {
-        "latest": "0xFfdA9fb5aa08ae774691E7Ef74C43457c34E27c2",
+        "latest": "0x5931d451eEce7a9FD3D79968E6c337dBa89F7B2E",
         "all": [
             {
                 "address": "0x9AF9701fce27bd5572a63184Fb3C710cC1a8D763",
@@ -326,15 +346,23 @@
             {
                 "address": "0xFfdA9fb5aa08ae774691E7Ef74C43457c34E27c2",
                 "timestamp": 1666581601
+            },
+            {
+                "address": "0x5931d451eEce7a9FD3D79968E6c337dBa89F7B2E",
+                "timestamp": 1666770150
             }
         ]
     },
     "apeSwapConnector": {
-        "latest": "0x44721c217b093DEC737c7bC041E1F4A2f08E0236",
+        "latest": "0x547aeb077C6Ecc3db876FBFD20427fAABA5c3051",
         "all": [
             {
                 "address": "0x44721c217b093DEC737c7bC041E1F4A2f08E0236",
                 "timestamp": 1666583731
+            },
+            {
+                "address": "0x547aeb077C6Ecc3db876FBFD20427fAABA5c3051",
+                "timestamp": 1666773347
             }
         ]
     }

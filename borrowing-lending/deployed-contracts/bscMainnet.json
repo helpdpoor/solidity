@@ -1,6 +1,6 @@
 {
     "rates": {
-        "latest": "0x43E39a7b159c2b0804f377D3aC238f70dA2363A8",
+        "latest": "0xf766deD7daD0BE3d013469DbFe034C9DeEd21A75",
         "all": [
             {
                 "address": "0x3a61e4F678EfB253e9A7c37113BC27517Eb856D2",
@@ -9,6 +9,30 @@
             {
                 "address": "0x43E39a7b159c2b0804f377D3aC238f70dA2363A8",
                 "timestamp": 1660296885
+            },
+            {
+                "address": "0x0B172DE1fA9679F3A4b8be1f5Da09D82DF64c9Ea",
+                "timestamp": 1669042415
+            },
+            {
+                "address": "0xe9b6f43ebAC402BCd8037C515250da9a1290df5B",
+                "timestamp": 1669104820
+            },
+            {
+                "address": "0x4d4721E518e51345a7F7e966c203CD0F8eED6D73",
+                "timestamp": 1669121246
+            },
+            {
+                "address": "0xEB3a9f0844e38eA429647A9244f3A136A403c130",
+                "timestamp": 1669133266
+            },
+            {
+                "address": "0xB21414D721C328b7437A57F8b723D60AecD327Ee",
+                "timestamp": 1669135026
+            },
+            {
+                "address": "0xf766deD7daD0BE3d013469DbFe034C9DeEd21A75",
+                "timestamp": 1669136077
             }
         ]
     }

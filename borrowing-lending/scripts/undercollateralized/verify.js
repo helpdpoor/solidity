@@ -1,7 +1,7 @@
 const {ethers} = require("hardhat");
 
 async function main() {
-  const contractAddress = '0x01A8Fc7feb6Ed0F9F64ba097D805acdCaa81CBEB';
+  const contractAddress = '0x5931d451eEce7a9FD3D79968E6c337dBa89F7B2E';
   const d = {};
   d.addresses = {
     owner: '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA',
@@ -37,9 +37,9 @@ async function main() {
   await hre.run("verify:verify", {
     address: contractAddress,
     constructorArguments: [
-      // d.addresses.owner,
-      // d.addresses.router,
-      // d.addresses.factory
+      d.addresses.owner,
+      d.addresses.router,
+      d.addresses.factory
     ],
   });
 }

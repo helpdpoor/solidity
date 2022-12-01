@@ -14,7 +14,7 @@ const options = {gasPrice: 50000000000};
 async function main() {
   d.signers = await ethers.getSigners();
   d.owner = d.signers[0];
-  const OWNER = d.owner.address;
+  d.updater = d.signers[1];
 
   const tokenAddresses = {
     USDC: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
@@ -68,9 +68,9 @@ async function main() {
   const deployedContracts = require(jsonPath);
 
   d.Rates = await ethers.getContractFactory("Rates");
-  d.ratesContract = await d.Rates.deploy(
-    OWNER,
-    OWNER,
+  d.ratesContract = await d.Rates.connect(d.updater).deploy(
+    d.owner.address,
+    d.updater.address,
     options
   );
   await d.ratesContract.deployed();
@@ -86,39 +86,39 @@ async function main() {
   saveToJson(deployedContracts);
   console.log(`Rates contract deployed to ${d.ratesContract.address}`);
 
-  await d.ratesContract.setChainLink(
+  await d.ratesContract.connect(d.owner).setChainLink(
     tokenAddresses.NATIVE,
     chainLinkFeeds.MATIC,
     options
   );
-  await d.ratesContract.setChainLink(
+  await d.ratesContract.connect(d.owner).setChainLink(
     tokenAddresses.WETH,
     chainLinkFeeds.ETH,
     options
   );
-  await d.ratesContract.setChainLink(
+  await d.ratesContract.connect(d.owner).setChainLink(
     tokenAddresses.WBTC,
     chainLinkFeeds.WBTC,
     options
   );
-  await d.ratesContract.setChainLink(
+  await d.ratesContract.connect(d.owner).setChainLink(
     tokenAddresses.QUICK,
     chainLinkFeeds.QUICK,
     options
   );
 
-  await d.ratesContract.setLp(
+  await d.ratesContract.connect(d.owner).setLp(
     tokenAddresses.ETNA,
     lpPairs.ETNA_USDC,
     options
   );
-  await d.ratesContract.setLp(
+  await d.ratesContract.connect(d.owner).setLp(
     tokenAddresses.MTB,
     lpPairs.MTB_USDC,
     options
   );
 
-  await d.ratesContract.setAlias(
+  await d.ratesContract.connect(d.owner).setAlias(
     tokenAddresses.NETNA,
     tokenAddresses.ETNA,
     options

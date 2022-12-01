@@ -24,13 +24,12 @@ interface IChain_Link {
 }
 
 /**
- * @dev Partial interface of the LP token.
+ * @dev Partial interface of the ERC20 standard according to the needs of the e2p contract.
  */
 interface ILP {
     function token0() external view returns (address);
     function token1() external view returns (address);
     function getReserves() external view returns (uint112, uint112, uint32);
-    function totalSupply() external view returns (uint256);
 }
 
 /*
@@ -41,7 +40,6 @@ contract Rates is AccessControl {
     struct Rate {
         address chainLinkAddress; // ChainLink feed address
         address lpAddress; // LP pair contract
-        address secondaryAddress; // Token that will be used for base rate calculation
         uint8 decimals; // decimals of the token
         uint8 decimals0; // decimals of the token0 in LP pair
         uint8 decimals1; // decimals of the token1 in LP pair
@@ -56,7 +54,6 @@ contract Rates is AccessControl {
     uint256 internal _maxTimeGap; // maximum time gap for real time requests
     uint256 internal _minRateUpdatePeriod; // minimal period between lastRate and current rate
     uint256 internal constant _SHIFT_18 = 1 ether;
-    bytes32 internal constant MANAGER = keccak256(abi.encode('MANAGER'));
     bytes32 internal constant RATES_UPDATER = keccak256(abi.encode('RATES_UPDATER'));
 
     constructor (
@@ -141,17 +138,6 @@ contract Rates is AccessControl {
     }
 
     /**
-     * Setting LP marker for LP tokens records
-     */
-    function setSecondaryAddress (
-        address contractAddress,
-        address secondaryAddress
-    ) external hasRole(MANAGER) returns (bool) {
-        _usdRates[contractAddress].secondaryAddress = secondaryAddress;
-        return true;
-    }
-
-    /**
      * Setting of the maximum time gap for real time requests
      */
     function setAlias (
@@ -175,28 +161,6 @@ contract Rates is AccessControl {
     /**
      * Updating last rate for rates calculation using LP
      */
-    function getLpUsdRate (
-        address lpAddress
-    ) public view returns (uint256) {
-        address secondaryAddress = _usdRates[lpAddress].secondaryAddress;
-        uint256 tokenUsdRate = getUsdRate(secondaryAddress, false);
-        ILP lpContract = ILP(lpAddress);
-        address token0 = lpContract.token0();
-        address token1 = lpContract.token1();
-        uint112 reserve;
-        if (token0 == secondaryAddress) {
-            (reserve,,) = lpContract.getReserves();
-            return tokenUsdRate * 2 * reserve / lpContract.totalSupply();
-        } else if (token1 == secondaryAddress) {
-            (,reserve,) = lpContract.getReserves();
-            return tokenUsdRate * 2 * reserve / lpContract.totalSupply();
-        }
-        return 0;
-    }
-
-    /**
-     * Updating last rate for rates calculation using LP
-     */
     function saveUsdRate (
         address contractAddress
     ) external hasRole(RATES_UPDATER) returns (bool) {
@@ -209,21 +173,12 @@ contract Rates is AccessControl {
     function _saveUsdRate (
         address contractAddress
     ) internal returns (bool) {
-        require(
-            _usdRates[contractAddress].lpAddress != address(0)
-                || _usdRates[contractAddress].secondaryAddress != address(0),
-                'LP contract is not set'
-        );
+        require(_usdRates[contractAddress].lpAddress != address(0), 'LP contract is not set');
         if (
             (block.timestamp - _usdRates[contractAddress].lastRateTime) < _minRateUpdatePeriod
         ) return false;
-        uint256 rate;
-        if (_usdRates[contractAddress].secondaryAddress == address(0)) {
-            rate = _getRealUsdRateFromLp(contractAddress);
-        } else {
-            rate = getLpUsdRate(contractAddress);
-        }
-        require(rate > 0, 'Rate calculation error');
+        uint256 rate = _getUsdRateFromLp(contractAddress);
+        if (rate == 0) return false;
         _usdRates[contractAddress].cachedRate = _usdRates[contractAddress].lastRate;
         _usdRates[contractAddress].lastRate = rate;
         _usdRates[contractAddress].lastRateTime = block.timestamp;
@@ -238,16 +193,14 @@ contract Rates is AccessControl {
     ) external view returns (
         address chainLinkAddress,
         address lpAddress,
-        address secondaryAddress,
         uint8 decimals,
         uint256 rate
     ) {
         return (
-            _usdRates[contractAddress].chainLinkAddress,
-            _usdRates[contractAddress].lpAddress,
-            _usdRates[contractAddress].secondaryAddress,
-            _usdRates[contractAddress].decimals,
-            _usdRates[contractAddress].rate
+        _usdRates[contractAddress].chainLinkAddress,
+        _usdRates[contractAddress].lpAddress,
+        _usdRates[contractAddress].decimals,
+        _usdRates[contractAddress].rate
         );
     }
 
@@ -265,12 +218,12 @@ contract Rates is AccessControl {
         bool reversed
     ) {
         return (
-            _usdRates[contractAddress].decimals0,
-            _usdRates[contractAddress].decimals1,
-            _usdRates[contractAddress].cachedRate,
-            _usdRates[contractAddress].lastRate,
-            _usdRates[contractAddress].lastRateTime,
-            _usdRates[contractAddress].reversed
+        _usdRates[contractAddress].decimals0,
+        _usdRates[contractAddress].decimals1,
+        _usdRates[contractAddress].cachedRate,
+        _usdRates[contractAddress].lastRate,
+        _usdRates[contractAddress].lastRateTime,
+        _usdRates[contractAddress].reversed
         );
     }
 
@@ -286,15 +239,13 @@ contract Rates is AccessControl {
         bool realTime
     ) public view returns (uint256) {
         if (_alias[contractAddress] != address(0)) {
-           contractAddress = _alias[contractAddress];
+            contractAddress = _alias[contractAddress];
         }
         uint256 rate;
-        if (_usdRates[contractAddress].secondaryAddress != address(0)) {
-            rate = _usdRates[contractAddress].cachedRate;
-        } else if (_usdRates[contractAddress].chainLinkAddress != address(0)) {
+        if (_usdRates[contractAddress].chainLinkAddress != address(0)) {
             rate = _getChainLinkRate(contractAddress, realTime);
         } else if (_usdRates[contractAddress].lpAddress != address(0)) {
-            rate = _getUsdRateFromLp(contractAddress, realTime);
+            rate = _getLpRate(contractAddress, realTime);
         } else {
             rate = _usdRates[contractAddress].rate;
         }
@@ -358,11 +309,11 @@ contract Rates is AccessControl {
      * 18 + (18 - token decimals). For example if rate is 1.2 and
      * token decimals is 6 rate will be 1.2 * 10**30
      */
-    function _getUsdRateFromLp (
+    function _getLpRate (
         address contractAddress,
         bool realTime
     ) internal view returns (uint256) {
-        if (realTime) return _getRealUsdRateFromLp(contractAddress);
+        if (realTime) return _getUsdRateFromLp(contractAddress);
         else return _usdRates[contractAddress].cachedRate;
     }
 
@@ -372,7 +323,7 @@ contract Rates is AccessControl {
      * 18 + (18 - token decimals). For example if rate is 1.2 and
      * token decimals is 6 rate will be 1.2 * 10**30
      */
-    function _getRealUsdRateFromLp (
+    function _getUsdRateFromLp (
         address contractAddress
     ) internal view returns (uint256) {
         require(_usdRates[contractAddress].lpAddress != address(0), 'LP contract is not set');

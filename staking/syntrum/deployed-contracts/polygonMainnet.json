@@ -1,0 +1,33 @@
+{
+    "proxyAdmin": {
+        "latest": "0xfFF75979FD7e71d805F6Ce1600442202CeDc79e3",
+        "all": [
+            {
+                "address": "0xfFF75979FD7e71d805F6Ce1600442202CeDc79e3",
+                "timestamp": 1668699701
+            }
+        ]
+    },
+    "stakingImplementation": {
+        "latest": "0x73f9309D4433c6BDA3a7f88391d640Ed88915698",
+        "all": [
+            {
+                "address": "0x6974c511A3990aD236783A93027933F2a348E99e",
+                "timestamp": 1668699701
+            },
+            {
+                "address": "0x73f9309D4433c6BDA3a7f88391d640Ed88915698",
+                "timestamp": 1669186000
+            }
+        ]
+    },
+    "staking": {
+        "latest": "0xCF1D7872d38eD17F7cC19d20fA6523130337Aee2",
+        "all": [
+            {
+                "address": "0xCF1D7872d38eD17F7cC19d20fA6523130337Aee2",
+                "timestamp": 1668699701
+            }
+        ]
+    }
+}

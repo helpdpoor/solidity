@@ -12,7 +12,7 @@ describe('arbitrageTesting.js - Arbitrage testing', function () {
       params: [
         {
           forking: {
-            jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${alchemyApiKey}`,
+            jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${alchemyApiKey.ethereumMainnet}`,
             blockNumber: 15730377,
           },
         },

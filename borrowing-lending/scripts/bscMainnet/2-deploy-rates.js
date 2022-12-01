@@ -13,7 +13,7 @@ const d = {};
 async function main() {
   d.signers = await ethers.getSigners();
   d.owner = d.signers[0];
-  const OWNER = d.owner.address;
+  d.updater = d.signers[1];
   const tokenAddresses = {
     BUSD: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
     USDT: '0x55d398326f99059fF775485246999027B3197955',
@@ -69,9 +69,10 @@ async function main() {
   const deployedContracts = require(jsonPath);
 
   d.Rates = await ethers.getContractFactory("Rates");
-  d.ratesContract = await d.Rates.deploy(
-    OWNER,
-    OWNER
+  d.ratesContract = await d.Rates.connect(d.updater).attach(deployedContracts.rates.latest);
+  d.ratesContract = await d.Rates.connect(d.updater).deploy(
+    d.owner.address,
+    d.updater.address
   );
   await d.ratesContract.deployed();
   if (!(deployedContracts.rates)) deployedContracts.rates = {
@@ -86,39 +87,40 @@ async function main() {
   saveToJson(deployedContracts);
   console.log(`Rates contract deployed to ${d.ratesContract.address}`);
 
-  await d.ratesContract.setChainLink(
+  await d.ratesContract.connect(d.owner).setChainLink(
     tokenAddresses.NATIVE,
     chainLinkFeeds.BNB
   );
-  await d.ratesContract.setChainLink(
+  await d.ratesContract.connect(d.owner).setChainLink(
     tokenAddresses.ETH,
     chainLinkFeeds.ETH
   );
-  await d.ratesContract.setChainLink(
+  await d.ratesContract.connect(d.owner).setChainLink(
     tokenAddresses.BTCB,
     chainLinkFeeds.BTC
   );
-  await d.ratesContract.setChainLink(
+  await d.ratesContract.connect(d.owner).setChainLink(
     tokenAddresses.CAKE,
     chainLinkFeeds.CAKE
   );
 
-  await d.ratesContract.setLp(
+  await d.ratesContract.connect(d.owner).setLp(
     tokenAddresses.ETNA,
-    lpPairs.ETNA_BUSD
+    lpPairs.ETNA_BUSD,
+    {gasLimit: 500000}
   );
 
-  await d.ratesContract.setLp(
+  await d.ratesContract.connect(d.owner).setLp(
     tokenAddresses.MTB,
     lpPairs.MTB_BUSD
   );
 
-  await d.ratesContract.setLp(
+  await d.ratesContract.connect(d.owner).setLp(
     tokenAddresses.OxPAD,
     lpPairs.OxPAD_BUSD
   );
 
-  await d.ratesContract.setAlias(
+  await d.ratesContract.connect(d.owner).setAlias(
     tokenAddresses.NETNA,
     tokenAddresses.ETNA,
   );
