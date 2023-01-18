@@ -1,0 +1,65 @@
+{
+    "usdt": {
+        "latest": "0x9089CaAFa63C97fF5198522C97E281799C42245A",
+        "all": [
+            {
+                "address": "0x9089CaAFa63C97fF5198522C97E281799C42245A",
+                "timestamp": 1674028105
+            }
+        ]
+    },
+    "usdc": {
+        "latest": "0x8AC88EAfB0d324C1C2E2bA5E740b8bbfaCf7D39A",
+        "all": [
+            {
+                "address": "0x8AC88EAfB0d324C1C2E2bA5E740b8bbfaCf7D39A",
+                "timestamp": 1674028105
+            }
+        ]
+    },
+    "syntrum": {
+        "latest": "0x8162bfb22276b307C21343bEd181Cd15778151B9",
+        "all": [
+            {
+                "address": "0x8162bfb22276b307C21343bEd181Cd15778151B9",
+                "timestamp": 1674028105
+            }
+        ]
+    },
+    "nSyntrum": {
+        "latest": "0x589844B4885d8451144985F8f9da80085d5aD4E1",
+        "all": [
+            {
+                "address": "0x589844B4885d8451144985F8f9da80085d5aD4E1",
+                "timestamp": 1674028105
+            }
+        ]
+    },
+    "wbtc": {
+        "latest": "0x47525d1d631b4Ead2c28fbd5b0c96e6B0b1878Bf",
+        "all": [
+            {
+                "address": "0x47525d1d631b4Ead2c28fbd5b0c96e6B0b1878Bf",
+                "timestamp": 1674028105
+            }
+        ]
+    },
+    "weth": {
+        "latest": "0x0e588a6786b0d783989B2B8b75F61644427af160",
+        "all": [
+            {
+                "address": "0x0e588a6786b0d783989B2B8b75F61644427af160",
+                "timestamp": 1674028105
+            }
+        ]
+    },
+    "cyclops": {
+        "latest": "0x5ce01499fCd6f44BA29eCed025D914c8EF1EaF60",
+        "all": [
+            {
+                "address": "0x5ce01499fCd6f44BA29eCed025D914c8EF1EaF60",
+                "timestamp": 1674028105
+            }
+        ]
+    }
+}

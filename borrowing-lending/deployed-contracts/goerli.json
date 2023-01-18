@@ -1,0 +1,164 @@
+{
+    "usdt": {
+        "latest": "0x8AC88EAfB0d324C1C2E2bA5E740b8bbfaCf7D39A",
+        "all": [
+            {
+                "address": "0x8AC88EAfB0d324C1C2E2bA5E740b8bbfaCf7D39A",
+                "timestamp": 1671371811
+            }
+        ]
+    },
+    "usdc": {
+        "latest": "0x8162bfb22276b307C21343bEd181Cd15778151B9",
+        "all": [
+            {
+                "address": "0x8162bfb22276b307C21343bEd181Cd15778151B9",
+                "timestamp": 1671371811
+            }
+        ]
+    },
+    "syntrum": {
+        "latest": "0x589844B4885d8451144985F8f9da80085d5aD4E1",
+        "all": [
+            {
+                "address": "0x589844B4885d8451144985F8f9da80085d5aD4E1",
+                "timestamp": 1671372026
+            }
+        ]
+    },
+    "nSyntrum": {
+        "latest": "0x47525d1d631b4Ead2c28fbd5b0c96e6B0b1878Bf",
+        "all": [
+            {
+                "address": "0x47525d1d631b4Ead2c28fbd5b0c96e6B0b1878Bf",
+                "timestamp": 1671371811
+            }
+        ]
+    },
+    "wbtc": {
+        "latest": "0x0e588a6786b0d783989B2B8b75F61644427af160",
+        "all": [
+            {
+                "address": "0x0e588a6786b0d783989B2B8b75F61644427af160",
+                "timestamp": 1671371811
+            }
+        ]
+    },
+    "weth": {
+        "latest": "0x5ce01499fCd6f44BA29eCed025D914c8EF1EaF60",
+        "all": [
+            {
+                "address": "0x5ce01499fCd6f44BA29eCed025D914c8EF1EaF60",
+                "timestamp": 1671371811
+            }
+        ]
+    },
+    "cyclops": {
+        "latest": "0x6dcb3941d5C9697ac91FD0D95fC56FB8beb57018",
+        "all": [
+            {
+                "address": "0x6dcb3941d5C9697ac91FD0D95fC56FB8beb57018",
+                "timestamp": 1671371811
+            }
+        ]
+    },
+    "nftMarketplace": {
+        "latest": "0x8fd8EcE7480a9a458E96dC90BfFE296ab0d04B59",
+        "all": [
+            {
+                "address": "0x8fd8EcE7480a9a458E96dC90BfFE296ab0d04B59",
+                "timestamp": 1671435936
+            }
+        ]
+    },
+    "proxyAdmin": {
+        "latest": "0x31A6B10d8eEb4204725559Ad87c338350Da92af5",
+        "all": [
+            {
+                "address": "0x31A6B10d8eEb4204725559Ad87c338350Da92af5",
+                "timestamp": 1671436824
+            }
+        ]
+    },
+    "rates": {
+        "latest": "0xA146a0bED1774b46a9832560a236079bB3D8C412",
+        "all": [
+            {
+                "address": "0xA146a0bED1774b46a9832560a236079bB3D8C412",
+                "timestamp": 1671437202
+            }
+        ]
+    },
+    "blImplementation": {
+        "latest": "0x346db1CEf072f38F7be1ae97D8CE01EcB49ab7dF",
+        "all": [
+            {
+                "address": "0x346db1CEf072f38F7be1ae97D8CE01EcB49ab7dF",
+                "timestamp": 1671442244
+            }
+        ]
+    },
+    "blProxy": {
+        "latest": "0xd4DB643AA0D5A31758F3B825719869724F0E5a9C",
+        "all": [
+            {
+                "address": "0xd4DB643AA0D5A31758F3B825719869724F0E5a9C",
+                "timestamp": 1671442244
+            }
+        ]
+    },
+    "collateralImplementation": {
+        "latest": "0xecBB155027262635ccE355a4F13e9643F8A37Df4",
+        "all": [
+            {
+                "address": "0xecBB155027262635ccE355a4F13e9643F8A37Df4",
+                "timestamp": 1671452041
+            }
+        ]
+    },
+    "collateralProxy": {
+        "latest": "0x6Da88dCE0AD9F850d4F1b5C147815c492E7A6dED",
+        "all": [
+            {
+                "address": "0x6Da88dCE0AD9F850d4F1b5C147815c492E7A6dED",
+                "timestamp": 1671452290
+            }
+        ]
+    },
+    "nftCollateralImplementation": {
+        "latest": "0x6987f2A1ff39DbF369A0629c06bf529327ebea25",
+        "all": [
+            {
+                "address": "0x6987f2A1ff39DbF369A0629c06bf529327ebea25",
+                "timestamp": 1671453290
+            }
+        ]
+    },
+    "nftCollateralProxy": {
+        "latest": "0xD7baC58d0555215c5F05f166D39CBf706C988343",
+        "all": [
+            {
+                "address": "0xD7baC58d0555215c5F05f166D39CBf706C988343",
+                "timestamp": 1671453506
+            }
+        ]
+    },
+    "rewardImplementation": {
+        "latest": "0x8B42bC905662D1eF8Cb66EaCfD1fA039aAa4c9bf",
+        "all": [
+            {
+                "address": "0x8B42bC905662D1eF8Cb66EaCfD1fA039aAa4c9bf",
+                "timestamp": 1671454062
+            }
+        ]
+    },
+    "rewardProxy": {
+        "latest": "0xae74C1D03bEeAD4cbCcf591d93eF1a41129D9779",
+        "all": [
+            {
+                "address": "0xae74C1D03bEeAD4cbCcf591d93eF1a41129D9779",
+                "timestamp": 1671454217
+            }
+        ]
+    }
+}

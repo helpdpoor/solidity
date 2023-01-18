@@ -203,7 +203,11 @@ contract NFTMarketplace is Ownable {
   /**
    * @dev Contract constructor.
    */
-  constructor(address newNftContractAddress, address newERC20Address, uint256 oldContractMaxId) {
+  constructor(
+    address newNftContractAddress,
+    address newERC20Address,
+    uint256 oldContractMaxId
+  ) {
     require(newNftContractAddress != address(0), 'NFT contract address should not be zero');
     require(newERC20Address != address(0), 'ERC20 contract address should not be zero');
     _price_manager = owner();

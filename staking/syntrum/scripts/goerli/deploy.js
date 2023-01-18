@@ -5,7 +5,7 @@ const { ethers } = require("hardhat");
 const axios = require("axios");
 const d = {};
 d.networkName = hre.network.name;
-const jsonPath = path.join(__dirname, `../deployed-contracts/${d.networkName}.json`);
+const jsonPath = path.join(__dirname, `../../deployed-contracts/${d.networkName}.json`);
 d.options = {};
 
 async function main() {
@@ -14,59 +14,52 @@ async function main() {
     d.options.gasPrice = gasPrice > 30000000000 ? gasPrice : 50000000000;
   }
   const now = Math.round(Date.now() / 1000);
-  const deployedContracts = require(jsonPath);
+  d.deployedContracts = require(jsonPath);
   d.signers = await ethers.getSigners();
-  d.owner = d.signers[0];
-  d.deployer = d.signers[1];
+  d.owner = d.signers[1];
+
   d.addresses = {
-    bscMainnet: {
-      etna: '0x51f35073ff7cf54c9e86b7042e59a8cc9709fc46',
-      mtb: '0x36C618F869050106e1F64d777395baF7d56A9Ead',
+    goerli: {
+      syntrum: '0x589844B4885d8451144985F8f9da80085d5aD4E1',
       taxReceiver: '0x000000000000000000000000000000000000dead',
-      rates: '0x43E39a7b159c2b0804f377D3aC238f70dA2363A8',
-    },
-    polygonMainnet: {
-      etna: '0x015C425f6dfabC31E1464cC4339954339f096061',
-      mtb: '0x5eE0fE440a4cA7F41bCF06b20c2A30a404E21069',
-      taxReceiver: '0x000000000000000000000000000000000000dead',
-      rates: '0xD2C2bd609045d750539DBB8a87D76d3F4CAE6494',
+      rates: '0xA146a0bED1774b46a9832560a236079bB3D8C412',
     },
   };
 
   d.ProxyAdmin = await ethers.getContractFactory(
     "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
   );
-  d.proxyAdmin = await d.ProxyAdmin.deploy(d.options);
+  d.proxyAdmin = await d.ProxyAdmin.connect(d.owner).deploy(d.options);
   await d.proxyAdmin.deployed();
 
-  if (!(deployedContracts.proxyAdmin)) deployedContracts.proxyAdmin = {
+  if (!(d.deployedContracts.proxyAdmin)) d.deployedContracts.proxyAdmin = {
     latest: '',
     all: [],
   };
 
-  deployedContracts.proxyAdmin.latest = d.proxyAdmin.address;
-  deployedContracts.proxyAdmin.all.push({
+  d.deployedContracts.proxyAdmin.latest = d.proxyAdmin.address;
+  d.deployedContracts.proxyAdmin.all.push({
     address: d.proxyAdmin.address,
     timestamp: now,
   });
-  saveToJson(deployedContracts);
+  saveToJson(d.deployedContracts);
   console.log("Proxy admin contract was deployed to:", d.proxyAdmin.address);
 
   const Staking = await ethers.getContractFactory("Staking");
   d.stakingImplementation = await Staking.connect(d.owner).deploy(d.options);
   await d.stakingImplementation.deployed();
 
-  if (!(deployedContracts.stakingImplementation)) deployedContracts.stakingImplementation = {
+  if (!(d.deployedContracts.stakingImplementation)) d.deployedContracts.stakingImplementation = {
     latest: '',
     all: [],
   };
 
-  deployedContracts.stakingImplementation.latest = d.stakingImplementation.address;
-  deployedContracts.stakingImplementation.all.push({
+  d.deployedContracts.stakingImplementation.latest = d.stakingImplementation.address;
+  d.deployedContracts.stakingImplementation.all.push({
     address: d.stakingImplementation.address,
     timestamp: now,
   });
-  saveToJson(deployedContracts);
+  saveToJson(d.deployedContracts);
   console.log("Staking implementation contract was deployed to:", d.stakingImplementation.address);
 
   d.ABI = [
@@ -91,17 +84,17 @@ async function main() {
 
   d.staking = await Staking.attach(d.stakingProxy.address);
 
-  if (!(deployedContracts.staking)) deployedContracts.staking = {
+  if (!(d.deployedContracts.staking)) d.deployedContracts.staking = {
     latest: '',
     all: [],
   };
 
-  deployedContracts.staking.latest = d.staking.address;
-  deployedContracts.staking.all.push({
+  d.deployedContracts.staking.latest = d.staking.address;
+  d.deployedContracts.staking.all.push({
     address: d.staking.address,
     timestamp: now,
   });
-  saveToJson(deployedContracts);
+  saveToJson(d.deployedContracts);
   console.log("Staking contract was deployed to:", d.staking.address);
 
   console.log('Deployment completed');

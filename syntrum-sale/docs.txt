@@ -1,0 +1,4 @@
+The key differences between sale contract for 0xPAD and for Syntrum are:
+1. Contract for 0xPAD was developed for payment in a single currency (it was possible to set different contract as a payment currency, but it was not possible to use different payment currencies. Contract for Syntrum let simultaneously add multiple payment currencies (both ERC20 and native) with different cross rates with Syntrum.
+2. 0xPAD contract calculate amount of tokens to be sold using Staking contract, in Syntrum contract these part was removed.
+3. I've developed new whitelisting mechanism that will let store whitelist outside contract. If there will be a lot of addresses to be whitelisted it will save money.

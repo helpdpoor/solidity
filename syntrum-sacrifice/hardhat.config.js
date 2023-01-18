@@ -111,11 +111,7 @@ module.exports = {
     goerli: {
       url: 'https://goerli.infura.io/v3/a8192b3af98c4fa7b02136e60c754897',
       accounts: [`${deployer.privateKey}`, `${ratesDeployer.privateKey}`]
-    },
-    syntrumTestnet: {
-      url: 'https://testnet.syntrum.com/rpc',
-      accounts: [`${deployer.privateKey}`, `${ratesDeployer.privateKey}`],
-    },
+    }
   },
   etherscan: {
     // Your API key for Etherscan

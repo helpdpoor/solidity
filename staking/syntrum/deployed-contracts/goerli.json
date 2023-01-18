@@ -1,0 +1,38 @@
+{
+    "proxyAdmin": {
+        "latest": "0x202183e8B2b4FC80Ac8c7844477794787a158d49",
+        "all": [
+            {
+                "address": "0x202183e8B2b4FC80Ac8c7844477794787a158d49",
+                "timestamp": 1671519863
+            }
+        ]
+    },
+    "stakingImplementation": {
+        "latest": "0x364Be0e8C7372e8E93263D13E1b5DC0CDC81E520",
+        "all": [
+            {
+                "address": "0x364Be0e8C7372e8E93263D13E1b5DC0CDC81E520",
+                "timestamp": 1671519863
+            }
+        ]
+    },
+    "staking": {
+        "latest": "0x059D626895c3FAEa3E2744B9f80BE998F0ddf50e",
+        "all": [
+            {
+                "address": "0x059D626895c3FAEa3E2744B9f80BE998F0ddf50e",
+                "timestamp": 1671519863
+            }
+        ]
+    },
+    "stakingNft": {
+        "latest": "0x82A32eb7f8A0df744d2AAf1392F0B30da38eFd32",
+        "all": [
+            {
+                "address": "0x82A32eb7f8A0df744d2AAf1392F0B30da38eFd32",
+                "timestamp": 1671524414
+            }
+        ]
+    }
+}
