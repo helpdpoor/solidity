@@ -7,7 +7,7 @@ const hre = require("hardhat");
 const {ethers} = require("hardhat");
 const fs = require('fs');
 const path = require('path');
-const jsonPath = path.join(__dirname, '../../deployed-contracts/goerli.json');
+const jsonPath = path.join(__dirname, '../../deployed-contracts/syntrumTestnet.json');
 const d = {};
 
 async function main() {
@@ -45,7 +45,6 @@ async function main() {
   d.blContract = await d.BorrowingLending.attach(d.deployedContracts.blProxy.latest);
 
   d.Collateral = await ethers.getContractFactory("Collateral");
-  d.collateralImplementation = await d.Collateral.attach(d.deployedContracts.collateralImplementation.latest);
   d.collateralImplementation = await d.Collateral.deploy(d.options);
   await d.collateralImplementation.deployed();
   if (!(d.deployedContracts.collateralImplementation)) d.deployedContracts.collateralImplementation = {

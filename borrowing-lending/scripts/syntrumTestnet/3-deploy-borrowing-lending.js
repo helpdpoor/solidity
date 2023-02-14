@@ -7,7 +7,7 @@ const hre = require("hardhat");
 const {ethers} = require("hardhat");
 const fs = require('fs');
 const path = require('path');
-const jsonPath = path.join(__dirname, '../../deployed-contracts/goerli.json');
+const jsonPath = path.join(__dirname, '../../deployed-contracts/syntrumTestnet.json');
 const d = {};
 
 async function main() {

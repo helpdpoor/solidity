@@ -61,5 +61,104 @@
                 "timestamp": 1674028105
             }
         ]
+    },
+    "nftMarketplace": {
+        "latest": "0xC134C5c98c22Bb8522D46A4cAa05eCE308868f68",
+        "all": [
+            {
+                "address": "0xC134C5c98c22Bb8522D46A4cAa05eCE308868f68",
+                "timestamp": 1674050023
+            }
+        ]
+    },
+    "proxyAdmin": {
+        "latest": "0x4b0Cfae17E0e04c228f3632152361F6d28B8DC64",
+        "all": [
+            {
+                "address": "0x4b0Cfae17E0e04c228f3632152361F6d28B8DC64",
+                "timestamp": 1674050166
+            }
+        ]
+    },
+    "rates": {
+        "latest": "0x8fd8EcE7480a9a458E96dC90BfFE296ab0d04B59",
+        "all": [
+            {
+                "address": "0x8fd8EcE7480a9a458E96dC90BfFE296ab0d04B59",
+                "timestamp": 1674050205
+            }
+        ]
+    },
+    "blImplementation": {
+        "latest": "0xA146a0bED1774b46a9832560a236079bB3D8C412",
+        "all": [
+            {
+                "address": "0xA146a0bED1774b46a9832560a236079bB3D8C412",
+                "timestamp": 1674050245
+            }
+        ]
+    },
+    "blProxy": {
+        "latest": "0x005Aeaf1e1360186Be9f6152613250bB1EdCEAfb",
+        "all": [
+            {
+                "address": "0x005Aeaf1e1360186Be9f6152613250bB1EdCEAfb",
+                "timestamp": 1674050245
+            }
+        ]
+    },
+    "collateralImplementation": {
+        "latest": "0x33645efFad77599657ED2150F544d276b7C100ec",
+        "all": [
+            {
+                "address": "0x33645efFad77599657ED2150F544d276b7C100ec",
+                "timestamp": 1674050401
+            }
+        ]
+    },
+    "collateralProxy": {
+        "latest": "0xC4565b1C2B5d269C50F30bB16D4aeFcc1FB527CC",
+        "all": [
+            {
+                "address": "0xC4565b1C2B5d269C50F30bB16D4aeFcc1FB527CC",
+                "timestamp": 1674050401
+            }
+        ]
+    },
+    "nftCollateralImplementation": {
+        "latest": "0x6d9C6CBD72aF51F820ea1B2D6BFb7e83d98310C6",
+        "all": [
+            {
+                "address": "0x6d9C6CBD72aF51F820ea1B2D6BFb7e83d98310C6",
+                "timestamp": 1674050480
+            }
+        ]
+    },
+    "nftCollateralProxy": {
+        "latest": "0x0A62E067972ea559A15279BdfE52b1DE3DD3b4Ee",
+        "all": [
+            {
+                "address": "0x0A62E067972ea559A15279BdfE52b1DE3DD3b4Ee",
+                "timestamp": 1674050480
+            }
+        ]
+    },
+    "rewardImplementation": {
+        "latest": "0xD7baC58d0555215c5F05f166D39CBf706C988343",
+        "all": [
+            {
+                "address": "0xD7baC58d0555215c5F05f166D39CBf706C988343",
+                "timestamp": 1674050533
+            }
+        ]
+    },
+    "rewardProxy": {
+        "latest": "0xF66b5507EfDA400abc31b1c055022FdE969aE9be",
+        "all": [
+            {
+                "address": "0xF66b5507EfDA400abc31b1c055022FdE969aE9be",
+                "timestamp": 1674050533
+            }
+        ]
     }
 }

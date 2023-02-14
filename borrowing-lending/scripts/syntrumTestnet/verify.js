@@ -1,7 +1,7 @@
 const {ethers} = require("hardhat");
 const d = {};
 const path = require('path');
-const jsonPath = path.join(__dirname, '../../deployed-contracts/goerli.json');
+const jsonPath = path.join(__dirname, '../../deployed-contracts/syntrumTestnet.json');
 d.deployedContracts = require(jsonPath);
 
 const factors = {

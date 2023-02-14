@@ -18,29 +18,16 @@ async function main() {
 
   const deployedContracts = require(jsonPath);
 
-  d.ProxyAdmin = await ethers.getContractFactory(
-    "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol:ProxyAdmin"
-  );
-  d.proxyAdmin = await d.ProxyAdmin.deploy();
-  await d.proxyAdmin.deployed();
-  if (!(deployedContracts.proxyAdmin)) deployedContracts.proxyAdmin = {
-    latest: '',
-    all: [],
-  };
-  deployedContracts.proxyAdmin.latest = d.proxyAdmin.address
-  deployedContracts.proxyAdmin.all.push({
-    address: d.proxyAdmin.address,
-    timestamp: now,
-  });
-  saveToJson(deployedContracts);
-  console.log(`Proxy admin contract deployed to ${d.proxyAdmin.address}`);
-}
+  d.Collateral = await ethers.getContractFactory("Collateral");
+  d.collateral = await d.Collateral.attach(deployedContracts.collateralProxy.latest);
 
-function saveToJson(jsonData) {
-  fs.writeFileSync(
-    jsonPath,
-    JSON.stringify(jsonData, null, 4)
-  );
+  d.tx = await d.collateral.depositCollateral(1, 0, {value: ethers.utils.parseUnits('1.1')});
+  await d.tx.wait(1);
+  console.log('deposit', d.tx.hash);
+
+  d.tx = await d.collateral.withdrawCollateral(1, ethers.utils.parseUnits('0.9'));
+  await d.tx.wait(1);
+  console.log('withdraw', d.tx.hash);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
