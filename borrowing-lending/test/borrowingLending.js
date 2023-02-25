@@ -26,7 +26,7 @@ const duration = 365 * 24 * 3600;
 let rewardPool = 100000;
 const d = {};
 
-describe("borrowingLending.js - Testing debank contracts", function () {
+describe.only("borrowingLending.js - Testing debank contracts", function () {
   beforeEach(async function () {
     signers = await ethers.getSigners();
 

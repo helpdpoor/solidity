@@ -154,6 +154,9 @@ contract Collateral is Initializable {
         address indexed userAddress, address indexed liquidatorAddress,
         uint256 collateralIndex, uint256 timestamp
     );
+    event LiquidatorsListChanged (
+        address indexed userAddress, bool state
+    );
     modifier onlyOwner() {
         require(msg.sender == _owner, '62');
         _;
@@ -712,6 +715,7 @@ contract Collateral is Initializable {
         address userAddress
     ) external onlyManager returns (bool) {
         _liquidators[userAddress] = true;
+        emit LiquidatorsListChanged(userAddress, true);
         return true;
     }
 
@@ -719,6 +723,7 @@ contract Collateral is Initializable {
         address userAddress
     ) external onlyManager returns (bool) {
         _liquidators[userAddress] = false;
+        emit LiquidatorsListChanged(userAddress, false);
         return true;
     }
 

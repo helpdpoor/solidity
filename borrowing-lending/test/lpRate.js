@@ -14,7 +14,7 @@ d.addresses = {
 };
 
 // Start test block
-describe.only('lpRate.js - Rate contract testing (setting LP rate)', function () {
+describe('lpRate.js - Rate contract testing (setting LP rate)', function () {
   beforeEach(async function () {
     await hre.network.provider.request({
       method: "hardhat_reset",

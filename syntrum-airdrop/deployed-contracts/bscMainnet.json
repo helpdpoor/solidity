@@ -1,1 +1,15 @@
-{}
+{
+    "syntrumAirdrop": {
+        "latest": "0xbe62e6417be4E38cde712209115D4c67b7d93099",
+        "all": [
+            {
+                "address": "0x8Fa907B18b21c491a25503D3b0B8Db8f8466DAba",
+                "timestamp": 1676389760
+            },
+            {
+                "address": "0xbe62e6417be4E38cde712209115D4c67b7d93099",
+                "timestamp": 1676391494
+            }
+        ]
+    }
+}

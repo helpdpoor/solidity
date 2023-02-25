@@ -3,9 +3,7 @@ pragma solidity 0.8.2;
 import './common/AccessControl.sol';
 import './common/Utils.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
-import 'hardhat/console.sol';
-
-
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 /**
  * @dev Sale contract,
@@ -70,6 +68,16 @@ contract SyntrumAirdrop is AccessControl, Utils {
         );
         emit EarningsReceived(msg.sender, _amount);
         return true;
+    }
+
+    function tokenBalance () external view returns (uint256) {
+        return IERC20(_tokenAddress).balanceOf(address(this));
+    }
+
+    function earningsReceived (
+        address userAddress
+    ) external view returns (bool) {
+        return _earningsReceived[userAddress];
     }
 
     function verifySignature (
