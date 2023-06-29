@@ -10,8 +10,9 @@
   "license": "ISC",
   "devDependencies": {
     "@atixlabs/hardhat-time-n-mine": "0.0.5",
+    "@cronos-labs/hardhat-cronoscan": "^0.0.4",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
-    "@nomiclabs/hardhat-etherscan": "^3.0.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "assert": "^2.0.0",
     "chai": "^4.3.4",

@@ -1,0 +1,11 @@
+{
+    "payments": {
+        "latest": "0x3F1e522fd4b199c3dF93bC64E55ecBDd76668c5d",
+        "all": [
+            {
+                "address": "0x3F1e522fd4b199c3dF93bC64E55ecBDd76668c5d",
+                "timestamp": 1678774673
+            }
+        ]
+    }
+}

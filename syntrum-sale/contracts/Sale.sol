@@ -28,6 +28,7 @@ contract Sale is AccessControl, Utils {
         uint256 usdPaidAmount,
         uint256 purchasedAmount
     );
+
     event Withdraw(
         address indexed userAddress,
         uint256 withdrawAmount
@@ -42,6 +43,15 @@ contract Sale is AccessControl, Utils {
         bool active;
     }
 
+    struct Round {
+        uint256 usdRate; // syntrum token price in USD multiplied by 10 ** 18
+        uint256 startTime; // unix timestamp
+        uint256 endTime; // unix timestamp
+        uint256 duration; // duration in seconds
+        uint256 maxAllocation; // maximum allocation of Syntrum tokens
+        uint256 allocated; // amount of allocated Syntrum tokens
+    }
+
     struct TokenReleaseStage {
         uint16 percentage; // purchased tokens percentage to be released
         uint256 activationTime;  // stage activation timestamp
@@ -49,31 +59,32 @@ contract Sale is AccessControl, Utils {
 
     mapping (uint8 => PaymentProfile) internal _paymentProfiles;
     mapping (uint8 => TokenReleaseStage) internal _releaseStages;
+    mapping (uint8 => Round) internal _rounds;
     mapping (address => uint256) internal _purchasedAmount;
     mapping (address => uint256) internal _withdrawnAmount;
     mapping(address => uint256) internal _innerRates;
     mapping (address => bool) internal _whitelist;
     
     IRates internal _rates;
-    address internal _brandToken;
+    address internal _syntrumTokenAddress;
     address _receiver;
     bytes32 internal constant MANAGER = keccak256(abi.encode('MANAGER'));
     bytes32 internal constant SIGNER = keccak256(abi.encode('SIGNER'));
     bool internal _isPublic;
-    uint256 internal _salePoolSize; // sale cap in usd (stablecoins)
     uint256 internal _usdTotalPaid; // paid in total in usd (stablecoins)
     uint256 internal _totalWithdrawn; // withdrawn token amount (for statistics)
     uint256 internal _maxPurchaseAmount;
     // Max amount of tokens that can be purchased by address
-    uint256 internal _startTime; // timestamp of the sale start time
-    uint256 internal _endTime; // timestamp of the sale end time
     uint256 internal constant SHIFT_18 = 10 ** 18;
     uint256 internal constant SHIFT_4 = 10 ** 4;
     uint16 internal _batchLimit = 100; 
     // limit for array length when added/removed to/from whitelist
     uint8 internal _tokenReleaseStagesNumber;
-    // Number of the stages of token releasing
-    uint8 internal _paymentProfilesNumber; // Number of payment profiles
+    // number of the stages of token releasing
+    uint8 internal _paymentProfilesNumber; // number of payment profiles
+    uint8 internal _roundsNumber; // number of rounds
+    uint8 internal _maxRoundsNumber = 254;
+    uint8 internal _activeRoundIndex;
 
     /**
      * @dev constructor
@@ -82,31 +93,22 @@ contract Sale is AccessControl, Utils {
         address ownerAddress,
         address managerAddress,
         address ratesAddress,
-        address brandToken,
-        address receiverAddress,
-        uint256 usdBrandRate,
-        uint256 salePoolSize
+        address syntrumTokenAddress,
+        address receiverAddress
     ) {
         require(ownerAddress != address(0), 'ownerAddress can not be zero');
         require(managerAddress != address(0), 'managerAddress can not be zero');
+        require(ratesAddress != address(0), 'ratesAddress can not be zero');
+        require(syntrumTokenAddress != address(0), 'syntrumTokenAddress can not be zero');
+        require(receiverAddress != address(0), 'receiverAddress can not be zero');
         require(
-            brandToken != address(0), 'brandToken can not be zero'
+            syntrumTokenAddress != address(0), 'syntrumTokenAddress can not be zero'
         );
-        require(salePoolSize > 0, 'salePoolSize can not be zero');
         _owner = ownerAddress;
         _grantRole(MANAGER, managerAddress);
         _rates =  IRates(ratesAddress);
-        if (usdBrandRate == 0) {
-            require(
-                _rates.getUsdRate(brandToken) > 0,
-                    'Brand token rate can not be zero'
-            );
-        } else {
-            _innerRates[brandToken] = usdBrandRate;
-        }
-        _brandToken = brandToken;
+        _syntrumTokenAddress = syntrumTokenAddress;
         _receiver = receiverAddress;
-        _salePoolSize = salePoolSize;
     }
 
     function addToWhitelist (address userAddress) external hasRole(MANAGER) returns (bool) {
@@ -155,9 +157,28 @@ contract Sale is AccessControl, Utils {
         return _batchLimit;
     }
 
-    function checkSaleActive () public view returns (bool) {
-        require(block.timestamp >= _startTime, 'Sale is not started yet');
-        require(block.timestamp <= _endTime, 'Sale is over');
+    function _checkSale () internal returns (bool) {
+        if (
+            _activeRoundIndex == 0
+                && _rounds[1].startTime < block.timestamp
+        ) {
+            _activeRoundIndex = 1;
+        }
+        require(_activeRoundIndex > 0, 'Sale is not started yet');
+        uint8 activeRoundIndex = _activeRoundIndex;
+        for (uint8 i = activeRoundIndex; i <= _roundsNumber; i ++) {
+            if (_rounds[i].endTime < block.timestamp) {
+                require(i < _roundsNumber, 'Sale is over');
+                _activeRoundIndex = i + 1;
+                if (_rounds[i].maxAllocation > _rounds[i].allocated) {
+                    _rounds[_activeRoundIndex].maxAllocation
+                        += (_rounds[i].maxAllocation - _rounds[i].allocated);
+                }
+            } else {
+                break;
+            }
+        }
+
         return true;
     }
 
@@ -182,9 +203,7 @@ contract Sale is AccessControl, Utils {
     function setRatesContract (
         address ratesAddress
     ) external hasRole(MANAGER) returns (bool) {
-        require(
-            ratesAddress != address(0), 'ratesAddress can not be zero'
-        );
+        require(ratesAddress != address(0), 'ratesAddress can not be zero');
         _rates =  IRates(ratesAddress);
         return true;
     }
@@ -196,6 +215,7 @@ contract Sale is AccessControl, Utils {
     function setReceiver (
         address receiverAddress
     ) external onlyOwner returns (bool) {
+        require(receiverAddress != address(0), 'receiverAddress can not be zero');
         _receiver =  receiverAddress;
         return true;
     }
@@ -203,12 +223,53 @@ contract Sale is AccessControl, Utils {
     function getRate (
         address tokenAddress
     ) public view returns (uint256) {
+        if (tokenAddress == _syntrumTokenAddress) {
+            return getSyntrumUsdRate(true);
+        }
         if (_innerRates[tokenAddress] > 0) {
             return _innerRates[tokenAddress];
         }
         uint256 rate = _rates.getUsdRate(tokenAddress);
         require(rate > 0, 'Rate calculation error');
         return rate;
+    }
+
+    function getSyntrumUsdRate (
+        bool needUpdate
+    ) public view returns (uint256) {
+        if (!needUpdate) return _rounds[_activeRoundIndex].usdRate;
+        uint8 activeRoundIndex = getActiveRoundIndex();
+        return _rounds[activeRoundIndex].usdRate;
+    }
+
+    function getActiveRoundIndex () public view returns (uint8) {
+        uint8 activeRoundIndex = _activeRoundIndex;
+        if (
+            activeRoundIndex == 0
+                && _rounds[1].startTime < block.timestamp
+        ) {
+            activeRoundIndex = 1;
+        }
+        if (activeRoundIndex == 0) return 0;
+        for (uint8 i = activeRoundIndex; i <= _roundsNumber; i ++) {
+            if (_rounds[i].endTime < block.timestamp) {
+                if (i >= _roundsNumber) return _maxRoundsNumber + 1;
+                activeRoundIndex = i + 1;
+            } else {
+                break;
+            }
+        }
+        return activeRoundIndex;
+    }
+
+    function isSaleActive () external view returns (bool) {
+        uint8 activeRoundIndex = getActiveRoundIndex();
+        return activeRoundIndex > 0
+            && activeRoundIndex < _maxRoundsNumber;
+    }
+
+    function isSaleOver () external view returns (bool) {
+        return getActiveRoundIndex() == _maxRoundsNumber;
     }
 
     function getInnerRate (
@@ -244,11 +305,16 @@ contract Sale is AccessControl, Utils {
     function purchase (
         uint8 paymentProfileIndex,
         uint256 paymentAmount, // payment amount
+        address receiver,
         bytes memory signature
     ) external payable returns (bool) {
-        checkSaleActive();
+        _checkSale();
         checkPermission(signature);
-        uint256 usdBrandRate = getRate(_brandToken);
+        uint256 syntrumUsdRate = getSyntrumUsdRate(false);
+        require(
+            receiver != address(0),
+                'Receiver address should not be a zero address'
+        );
         require(
             _paymentProfiles[paymentProfileIndex].active,
                 'Payment profile is not active or does not exist'
@@ -271,19 +337,28 @@ contract Sale is AccessControl, Utils {
         uint256 usdPaymentAmount = getUsdPaymentAmount(
             paymentProfileIndex, paymentAmount
         );
-        require(
-            usdPaymentAmount + _usdTotalPaid <= _salePoolSize,
-            'Sale pool size exceeded'
-        );
-        uint256 purchaseAmount = usdPaymentAmount * usdBrandRate / SHIFT_18;
+        uint256 purchaseAmount = usdPaymentAmount
+            * SHIFT_18 / syntrumUsdRate;
         require(purchaseAmount > 0, 'Purchase amount calculation error');
+        require(
+            purchaseAmount
+                + _rounds[_activeRoundIndex].allocated
+                    <= _rounds[_activeRoundIndex].maxAllocation,
+                'Round pool size exceeded'
+        );
 
         require(
-            _maxPurchaseAmount == 0 ||
-                (purchaseAmount + _purchasedAmount[msg.sender] <= _maxPurchaseAmount),
-                    'Max purchase amount exceeded'
+            _maxPurchaseAmount == 0
+                || (
+                        purchaseAmount + _purchasedAmount[receiver]
+                            <= _maxPurchaseAmount
+                    ),
+                'Max purchase amount exceeded'
         );
-        if (_paymentProfiles[paymentProfileIndex].contractAddress != address(0)) {
+        if (
+            _paymentProfiles[paymentProfileIndex].contractAddress
+                != address(0)
+        ) {
             _takeAsset(
                 _paymentProfiles[paymentProfileIndex].contractAddress,
                 msg.sender,
@@ -295,7 +370,8 @@ contract Sale is AccessControl, Utils {
             _receiver,
             paymentAmount
         );
-        _purchasedAmount[msg.sender] += purchaseAmount;
+        _purchasedAmount[receiver] += purchaseAmount;
+        _rounds[_activeRoundIndex].allocated += purchaseAmount;
         _usdTotalPaid += usdPaymentAmount;
         _paymentProfiles[paymentProfileIndex].totalPaid += paymentAmount;
         emit Purchase(
@@ -315,7 +391,7 @@ contract Sale is AccessControl, Utils {
         uint256 usdPaymentRate = getRate(
             _paymentProfiles[paymentProfileIndex].contractAddress
         );
-        return paymentAmount * SHIFT_18 / usdPaymentRate;
+        return paymentAmount * usdPaymentRate /  SHIFT_18;
     }
 
     function getPaymentAmount (
@@ -325,8 +401,9 @@ contract Sale is AccessControl, Utils {
         uint256 usdPaymentRate = getRate(
             _paymentProfiles[paymentProfileIndex].contractAddress
         );
-        uint256 usdBrandRate = getRate(_brandToken);
-        return purchaseAmount * usdPaymentRate / usdBrandRate;
+        uint256 syntrumUsdRate = getSyntrumUsdRate(true);
+        if (usdPaymentRate == 0) return 0;
+        return purchaseAmount * syntrumUsdRate / usdPaymentRate;
     }
 
     function getPurchaseAmount (
@@ -336,8 +413,9 @@ contract Sale is AccessControl, Utils {
         uint256 usdPaymentRate = getRate(
             _paymentProfiles[paymentProfileIndex].contractAddress
         );
-        uint256 usdBrandRate = getRate(_brandToken);
-        return paymentAmount * usdBrandRate / usdPaymentRate;
+        uint256 syntrumUsdRate = getSyntrumUsdRate(true);
+        if (syntrumUsdRate == 0) return 0;
+        return paymentAmount * usdPaymentRate / syntrumUsdRate;
     }
 
     /**
@@ -350,7 +428,7 @@ contract Sale is AccessControl, Utils {
         _withdrawnAmount[userAddress] += withdrawAmount;
         _totalWithdrawn += withdrawAmount;
         emit Withdraw(userAddress, withdrawAmount);
-        _sendAsset(_brandToken, userAddress, withdrawAmount);
+        _sendAsset(_syntrumTokenAddress, userAddress, withdrawAmount);
         return true;
     }
 
@@ -457,40 +535,10 @@ contract Sale is AccessControl, Utils {
         return true;
     }
 
-    function setSalePoolSize (
-        uint256 salePoolSize
-    ) external hasRole(MANAGER) returns (bool) {
-        require(
-            salePoolSize >= _usdTotalPaid,
-            'Sale pool size can not be less then paid token amount'
-        );
-        _salePoolSize = salePoolSize;
-        return true;
-    }
-
     function setMaxPurchaseAmount (
         uint256 maxPurchaseAmount
     ) external hasRole(MANAGER) returns (bool) {
         _maxPurchaseAmount = maxPurchaseAmount;
-        return true;
-    }
-
-    function setStartTime (
-        uint256 startTime
-    ) external hasRole(MANAGER) returns (bool) {
-        _startTime = startTime;
-        return true;
-    }
-
-    function setEndTime (
-        uint256 endTime
-    ) external hasRole(MANAGER) returns (bool) {
-        _endTime = endTime;
-        return true;
-    }
-
-    function stopSale () external hasRole(MANAGER) returns (bool) {
-        _endTime = block.timestamp - 1;
         return true;
     }
 
@@ -521,6 +569,112 @@ contract Sale is AccessControl, Utils {
         return true;
     }
 
+    function setRoundsData (
+        uint256[] calldata usdRate,
+        uint256[] calldata startTime,
+        uint256[] calldata duration,
+        uint256[] calldata maxAllocation
+    ) external hasRole(MANAGER) returns (bool) {
+        require(
+            usdRate.length <= _maxRoundsNumber,
+                'Array length can not be greater than _maxRoundsNumber'
+        );
+        require(
+            usdRate.length == startTime.length
+                && usdRate.length == duration.length
+                && usdRate.length == maxAllocation.length,
+            'Arrays should be of the same length'
+        );
+        uint8 roundsNumber;
+        uint256 previousEndTime;
+        for (uint256 i = 0; i < usdRate.length; i ++) {
+            require(
+                startTime[i] >= previousEndTime,
+                    'Round can not start before previous round end'
+            );
+            roundsNumber ++;
+            _rounds[roundsNumber].usdRate = usdRate[i];
+            _rounds[roundsNumber].startTime = startTime[i];
+            _rounds[roundsNumber].duration = duration[i];
+            _rounds[roundsNumber].maxAllocation = maxAllocation[i];
+            _rounds[roundsNumber].endTime = _rounds[roundsNumber].startTime
+                + _rounds[roundsNumber].duration;
+            previousEndTime = _rounds[roundsNumber].endTime;
+        }
+        _roundsNumber = roundsNumber;
+        return true;
+    }
+
+    function setRoundUsdRate (
+        uint8 roundIndex,
+        uint256 usdRate
+    ) external hasRole(MANAGER) returns (bool) {
+        require(
+            roundIndex > _activeRoundIndex,
+                'This round can not be changed'
+        );
+        require(
+            roundIndex <= _roundsNumber,
+                'Invalid round number'
+        );
+        _rounds[roundIndex].usdRate = usdRate;
+        return true;
+    }
+
+    function setRoundTime (
+        uint8 roundIndex,
+        uint256 startTime,
+        uint256 endTime
+    ) external hasRole(MANAGER) returns (bool) {
+        require(
+            roundIndex > _activeRoundIndex,
+            'This round can not be changed'
+        );
+        require(
+            roundIndex <= _roundsNumber,
+            'Invalid round number'
+        );
+        require(
+            endTime > startTime,
+            'end time should be greater than start time'
+        );
+        if (roundIndex > 0) {
+            require(
+                _rounds[roundIndex].startTime >=
+                    _rounds[roundIndex - 1].endTime,
+                'Round can not start before previous round end'
+            );
+        }
+        if (roundIndex < _roundsNumber) {
+            require(
+                _rounds[roundIndex].endTime <=
+                    _rounds[roundIndex + 1].startTime,
+                'Round can not end later than the next round start'
+            );
+        }
+        _rounds[roundIndex].startTime = startTime;
+        _rounds[roundIndex].endTime = endTime;
+        _rounds[roundIndex].duration = _rounds[roundIndex].endTime
+            - _rounds[roundIndex].startTime;
+        return true;
+    }
+
+    function setRoundAllocation (
+        uint8 roundIndex,
+        uint256 maxAllocation
+    ) external hasRole(MANAGER) returns (bool) {
+        require(
+            roundIndex > _activeRoundIndex,
+            'This round can not be changed'
+        );
+        require(
+            roundIndex <= _roundsNumber,
+            'Invalid round number'
+        );
+        _rounds[roundIndex].maxAllocation = maxAllocation;
+        return true;
+    }
+
     function getUserPurchased (
         address userAddress
     ) external view returns (uint256) {
@@ -541,24 +695,12 @@ contract Sale is AccessControl, Utils {
         return _totalWithdrawn;
     }
 
-    function getStartTime () external view returns (uint256) {
-        return _startTime;
-    }
-
-    function getEndTime () external view returns (uint256) {
-        return _endTime;
-    }
-
     function getTimestamp () external view returns (uint256) {
         return block.timestamp;
     }
 
     function getMaxPurchaseAmount () external view returns (uint256) {
         return _maxPurchaseAmount;
-    }
-
-    function getSalePoolSize () external view returns (uint256) {
-        return _salePoolSize;
     }
 
     function getPaymentProfile (
@@ -599,15 +741,39 @@ contract Sale is AccessControl, Utils {
     }
 
     function getTokenReleaseStageData (
-        uint8 stageNumber
+        uint8 stageIndex
     ) external view returns (uint256 activationTime, uint16 percentage) {
         require(
-            stageNumber > 0 && stageNumber <= _tokenReleaseStagesNumber,
+            stageIndex > 0 && stageIndex <= _tokenReleaseStagesNumber,
             'Invalid stage number'
         );
         return (
-            _releaseStages[stageNumber].activationTime,
-            _releaseStages[stageNumber].percentage
+            _releaseStages[stageIndex].activationTime,
+            _releaseStages[stageIndex].percentage
+        );
+    }
+
+    function getRoundData (
+        uint8 roundIndex
+    ) external view returns (
+        uint256 usdRate,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 duration,
+        uint256 maxAllocation,
+        uint256 allocated
+    ) {
+        require(
+            roundIndex <= _roundsNumber,
+                'Invalid round number'
+        );
+        return (
+            _rounds[roundIndex].usdRate,
+            _rounds[roundIndex].startTime,
+            _rounds[roundIndex].endTime,
+            _rounds[roundIndex].duration,
+            _rounds[roundIndex].maxAllocation,
+            _rounds[roundIndex].allocated
         );
     }
 

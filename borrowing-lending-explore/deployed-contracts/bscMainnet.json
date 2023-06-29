@@ -1,0 +1,20 @@
+{
+    "bl": {
+        "latest": "0x86358e0ac8BA5B164709AE28Cdc47494A8d55d09",
+        "all": [
+            {
+                "address": "0x86358e0ac8BA5B164709AE28Cdc47494A8d55d09",
+                "timestamp": 1657685116
+            }
+        ]
+    },
+    "collateral": {
+        "latest": "0x34ccAB89934927d36A8204dB3B92Fac1Ebd97FE6",
+        "all": [
+            {
+                "address": "0x34ccAB89934927d36A8204dB3B92Fac1Ebd97FE6",
+                "timestamp": 1657685116
+            }
+        ]
+    }
+}

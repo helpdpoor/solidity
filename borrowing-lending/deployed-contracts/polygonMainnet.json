@@ -56,7 +56,7 @@
         ]
     },
     "collateralImplementation": {
-        "latest": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "latest": "0xb6667cC1A53521C12e7255cAB22513048dFeD23D",
         "all": [
             {
                 "address": "0xFC6a5416C5A7e2b19Cd5A84376d1153675ee87Bb",
@@ -73,6 +73,10 @@
             {
                 "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
                 "timestamp": 1677297335
+            },
+            {
+                "address": "0xb6667cC1A53521C12e7255cAB22513048dFeD23D",
+                "timestamp": 1677342557
             }
         ]
     },

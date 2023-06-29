@@ -3,6 +3,7 @@ require("@atixlabs/hardhat-time-n-mine");
 require("hardhat-tracer");
 // require("hardhat-gas-reporter");
 require("@nomiclabs/hardhat-etherscan");
+require("@cronos-labs/hardhat-cronoscan");
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -14,10 +15,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-const deployer = {
-  address: '0x5011f31d9969Fb0B31766435829Df66Afa04D6FA',
-  privateKey: 'f43903422311b6bb341a69426e01b301f4ac5b0116260c437b0964353d0a271c',
-};
+const { deployer, scanApiKeys } = require('./secrets.json');
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -49,8 +47,12 @@ module.exports = {
     ],
   },
   networks: {
-    bscTestnet: {
-      url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
+    goerli: {
+      url: 'https://goerli.infura.io/v3/a722278d431a4cc1a7529963d2d66b25',
+      accounts: [`${deployer.privateKey}`]
+    },
+    ethereumMainnet: {
+      url: 'https://mainnet.infura.io/v3/a722278d431a4cc1a7529963d2d66b25',
       accounts: [`${deployer.privateKey}`]
     },
     bscMainnet: {
@@ -58,13 +60,15 @@ module.exports = {
       accounts: [`${deployer.privateKey}`]
     },
     polygonMainnet: {
-      url: 'https://polygon-mainnet.infura.io/v3/a8192b3af98c4fa7b02136e60c754897',
+      url: 'https://polygon-mainnet.infura.io/v3/a722278d431a4cc1a7529963d2d66b25',
+      accounts: [`${deployer.privateKey}`]
+    },
+    cronosMainnet: {
+      url: 'https://evm.cronos.org/',
       accounts: [`${deployer.privateKey}`]
     }
   },
   etherscan: {
-    // Your API key for Etherscan
-    // Obtain one at https://etherscan.io/
-    apiKey: "PSTZJXKDW33PZI8N6FJDWVYZ5CD2AK7362"
+    apiKey: scanApiKeys
   }
 };

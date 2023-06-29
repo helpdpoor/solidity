@@ -1,0 +1,1 @@
+Smart contract allow accept payments in crypto for services available at syntrum API
