@@ -1,0 +1,1416 @@
+const chaiAsPromised = require('chai-as-promised');
+const chai = require('chai');
+const hre = require("hardhat");
+chai.use(chaiAsPromised);
+const expect = chai.expect;
+const { ethers } = require("hardhat");
+const initialTransfer = 10000;
+const blockTime = 3000;
+const year = 365 * 24 * 3600;
+let 
+  signers, 
+  deposit1contract, 
+  deposit2contract,
+  yield1contract,
+  yield2contract,
+  lock1contract,
+  lock2contract,
+  syntrumVaultContract;
+let owner, manager, pool1owner, pool2owner, user1, user2, user3, taxReceiver;
+const result = {};
+const lock1amount = 9000;
+const lock2amount = 8000;
+const pool1size = 5000;
+const pool2size = 5000;
+const distribution1period = 3600 * 24 * 365;
+const distribution2period = 3600 * 24 * 365;
+const deposit1amount = 100;
+const deposit2amount = 700;
+const deposit3amount = 17;
+const unstake1amount = 73;
+const withdrawYield1amount = 1.8;
+const tax = 1000;
+const decimals = 10000;
+const apr = 2000;
+
+
+describe("Testing SyntrumVault contract", function () {
+  beforeEach(async function () {
+    signers = await ethers.getSigners();
+    user1 = signers[0];
+    user2 = signers[1];
+    user3 = signers[2];
+    pool1owner = signers[6];
+    pool2owner = signers[7];
+    taxReceiver = signers[8];
+    manager = signers[9];
+    owner = signers[10];
+
+    const ERC20Token = await ethers.getContractFactory("ERC20Token");
+    deposit1contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await deposit1contract.deployed();
+    await deposit1contract.connect(owner).transfer(user1.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit1contract.connect(owner).transfer(user2.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit1contract.connect(owner).transfer(user3.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    deposit2contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await deposit2contract.deployed();
+    await deposit2contract.connect(owner).transfer(user1.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(owner).transfer(user2.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(owner).transfer(user3.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    yield1contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await yield1contract.deployed();
+    await yield1contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(owner).transfer(user1.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(owner).transfer(user2.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    yield2contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await yield2contract.deployed();
+    await yield2contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield2contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    lock1contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await lock1contract.deployed();
+    await lock1contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock1contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    lock2contract = await ERC20Token.deploy(owner.address, 'ETNA', 'ETNA', ethers.utils.parseUnits('1000000'));
+    await lock2contract.deployed();
+    await lock2contract.connect(owner).transfer(pool1owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock2contract.connect(owner).transfer(pool2owner.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    const SyntrumVault = await ethers.getContractFactory("SyntrumVault");
+    syntrumVaultContract = await SyntrumVault.connect(owner).deploy(
+      owner.address,
+      taxReceiver.address,
+      tax,
+      blockTime
+    );
+    await syntrumVaultContract.deployed();
+
+    await deposit1contract.connect(user1).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit1contract.connect(user2).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit1contract.connect(user3).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    await deposit2contract.connect(user1).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(user2).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(user3).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await deposit2contract.connect(pool2owner).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    await yield1contract.connect(pool1owner).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(pool2owner).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(user1).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield1contract.connect(user2).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield2contract.connect(pool1owner).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await yield2contract.connect(pool2owner).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    await lock1contract.connect(pool1owner).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock1contract.connect(pool2owner).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock2contract.connect(pool1owner).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+    await lock2contract.connect(pool2owner).approve(syntrumVaultContract.address, ethers.utils.parseUnits(initialTransfer.toString()));
+
+    await syntrumVaultContract.connect(owner)
+      .addLockProfile(
+        lock1contract.address,
+        ethers.utils.parseUnits(lock1amount.toString()),
+        ethers.utils.parseUnits(lock1amount.toString())
+      );
+    await syntrumVaultContract.connect(owner)
+      .addLockProfile(
+        lock2contract.address,
+        ethers.utils.parseUnits(lock2amount.toString()),
+        ethers.utils.parseUnits(lock2amount.toString())
+      );
+  });
+
+  it("Pools management", async function () {
+    await syntrumVaultContract.connect(pool1owner)
+      .addDepositProfile(
+        [
+          1, // lock profile id
+          ethers.utils.parseUnits(pool1size.toString()), // pool size
+          distribution1period, // period
+          0 // apr
+        ],
+        deposit1contract.address,
+        yield1contract.address,
+        [
+          'name',
+          'depositCurrency',
+          'yieldCurrency',
+          'link'
+        ]
+      );
+
+    expect(Number(ethers.utils.formatUnits(
+      await lock1contract.balanceOf(syntrumVaultContract.address)
+    ))).to.equal(lock1amount);
+    expect(Number(
+      await syntrumVaultContract.getDepositProfilesNumber()
+    )).to.equal(1);
+    result.depositProfile = await syntrumVaultContract.getDepositProfile(1);
+    expect(result.depositProfile.depositContractAddress)
+      .to.equal(deposit1contract.address);
+    expect(result.depositProfile.lockContractAddress)
+      .to.equal(lock1contract.address);
+    expect(Number(ethers.utils.formatUnits(
+      result.depositProfile.poolSize
+    )))
+      .to.equal(pool1size);
+    expect(Number(result.depositProfile.period))
+      .to.equal(distribution1period);
+    expect(result.depositProfile.active)
+      .to.be.true;
+    result.depositProfileExtra = await syntrumVaultContract.getDepositProfileExtra(1);
+    expect(result.depositProfileExtra.poolOwnerAddress)
+      .to.equal(pool1owner.address);
+    expect(result.depositProfileExtra.name)
+      .to.equal('name');
+    expect(result.depositProfileExtra.depositCurrency)
+      .to.equal('depositCurrency');
+    expect(result.depositProfileExtra.yieldCurrency)
+      .to.equal('yieldCurrency');
+    expect(result.depositProfileExtra.link)
+      .to.equal('link');
+    expect(Number(result.depositProfileExtra.endTime))
+      .to.equal(0);
+    result.depositProfileData = await syntrumVaultContract.getDepositProfileData(1);
+    expect(Number(ethers.utils.formatUnits(
+      result.depositProfileData.lockedAmount
+    )))
+      .to.equal(lock1amount);
+
+    await syntrumVaultContract.connect(pool2owner)
+      .addDepositProfile(
+        [
+          2,
+          ethers.utils.parseUnits(pool2size.toString()),
+          distribution2period,
+          0
+        ],
+        deposit2contract.address,
+        yield2contract.address,
+        [
+          'name',
+          'depositCurrency',
+          'yieldCurrency',
+          'link'
+        ]
+      );
+
+    expect(Number(ethers.utils.formatUnits(
+      await lock2contract.balanceOf(syntrumVaultContract.address)
+    ))).to.equal(lock2amount);
+    expect(Number(
+      await syntrumVaultContract.getDepositProfilesNumber()
+    )).to.equal(2);
+
+    result.depositProfile = await syntrumVaultContract.getDepositProfile(2);
+    expect(result.depositProfile.depositContractAddress)
+      .to.equal(deposit2contract.address);
+    expect(result.depositProfile.lockContractAddress)
+      .to.equal(lock2contract.address);
+    expect(Number(ethers.utils.formatUnits(
+      result.depositProfile.poolSize
+    )))
+      .to.equal(pool2size);
+
+    expect(Number(result.depositProfile.period))
+      .to.equal(distribution2period);
+    result.depositProfileExtra = await syntrumVaultContract.getDepositProfileExtra(2);
+    expect(result.depositProfileExtra.poolOwnerAddress)
+      .to.equal(pool2owner.address);
+    expect(result.depositProfileExtra.name)
+      .to.equal('name');
+    expect(result.depositProfileExtra.depositCurrency)
+      .to.equal('depositCurrency');
+    expect(result.depositProfileExtra.yieldCurrency)
+      .to.equal('yieldCurrency');
+    expect(result.depositProfileExtra.link)
+      .to.equal('link');
+    expect(Number(result.depositProfileExtra.endTime))
+      .to.equal(0);
+    result.depositProfileData = await syntrumVaultContract.getDepositProfileData(2);
+    expect(Number(ethers.utils.formatUnits(
+      result.depositProfileData.lockedAmount
+    )))
+      .to.equal(lock2amount);
+  });
+
+  it("Dynamic staking", async function () {
+    await syntrumVaultContract.connect(pool1owner)
+      .addDepositProfile(
+        [
+          1,
+          ethers.utils.parseUnits(pool1size.toString()),
+          distribution1period,
+          0
+        ],
+        deposit1contract.address,
+        yield1contract.address,
+        [
+          'name',
+          'depositCurrency',
+          'yieldCurrency',
+          'link'
+        ]
+      );
+
+    expect(
+      await syntrumVaultContract.isReStakeAvailable(1)
+    ).to.be.false;
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    await syntrumVaultContract.connect(user1)
+      .stake(
+        ethers.utils.parseUnits(deposit1amount.toString()),
+        1
+      );
+
+    result.user1deposited = deposit1amount;
+    result.totalDeposited = deposit1amount;
+
+    expect(Number(ethers.utils.formatUnits(
+      await deposit1contract.balanceOf(syntrumVaultContract.address)
+    ))).to.equal(deposit1amount);
+    expect(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    ))).to.equal(0);
+
+    await expect(
+      syntrumVaultContract.connect(pool1owner).withdrawYieldRemains(1)
+    ).to.be.revertedWith('Option available for FSP pool only');
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward = pool1size
+      * 3600 * 24 * 10
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    result.response = Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    ));
+    expect(roundTo(result.response, 2)).to.equal(roundTo(result.user1reward, 2));
+    result.shouldBeDistributed = pool1size * 10 * 3600 * 24 / distribution1period;
+
+    await syntrumVaultContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.user2deposited = deposit2amount;
+    result.totalDeposited += deposit2amount;
+    result.response = await syntrumVaultContract.getDepositYield(1);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      result.response
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('22 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += pool1size * 3600 * 24 * 22
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward = pool1size * 3600 * 24 * 22
+      * result.user2deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.shouldBeDistributed += pool1size * 22 * 3600 * 24 / distribution1period;
+
+    hre.timeAndMine.increaseTime('12 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += pool1size * 3600 * 24 * 12
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += pool1size * 3600 * 24 * 12
+      * result.user2deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.shouldBeDistributed += pool1size * 12 * 3600 * 24 / distribution1period;
+
+    await syntrumVaultContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.user2deposited += deposit2amount;
+    result.totalDeposited += deposit2amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+
+    hre.timeAndMine.increaseTime('11 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += pool1size * 3600 * 24 * 11
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += pool1size * 3600 * 24 * 11
+      * result.user2deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.shouldBeDistributed += pool1size * 11 * 3600 * 24 / distribution1period;
+
+    await syntrumVaultContract.connect(user3)
+      .stake(
+        ethers.utils.parseUnits(deposit3amount.toString()),
+        1
+      );
+    result.user3deposited = deposit3amount;
+    result.totalDeposited += deposit3amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(0);
+
+    hre.timeAndMine.increaseTime('17 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += pool1size * 3600 * 24 * 17
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += pool1size * 3600 * 24 * 17
+      * result.user2deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.user3reward = pool1size * 3600 * 24 * 17
+      * result.user3deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+    result.shouldBeDistributed += pool1size * 17 * 3600 * 24 / distribution1period;
+
+    await syntrumVaultContract.connect(user1)
+      .withdrawYield(
+        ethers.utils.parseUnits(withdrawYield1amount.toString()),
+        1,
+        false
+      );
+    result.user1reward -= withdrawYield1amount;
+
+    await syntrumVaultContract.connect(user1)
+      .unStake(
+        ethers.utils.parseUnits(unstake1amount.toString()),
+        1
+      );
+    result.user1deposited -= unstake1amount;
+    result.totalDeposited -= unstake1amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+
+    hre.timeAndMine.increaseTime('6 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += pool1size * 3600 * 24 * 6
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += pool1size * 3600 * 24 * 6
+      * result.user2deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.user3reward += pool1size * 3600 * 24 * 6
+      * result.user3deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+    result.shouldBeDistributed += pool1size * 6 * 3600 * 24 / distribution1period;
+
+    await syntrumVaultContract.connect(user2)
+      .withdrawYieldAll(1);
+    result.user2reward = 0;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+
+    await syntrumVaultContract.connect(user3)
+      .stake(
+        ethers.utils.parseUnits(deposit3amount.toString()),
+        1
+      );
+    result.user3deposited += deposit3amount;
+    result.totalDeposited += deposit3amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+
+    hre.timeAndMine.increaseTime('11 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += pool1size * 3600 * 24 * 11
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += pool1size * 3600 * 24 * 11
+      * result.user2deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.user3reward += pool1size * 3600 * 24 * 11
+      * result.user3deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+    result.shouldBeDistributed += pool1size * 11 * 3600 * 24 / distribution1period;
+
+    await expect(
+      syntrumVaultContract.connect(pool1owner)
+        .withdrawLockedAssets(1)
+    ).to.be.revertedWith('Locked assets can not be withdrawn at the moment');
+
+    hre.timeAndMine.increaseTime('280 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += pool1size * 3600 * 24 * 276
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += pool1size * 3600 * 24 * 276
+      * result.user2deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.user3reward += pool1size * 3600 * 24 * 276
+      * result.user3deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+    result.shouldBeDistributed += pool1size * 266 * 3600 * 24 / distribution1period;
+
+    await syntrumVaultContract.connect(user1)
+      .withdrawYieldAll(1);
+    await syntrumVaultContract.connect(user2)
+      .withdrawYieldAll(1);
+    await syntrumVaultContract.connect(user3)
+      .withdrawYieldAll(1);
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await yield1contract.balanceOf(syntrumVaultContract.address)
+    )), 2)).to.equal(0);
+
+    await expect(
+      syntrumVaultContract.connect(user1)
+        .withdrawLockedAssets(1)
+    ).to.be.revertedWith('Sender is not the pool owner');
+
+    await syntrumVaultContract.connect(pool1owner)
+      .withdrawLockedAssets(1);
+
+    await expect(
+      syntrumVaultContract.connect(pool1owner)
+        .withdrawLockedAssets(1)
+    ).to.be.revertedWith('Locked assets are already withdrawn');
+
+    const taxedAmount = lock1amount * tax / decimals;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await lock1contract.balanceOf(syntrumVaultContract.address)
+    )), 8)).to.equal(0);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await lock1contract.balanceOf(pool1owner.address)
+    )), 8)).to.equal(roundTo(initialTransfer - taxedAmount, 8));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await lock1contract.balanceOf(taxReceiver.address)
+    )), 8)).to.equal(roundTo(taxedAmount, 8));
+  });
+
+  it("Fixed rate staking", async function () {
+    await syntrumVaultContract.connect(pool2owner)
+      .addDepositProfile(
+        [
+          1,
+          ethers.utils.parseUnits(pool2size.toString()),
+          distribution2period,
+          apr
+        ],
+        deposit2contract.address,
+        deposit2contract.address,
+        [
+          'name',
+          'depositCurrency',
+          'yieldCurrency',
+          'link',
+        ]
+      );
+
+    const contractBalance = Number(ethers.utils.formatUnits(
+      await deposit2contract.balanceOf(syntrumVaultContract.address)
+    ));
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    await syntrumVaultContract.connect(user1)
+      .stake(
+        ethers.utils.parseUnits(deposit1amount.toString()),
+        1
+      );
+
+    result.user1deposited = deposit1amount;
+    result.totalDeposited = deposit1amount;
+
+    expect(Number(ethers.utils.formatUnits(
+      await deposit2contract.balanceOf(syntrumVaultContract.address)
+    ))).to.equal(deposit1amount + contractBalance);
+    expect(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    ))).to.equal(0);
+
+    await expect(
+      syntrumVaultContract.connect(pool2owner).withdrawYieldRemains(1)
+    ).to.be.revertedWith('Vault is not expired yet');
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward = result.user1deposited
+      * apr
+      * 3600 * 24 * 10
+      / decimals
+      / year;
+    result.response = Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    ));
+    expect(roundTo(result.response, 2)).to.equal(roundTo(result.user1reward, 2));
+
+    await syntrumVaultContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.user2deposited = deposit2amount;
+    result.totalDeposited += deposit2amount;
+    result.response = await syntrumVaultContract.getDepositYield(1);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      result.response
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('22 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += result.user1deposited
+      * apr
+      * 3600 * 24 * 22
+      / decimals
+      / year;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward = result.user2deposited
+      * apr
+      * 3600 * 24 * 22
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+
+    hre.timeAndMine.increaseTime('12 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += result.user1deposited
+      * apr
+      * 3600 * 24 * 12
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += result.user2deposited
+      * apr
+      * 3600 * 24 * 12
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+
+    await syntrumVaultContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.user2deposited += deposit2amount;
+    result.totalDeposited += deposit2amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+
+    hre.timeAndMine.increaseTime('11 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += result.user1deposited
+      * apr
+      * 3600 * 24 * 11
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += result.user2deposited
+      * apr
+      * 3600 * 24 * 11
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+
+    await syntrumVaultContract.connect(user3)
+      .stake(
+        ethers.utils.parseUnits(deposit3amount.toString()),
+        1
+      );
+    result.user3deposited = deposit3amount;
+    result.totalDeposited += deposit3amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(0);
+
+    hre.timeAndMine.increaseTime('17 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += result.user1deposited
+      * apr
+      * 3600 * 24 * 17
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += result.user2deposited
+      * apr
+      * 3600 * 24 * 17
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.user3reward = result.user3deposited
+      * apr
+      * 3600 * 24 * 17
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+
+    await syntrumVaultContract.connect(user1)
+      .withdrawYield(
+        ethers.utils.parseUnits(withdrawYield1amount.toString()),
+        1,
+        false
+      );
+    result.user1reward -= withdrawYield1amount;
+
+    await expect(
+      syntrumVaultContract.connect(user1)
+        .unStake(
+          ethers.utils.parseUnits(unstake1amount.toString()),
+          1
+        )
+    ).to.be.revertedWith('Assets are locked yet');
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+
+    hre.timeAndMine.increaseTime('6 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += result.user1deposited
+      * apr
+      * 3600 * 24 * 6
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += result.user2deposited
+      * apr
+      * 3600 * 24 * 6
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.user3reward += result.user3deposited
+      * apr
+      * 3600 * 24 * 6
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+
+    await syntrumVaultContract.connect(user2)
+      .withdrawYieldAll(1);
+    result.user2reward = 0;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+
+    await syntrumVaultContract.connect(user3)
+      .stake(
+        ethers.utils.parseUnits(deposit3amount.toString()),
+        1
+      );
+    result.user3deposited += deposit3amount;
+    result.totalDeposited += deposit3amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+
+    hre.timeAndMine.increaseTime('11 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += result.user1deposited
+      * apr
+      * 3600 * 24 * 11
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += result.user2deposited
+      * apr
+      * 3600 * 24 * 11
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.user3reward += result.user3deposited
+      * apr
+      * 3600 * 24 * 11
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+
+    await expect(
+      syntrumVaultContract.connect(pool2owner)
+        .withdrawLockedAssets(1)
+    ).to.be.revertedWith('Locked assets can not be withdrawn at the moment');
+
+    hre.timeAndMine.increaseTime('280 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward += result.user1deposited
+      * apr
+      * 3600 * 24 * 276
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.user2reward += result.user2deposited
+      * apr
+      * 3600 * 24 * 276
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 2)).to.equal(roundTo(result.user2reward, 2));
+    result.user3reward += result.user3deposited
+      * apr
+      * 3600 * 24 * 276
+      / decimals
+      / year;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(3)
+    )), 2)).to.equal(roundTo(result.user3reward, 2));
+
+    await syntrumVaultContract.connect(user1)
+      .withdrawYieldAll(1);
+    await syntrumVaultContract.connect(user2)
+      .withdrawYieldAll(1);
+    await syntrumVaultContract.connect(user3)
+      .withdrawYieldAll(1);
+
+    await expect(
+      syntrumVaultContract.connect(user1)
+        .withdrawLockedAssets(1)
+    ).to.be.revertedWith('Sender is not the pool owner');
+
+    await syntrumVaultContract.connect(pool2owner)
+      .withdrawLockedAssets(1);
+
+    await expect(
+      syntrumVaultContract.connect(pool2owner)
+        .withdrawLockedAssets(1)
+    ).to.be.revertedWith('Locked assets are already withdrawn');
+
+    await syntrumVaultContract.connect(user1)
+      .unStake(
+        ethers.utils.parseUnits(unstake1amount.toString()),
+        1
+      );
+    result.user1deposited -= unstake1amount;
+    result.totalDeposited -= unstake1amount;
+
+    const taxedAmount = lock1amount * tax / decimals;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await lock1contract.balanceOf(syntrumVaultContract.address)
+    )), 8)).to.equal(0);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await lock1contract.balanceOf(pool2owner.address)
+    )), 8)).to.equal(roundTo(initialTransfer - taxedAmount, 8));
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await lock1contract.balanceOf(taxReceiver.address)
+    )), 8)).to.equal(roundTo(taxedAmount, 8));
+  });
+
+  it("Fixed rate staking, owner withdraw", async function () {
+    await syntrumVaultContract.connect(pool2owner)
+      .addDepositProfile(
+        [
+          1,
+          ethers.utils.parseUnits(pool2size.toString()),
+          distribution2period,
+          apr
+        ],
+        deposit2contract.address,
+        deposit2contract.address,
+        [
+          'name',
+          'depositCurrency',
+          'yieldCurrency',
+          'link',
+        ]
+      );
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    await syntrumVaultContract.connect(user1)
+      .stake(
+        ethers.utils.parseUnits(deposit1amount.toString()),
+        1
+      );
+
+    result.maxYield = pool2size
+      * apr
+      * distribution2period
+      / decimals
+      / year;
+    result.user1deposited = deposit1amount;
+    result.totalDeposited = deposit1amount;
+    result.totalYieldExpected = deposit1amount
+      * apr
+      * distribution2period
+      / decimals
+      / year;
+
+    result.response = await syntrumVaultContract.getDepositProfileData(1);
+    result.totalYield = Number(ethers.utils.formatUnits(
+      result.response.totalYield
+    ));
+    expect(result.totalYield).to.equal(result.totalYieldExpected);
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    await syntrumVaultContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.totalYieldExpected += deposit2amount
+      * apr
+      * (distribution2period - 10 * 24 * 3600)
+      / decimals
+      / year;
+
+    result.response = await syntrumVaultContract.getDepositProfileData(1);
+    result.totalYield = Number(ethers.utils.formatUnits(
+      result.response.totalYield
+    ));
+    expect(roundTo(result.totalYield, 4)).to.equal(roundTo(result.totalYieldExpected, 4));
+
+    hre.timeAndMine.increaseTime('365 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    const contractBalance = Number(ethers.utils.formatUnits(
+      await deposit2contract.balanceOf(syntrumVaultContract.address)
+    ));
+    await syntrumVaultContract.connect(pool2owner).withdrawYieldRemains(1);
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await deposit2contract.balanceOf(syntrumVaultContract.address)
+    )), 1)).to.equal(roundTo(
+      contractBalance - (result.maxYield - result.totalYield), 1
+    ));
+  });
+
+  it("Dynamic staking with restake", async function () {
+    await syntrumVaultContract.connect(pool1owner)
+      .addDepositProfile(
+        [
+          1,
+          ethers.utils.parseUnits(pool1size.toString()),
+          distribution1period,
+          0
+        ],
+        yield1contract.address,
+        yield1contract.address,
+        [
+          'name',
+          'yieldCurrency',
+          'yieldCurrency',
+          'link'
+        ]
+      );
+
+    expect(
+      await syntrumVaultContract.isReStakeAvailable(1)
+    ).to.be.true;
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.contractBalance = Number(ethers.utils.formatUnits(
+      await yield1contract.balanceOf(syntrumVaultContract.address)
+    ));
+
+    await syntrumVaultContract.connect(user1)
+      .stake(
+        ethers.utils.parseUnits(deposit1amount.toString()),
+        1
+      );
+
+    result.user1deposited = deposit1amount;
+    result.totalDeposited = deposit1amount;
+
+    expect(Number(ethers.utils.formatUnits(
+      await yield1contract.balanceOf(syntrumVaultContract.address)
+    ))).to.equal(result.contractBalance + deposit1amount);
+    expect(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward = pool1size
+      * 3600 * 24 * 10
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(roundTo(result.user1reward, 2));
+    result.shouldBeDistributed = pool1size * 10 * 3600 * 24 / distribution1period;
+
+    await syntrumVaultContract.connect(user1)
+      .reStake(1);
+
+    result.user1deposited += result.user1reward;
+    result.totalDeposited += result.user1reward;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(0);
+
+    result.response = await syntrumVaultContract.getDeposit(1);
+    expect (roundTo(Number(ethers.utils.formatUnits(
+      result.response.amount
+    )), 2)).to.equal(roundTo(deposit1amount + result.user1reward, 2));
+
+
+    await syntrumVaultContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.user2deposited = deposit2amount;
+    result.totalDeposited += deposit2amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 3)).to.equal(0);
+    expect(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('22 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+    result.user1reward = pool1size * 3600 * 24 * 22
+      * result.user1deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 3)).to.equal(roundTo(result.user1reward, 3));
+    result.user2reward = pool1size * 3600 * 24 * 22
+      * result.user2deposited
+      / result.totalDeposited
+      / distribution1period;
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 3)).to.equal(roundTo(result.user2reward, 3));
+  });
+
+  it("Fixed staking with restake", async function () {
+    await syntrumVaultContract.connect(pool1owner)
+      .addDepositProfile(
+        [
+          1,
+          ethers.utils.parseUnits(pool1size.toString()),
+          distribution1period,
+          apr
+        ],
+        yield1contract.address,
+        yield1contract.address,
+        [
+          'name',
+          'yieldCurrency',
+          'yieldCurrency',
+          'link'
+        ]
+      );
+
+    expect(
+      await syntrumVaultContract.isReStakeAvailable(1)
+    ).to.be.true;
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.contractBalance = Number(ethers.utils.formatUnits(
+      await yield1contract.balanceOf(syntrumVaultContract.address)
+    ));
+
+    await syntrumVaultContract.connect(user1)
+      .stake(
+        ethers.utils.parseUnits(deposit1amount.toString()),
+        1
+      );
+
+    result.user1deposited = deposit1amount;
+    result.totalDeposited = deposit1amount;
+
+    expect(Number(ethers.utils.formatUnits(
+      await yield1contract.balanceOf(syntrumVaultContract.address)
+    ))).to.equal(result.contractBalance + deposit1amount);
+    expect(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('10 day');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward = result.user1deposited
+      * apr
+      * 3600 * 24 * 10
+      / decimals
+      / year;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 3)).to.equal(roundTo(result.user1reward, 3));
+
+    await syntrumVaultContract.connect(user1)
+      .reStake(1);
+
+    result.user1deposited += result.user1reward;
+    result.totalDeposited += result.user1reward;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 2)).to.equal(0);
+
+    result.response = await syntrumVaultContract.getDeposit(1);
+    expect (roundTo(Number(ethers.utils.formatUnits(
+      result.response.amount
+    )), 2)).to.equal(roundTo(deposit1amount + result.user1reward, 2));
+
+
+    await syntrumVaultContract.connect(user2)
+      .stake(
+        ethers.utils.parseUnits(deposit2amount.toString()),
+        1
+      );
+    result.user2deposited = deposit2amount;
+    result.totalDeposited += deposit2amount;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 3)).to.equal(0);
+    expect(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    ))).to.equal(0);
+
+    hre.timeAndMine.increaseTime('22 days');
+    await signers[0].sendTransaction({
+      to: signers[1].address,
+      value: 0
+    });
+
+    result.user1reward = result.user1deposited
+      * apr
+      * 3600 * 24 * 22
+      / decimals
+      / year;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(1)
+    )), 3)).to.equal(roundTo(result.user1reward, 3));
+
+    result.user2reward = result.user2deposited
+      * apr
+      * 3600 * 24 * 22
+      / decimals
+      / year;
+
+    expect(roundTo(Number(ethers.utils.formatUnits(
+      await syntrumVaultContract.getDepositYield(2)
+    )), 3)).to.equal(roundTo(result.user2reward, 3));
+  });
+
+  it("Admin functions", async function () {
+    await deposit1contract.connect(user1)
+      .transfer(syntrumVaultContract.address, ethers.utils.parseUnits(deposit1amount.toString()));
+    result.ownerBalance = Number(ethers.utils.formatUnits(
+      await deposit1contract.balanceOf(owner.address)
+    ));
+    await syntrumVaultContract.connect(owner)
+      .adminWithdrawToken(ethers.utils.parseUnits(deposit1amount.toString()), deposit1contract.address);
+    expect(Number(ethers.utils.formatUnits(
+      await deposit1contract.balanceOf(deposit1contract.address)
+    ))).to.equal(0);
+    expect(Number(ethers.utils.formatUnits(
+      await deposit1contract.balanceOf(owner.address)
+    ))).to.equal(result.ownerBalance + deposit1amount);
+  });
+
+  it("Manager settings", async function () {
+    await expect(
+      syntrumVaultContract.connect(manager)
+        .setLockProfileAmount(1, 11)
+    ).to.be.revertedWith('Caller is not the manager');
+
+    await expect(
+      syntrumVaultContract.connect(manager)
+        .setLockProfileStatus(1, false)
+    ).to.be.revertedWith('Caller is not the manager');
+
+    await syntrumVaultContract.connect(owner)
+      .addToManagers(manager.address);
+
+    await syntrumVaultContract.connect(manager)
+      .setLockProfileAmount(1, 11);
+    await syntrumVaultContract.connect(manager)
+      .setLockProfileStatus(1, false);
+
+    result.lockProfile = await syntrumVaultContract
+      .getLockProfile(1);
+
+    expect(Number(result.lockProfile.amount)).to.be.equal(11);
+    expect(result.lockProfile.active).to.be.false;
+  });
+});
+
+function roundTo(a, b) {
+  a = Number(a);
+  b = Number(b);
+  if (isNaN(a) || !(b > 0)) return null;
+  b = 10 ** b;
+  return Math.round(a * b) / b;
+}

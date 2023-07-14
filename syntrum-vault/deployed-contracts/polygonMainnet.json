@@ -1,0 +1,60 @@
+{
+    "staking": {
+        "latest": "0x877b0B89Cfde96d2aa7aE7149db896B33d92318C",
+        "all": [
+            {
+                "address": "0x00aa4104A8DBA1afC9B1C8556169c5B294F64e7B",
+                "timestamp": 1659147817
+            },
+            {
+                "address": "0xAe2Fe60D410F9c560c90BDB04FfDF8579718DC19",
+                "timestamp": 1659240305
+            },
+            {
+                "address": "0xC6A7E45aba246ca9E60F5Ea071c03BDa516Cb6B6",
+                "timestamp": 1659264704
+            },
+            {
+                "address": "0x21d30E41277EbcC71DEB1FfA94448B4A0D61bd39",
+                "timestamp": 1659409480
+            },
+            {
+                "address": "0x494121Ed783Ac9DfE391F03Eb7D19923D07Dc8C7",
+                "timestamp": 1659518058
+            },
+            {
+                "address": "0x902d8a4eFF1AC8684F8B3ffDC244208c9aDEFF32",
+                "timestamp": 1659525365
+            },
+            {
+                "address": "0x69B276B94A8895bcCCe401DB78174590E12fcDc4",
+                "timestamp": 1659680228
+            },
+            {
+                "address": "0x05813fa3BF0c269D6baB420D0A9B02b82176EfBE",
+                "timestamp": 1659685150
+            },
+            {
+                "address": "0x877b0B89Cfde96d2aa7aE7149db896B33d92318C",
+                "timestamp": 1660442710
+            }
+        ]
+    },
+    "erc20Token": {
+        "latest": "0xF2b65Fd32ca4B5EC5595ee97a833eb6bAd9e0C89",
+        "all": [
+            {
+                "address": "0xE5Fa2d628EE11d54E7C63dB4E079F0fe3201f3d0",
+                "timestamp": 1659240369
+            },
+            {
+                "address": "0x175657373cDB4B74EC474Dc63ce5b38c294614e3",
+                "timestamp": 1659240388
+            },
+            {
+                "address": "0xF2b65Fd32ca4B5EC5595ee97a833eb6bAd9e0C89",
+                "timestamp": 1659264101
+            }
+        ]
+    }
+}

@@ -9,10 +9,11 @@ describe('test.js - Sale contract testing', function () {
     d.signers = await ethers.getSigners();
     d.owner = d.signers[10];
     d.manager = d.signers[9];
+    d.referrers = [d.signers[4], d.signers[5], d.signers[6]];
     d.users = [d.signers[1], d.signers[2], d.signers[3]];
     d.balances = {};
     d.newBalances = {};
-    d.initialTransfer = 100000;
+    d.initialTransfer = 1000000;
     d.roundData = [
       [
         ethers.utils.parseUnits('0.065'),
@@ -33,10 +34,10 @@ describe('test.js - Sale contract testing', function () {
         2 * 7 * 24 * 3600,
       ],
       [
-        ethers.utils.parseUnits('5000000'),
-        ethers.utils.parseUnits('5000000'),
-        ethers.utils.parseUnits('5000000'),
-        ethers.utils.parseUnits('5000000'),
+        ethers.utils.parseUnits('50000'),
+        ethers.utils.parseUnits('50000'),
+        ethers.utils.parseUnits('50000'),
+        ethers.utils.parseUnits('50000'),
       ],
     ];
     d.precision = 7;
@@ -106,9 +107,9 @@ describe('test.js - Sale contract testing', function () {
       );
     }
 
-    d.Sale = await ethers.getContractFactory("Sale");
+    d.SaleSimple = await ethers.getContractFactory("SaleSimple");
 
-    d.sale = await d.Sale.connect(d.owner).deploy(
+    d.sale = await d.SaleSimple.connect(d.owner).deploy(
       d.owner.address,
       d.owner.address,
       d.rates.address, 
@@ -233,6 +234,7 @@ describe('test.js - Sale contract testing', function () {
         to: d.users[0].address,
         value: 0
       });
+      expect(Number(await d.sale.getActiveRoundIndex())).to.equal(i + 1);
       const usdRate = Number(ethers.utils.formatUnits(d.roundData[0][i]));
       for (const token in d.paymentTokens) {
         if (typeof d.paymentTokens[token].contract.connect === 'undefined') {
@@ -332,13 +334,17 @@ describe('test.js - Sale contract testing', function () {
         1,
         ethers.utils.parseUnits('1'),
         d.users[1].address,
+        ethers.constants.AddressZero,
         []
       )
     ).to.be.revertedWith('Sale is in private mode');
     await d.sale.connect(d.owner).setPublic(true);
 
     d.totalSold = 0;
+    d.referralFee = Number(await d.sale.getReferralFee()) / 10000;
+
     d.purchased = {};
+    d.referral = {};
     for (const token in d.paymentTokens) {
       if (typeof d.paymentTokens[token].contract.connect === 'undefined') {
         d.native = true;
@@ -381,14 +387,17 @@ describe('test.js - Sale contract testing', function () {
           d.paymentTokens[token].weight,
           ethers.utils.parseUnits(d.paymentTokens[token].paymentAmount.toString()),
           d.users[i].address,
+          d.referrers[i].address,
           [],
           d.options
         );
         if (typeof d.purchased[i] === 'undefined') d.purchased[i] = 0;
+        if (typeof d.referral[i] === 'undefined') d.referral[i] = 0;
         d.sold = d.paymentTokens[token].paymentAmount
           * d.paymentTokens[token].rate
           / usdRate;
         d.purchased[i] += d.sold;
+        d.referral[i] += d.sold * d.referralFee;
         d.totalSold += d.sold;
 
         expect(roundTo(Number(ethers.utils.formatUnits(
@@ -396,8 +405,16 @@ describe('test.js - Sale contract testing', function () {
         )), d.precision)).to.equal(roundTo(d.purchased[i], d.precision));
 
         expect(roundTo(Number(ethers.utils.formatUnits(
+          await d.sale.getReferralAmount(d.referrers[i].address)
+        )), d.precision)).to.equal(roundTo(d.referral[i], d.precision));
+
+        expect(roundTo(Number(ethers.utils.formatUnits(
           await d.sale.getUserAvailable(d.users[i].address)
         )), d.precision)).to.equal(roundTo(d.purchased[i], d.precision));
+
+        expect(roundTo(Number(ethers.utils.formatUnits(
+          await d.sale.getUserAvailable(d.referrers[i].address)
+        )), d.precision)).to.equal(roundTo(d.referral[i], d.precision));
       }
     }
     for (let i = 0; i < d.users.length; i ++) {
@@ -415,6 +432,22 @@ describe('test.js - Sale contract testing', function () {
 
       expect(Number(ethers.utils.formatUnits(
         await d.sale.getUserAvailable(d.users[i].address)
+      ))).to.equal(0);
+
+      await d.sale.connect(d.referrers[i]).withdrawAvailable();
+
+      expect(
+        Number(ethers.utils.formatUnits(
+          await d.sale.getReferralAmount(d.referrers[i].address)
+        ))
+        -
+        Number(ethers.utils.formatUnits(
+          await d.sale.getUserWithdrawn(d.referrers[i].address)
+        ))
+      ).to.equal(0);
+
+      expect(Number(ethers.utils.formatUnits(
+        await d.sale.getUserAvailable(d.referrers[i].address)
       ))).to.equal(0);
     }
     d.newBalances.owner = {
@@ -489,6 +522,7 @@ describe('test.js - Sale contract testing', function () {
       d.paymentTokens.usdt.weight,
       ethers.utils.parseUnits(d.paymentTokens.usdt.paymentAmount.toString()),
       d.users[0].address,
+      ethers.constants.AddressZero,
       []
     );
 
@@ -582,6 +616,7 @@ describe('test.js - Sale contract testing', function () {
         d.paymentTokens.usdt.weight,
         ethers.utils.parseUnits('1'),
         d.users[0].address,
+        ethers.constants.AddressZero,
         []
       )
     ).to.be.revertedWith('Sale is in private mode');
@@ -594,6 +629,7 @@ describe('test.js - Sale contract testing', function () {
       d.paymentTokens.usdt.weight,
       ethers.utils.parseUnits('1'),
       d.users[0].address,
+      ethers.constants.AddressZero,
       []
     );
 
@@ -622,6 +658,7 @@ describe('test.js - Sale contract testing', function () {
         d.paymentTokens.usdt.weight,
         ethers.utils.parseUnits('1'),
         d.users[0].address,
+        ethers.constants.AddressZero,
         []
       )
     ).to.be.revertedWith('Sale is in private mode');
@@ -640,6 +677,7 @@ describe('test.js - Sale contract testing', function () {
         d.paymentTokens.usdt.weight,
         ethers.utils.parseUnits('1'),
         d.users[0].address,
+        ethers.constants.AddressZero,
         signature
       )
     ).to.be.revertedWith('Signature is not valid');
@@ -649,6 +687,7 @@ describe('test.js - Sale contract testing', function () {
       d.paymentTokens.usdt.weight,
       ethers.utils.parseUnits('1'),
       d.users[0].address,
+      ethers.constants.AddressZero,
       signature
     );
 
@@ -657,6 +696,7 @@ describe('test.js - Sale contract testing', function () {
         d.paymentTokens.usdt.weight,
         ethers.utils.parseUnits('1'),
         d.users[1].address,
+        ethers.constants.AddressZero,
         signature
       )
     ).to.be.revertedWith('Signature is not valid');
@@ -690,6 +730,7 @@ describe('test.js - Sale contract testing', function () {
         1,
         ethers.utils.parseUnits('1'),
         d.users[0].address,
+        ethers.constants.AddressZero,
         []
       )
     ).to.be.revertedWith('Sale is in private mode');
@@ -718,6 +759,7 @@ describe('test.js - Sale contract testing', function () {
         d.paymentTokens[token].weight,
         ethers.utils.parseUnits(d.paymentTokens[token].paymentAmount.toString()),
         d.users[i].address,
+        ethers.constants.AddressZero,
         [],
         d.options
       );
@@ -806,6 +848,7 @@ describe('test.js - Sale contract testing', function () {
         2,
         aboveLimit,
         d.users[0].address,
+        ethers.constants.AddressZero,
         []
       )
     ).to.be.revertedWith('Round pool size exceeded');
@@ -815,6 +858,7 @@ describe('test.js - Sale contract testing', function () {
         2,
         '1000',
         d.users[0].address,
+        ethers.constants.AddressZero,
         []
       )
     ).to.be.revertedWith('Max purchase amount exceeded');
@@ -822,6 +866,7 @@ describe('test.js - Sale contract testing', function () {
       2,
       '10',
       d.users[0].address,
+      ethers.constants.AddressZero,
       []
     )
     await d.sale.connect(d.owner).setMaxPurchaseAmount('0');
@@ -829,8 +874,49 @@ describe('test.js - Sale contract testing', function () {
       2,
       underLimit,
       d.users[0].address,
+      ethers.constants.AddressZero,
       []
     )
+  });
+
+  it.skip('Switch to the next round check', async function () {
+    // does not work without .only
+    const now = Number(await d.sale.getTimestamp());
+    const startTime = Number(d.roundData[1][1]);
+    const timeShift = startTime - now;
+    await hre.timeAndMine.increaseTime(`${timeShift + 1} seconds`);
+    await d.users[0].sendTransaction({
+      to: d.users[0].address,
+      value: 0
+    });
+    expect(Number(await d.sale.getActiveRoundIndex()))
+      .to.equal(2);
+    const usdRate = d.roundData[0][1];
+    await d.sale.connect(d.owner).setPublic(true);
+    const tokenRate = ethers.utils.parseUnits(d.paymentTokens.busd.rate.toString());
+    const hitLimit = d.roundData[3][0]
+      .add(d.roundData[3][1])
+      .mul(usdRate)
+      .div(tokenRate)
+      .add(ethers.utils.parseUnits('1000'));
+    await d.sale.connect(d.users[0]).purchase(
+      2,
+      hitLimit,
+      d.users[0].address,
+      ethers.constants.AddressZero,
+      []
+    );
+    let roundData = await d.sale.getRoundData(2);
+    expect(roundData.allocated.eq(roundData.maxAllocation)).to.be.true;
+    roundData = await d.sale.getRoundData(3);
+    expect(roundTo(
+      1000 * ethers.utils.formatUnits(tokenRate)
+        / ethers.utils.formatUnits(d.roundData[0][2]), 6
+    )).to.equal(roundTo(ethers.utils.formatUnits(
+      roundData.allocated
+    ) , 6));
+    expect(Number(await d.sale.getActiveRoundIndex()))
+      .to.equal(3);
   });
 });
 

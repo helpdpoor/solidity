@@ -1,19 +1,19 @@
 {
-    "rates": {
-        "latest": "0xf766deD7daD0BE3d013469DbFe034C9DeEd21A75",
-        "all": [
-            {
-                "address": "0xf766deD7daD0BE3d013469DbFe034C9DeEd21A75",
-                "timestamp": 1669136077
-            }
-        ]
-    },
     "proxyAdmin": {
         "latest": "0xf6587b32266f75F0658a81fEFB675663Bf4C9BeA",
         "all": [
             {
                 "address": "0xf6587b32266f75F0658a81fEFB675663Bf4C9BeA",
-                "timestamp": 1688376040
+                "timestamp": 1688376059
+            }
+        ]
+    },
+    "rates": {
+        "latest": "0x9089CaAFa63C97fF5198522C97E281799C42245A",
+        "all": [
+            {
+                "address": "0x9089CaAFa63C97fF5198522C97E281799C42245A",
+                "timestamp": 1688377915
             }
         ]
     },
@@ -22,7 +22,7 @@
         "all": [
             {
                 "address": "0x5cCD0610d63b0b25568d0049a7282c2f969F7884",
-                "timestamp": 1688376351
+                "timestamp": 1688380447
             }
         ]
     },
@@ -31,7 +31,7 @@
         "all": [
             {
                 "address": "0x9C0c8dFeb2C8a066D8233CB6b4CD2B63Fd489521",
-                "timestamp": 1688376351
+                "timestamp": 1688380447
             }
         ]
     },

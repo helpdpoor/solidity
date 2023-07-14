@@ -10,4 +10,4 @@
 
 
  Mainnet fork in cli:
- npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/GAehRAmTTu_43baDn8h6tRMLQTUcfMFa --fork-block-number 10207859
+ npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/{alchemy key} --fork-block-number 10207859

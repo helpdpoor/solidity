@@ -1,1 +1,84 @@
-{}
+{
+    "syntrum": {
+        "latest": "0xc8955E1d6a1785F951180e516ac00b940fF0b249",
+        "all": [
+            {
+                "address": "0xc8955E1d6a1785F951180e516ac00b940fF0b249",
+                "timestamp": 1687978800
+            }
+        ]
+    },
+    "rates": {
+        "latest": "0xf766deD7daD0BE3d013469DbFe034C9DeEd21A75",
+        "all": [
+            {
+                "address": "0xf766deD7daD0BE3d013469DbFe034C9DeEd21A75",
+                "timestamp": 1669178721
+            }
+        ]
+    },
+    "sale": {
+        "latest": "0x8Fb49436f6De3a2E8eB0c007d80B561e43cceD0a",
+        "all": [
+            {
+                "address": "0x33e33e4146eA212f892DA26A3719A295d183Ff16",
+                "timestamp": 1688112843
+            },
+            {
+                "address": "0xBb7bF12961da3430F63074C309506ea096C35c31",
+                "timestamp": 1688113196
+            },
+            {
+                "address": "0x6062871a43dfA4D72BEdee66CcA772E5F2FF5b55",
+                "timestamp": 1688235263
+            },
+            {
+                "address": "0x8Fb49436f6De3a2E8eB0c007d80B561e43cceD0a",
+                "timestamp": 1688291430
+            }
+        ]
+    },
+    "proxyAdmin": {
+        "latest": "0xf6587b32266f75F0658a81fEFB675663Bf4C9BeA",
+        "all": [
+            {
+                "address": "0x328BcE26fa1c85Cb8B0DBa823623cA0A39c131Cf",
+                "timestamp": 1688310709
+            },
+            {
+                "address": "0xf6587b32266f75F0658a81fEFB675663Bf4C9BeA",
+                "timestamp": 1688376012
+            }
+        ]
+    },
+    "saleImplementation": {
+        "latest": "0x5cCD0610d63b0b25568d0049a7282c2f969F7884",
+        "all": [
+            {
+                "address": "0x47b2A95314c5AC6e4BbEa6363E4F77bAee9140c3",
+                "timestamp": 1688311292
+            },
+            {
+                "address": "0xC1B15C16D0681f8c442D0a2f1E3cED0Cf4B9321e",
+                "timestamp": 1688373285
+            },
+            {
+                "address": "0x5cCD0610d63b0b25568d0049a7282c2f969F7884",
+                "timestamp": 1688376254
+            }
+        ]
+    },
+    "saleProxy": {
+        "latest": "0x9C0c8dFeb2C8a066D8233CB6b4CD2B63Fd489521",
+        "all": [
+            {
+                "address": "0xD7F19F03bA63B8d7805e8bf03760d46fAA7D8430",
+                "timestamp": 1688311510
+            },
+            {
+                "address": "0x9C0c8dFeb2C8a066D8233CB6b4CD2B63Fd489521",
+                "timestamp": 1688376254
+            }
+        ]
+    }
+}

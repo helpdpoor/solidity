@@ -15,7 +15,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-const { saleDeployer, manager, sytDaoDeployer, scanApiKeys } = require('./secrets.json');
+const { owner, manager, scanApiKeys } = require('./secrets.json');
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -58,27 +58,27 @@ module.exports = {
   networks: {
     goerli: {
       url: 'https://goerli.infura.io/v3/a722278d431a4cc1a7529963d2d66b25',
-      accounts: [`${saleDeployer.privateKey}`,`${manager.privateKey}`]
+      accounts: [`${owner.privateKey}`,`${manager.privateKey}`]
     },
     ethereumMainnet: {
       url: 'https://mainnet.infura.io/v3/a722278d431a4cc1a7529963d2d66b25',
-      accounts: [`${saleDeployer.privateKey}`,`${manager.privateKey}`,`${sytDaoDeployer.privateKey}`]
+      accounts: [`${owner.privateKey}`,`${manager.privateKey}`]
     },
     bscTestnet: {
       url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
-      accounts: [`${saleDeployer.privateKey}`, `${manager.privateKey}`,`${sytDaoDeployer.privateKey}`]
+      accounts: [`${owner.privateKey}`, `${manager.privateKey}`]
     },
     bscMainnet: {
       url: 'https://proud-patient-forest.bsc.quiknode.pro/8fffb4d84f42ec02686c35631b566c819138e876/',
-      accounts: [`${saleDeployer.privateKey}`,`${manager.privateKey}`,`${sytDaoDeployer.privateKey}`]
+      accounts: [`${owner.privateKey}`,`${manager.privateKey}`]
     },
     polygonMainnet: {
       url: 'https://polygon-mainnet.infura.io/v3/a722278d431a4cc1a7529963d2d66b25',
-      accounts: [`${saleDeployer.privateKey}`,`${manager.privateKey}`]
+      accounts: [`${owner.privateKey}`,`${manager.privateKey}`]
     },
     cronosMainnet: {
       url: 'https://evm.cronos.org/',
-      accounts: [`${saleDeployer.privateKey}`,`${manager.privateKey}`]
+      accounts: [`${owner.privateKey}`,`${manager.privateKey}`]
     }
   },
   etherscan: {

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.2;
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import './common/AccessControl.sol';
 import './common/Utils.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
@@ -18,7 +17,7 @@ interface IRates {
  * @dev Sale contract,
  * functions names are self explanatory
  */
-contract Sale is AccessControl, Utils, Initializable {
+contract SaleSimple is AccessControl, Utils {
     using ECDSA for bytes32;
 
     event Purchase(
@@ -92,13 +91,13 @@ contract Sale is AccessControl, Utils, Initializable {
     /**
      * @dev constructor
      */
-    function initialize (
+    constructor (
         address ownerAddress,
         address managerAddress,
         address ratesAddress,
         address syntrumTokenAddress,
         address receiverAddress
-    ) public initializer returns (bool) {
+    ) {
         require(ownerAddress != address(0), 'ownerAddress can not be zero');
         require(managerAddress != address(0), 'managerAddress can not be zero');
         require(ratesAddress != address(0), 'ratesAddress can not be zero');
@@ -115,7 +114,6 @@ contract Sale is AccessControl, Utils, Initializable {
         _maxRoundsNumber = 254;
         _batchLimit = 100;
         _referralFee = 500;
-        return true;
     }
 
     function addToWhitelist (address userAddress) external hasRole(MANAGER) returns (bool) {

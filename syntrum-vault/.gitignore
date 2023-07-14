@@ -5,5 +5,3 @@ node_modules
 cache
 artifacts
 secrets.json
-*/*orlov*
-*/*Orlov*

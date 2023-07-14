@@ -1,0 +1,80 @@
+{
+    "syntrum": {
+        "latest": "0xc8955E1d6a1785F951180e516ac00b940fF0b249",
+        "all": [
+            {
+                "address": "0xc8955E1d6a1785F951180e516ac00b940fF0b249",
+                "timestamp": 1687978800
+            }
+        ]
+    },
+    "rates": {
+        "latest": "0x589844B4885d8451144985F8f9da80085d5aD4E1",
+        "all": [
+            {
+                "address": "0x9089CaAFa63C97fF5198522C97E281799C42245A",
+                "timestamp": 1688114229
+            },
+            {
+                "address": "0x589844B4885d8451144985F8f9da80085d5aD4E1",
+                "timestamp": 1688114973
+            }
+        ]
+    },
+    "sale": {
+        "latest": "0x35D0D5E57c51966EdA1e58FD39f604D97E09e5b1",
+        "all": [
+            {
+                "address": "0x8AC88EAfB0d324C1C2E2bA5E740b8bbfaCf7D39A",
+                "timestamp": 1688114460
+            },
+            {
+                "address": "0x35D0D5E57c51966EdA1e58FD39f604D97E09e5b1",
+                "timestamp": 1688234732
+            }
+        ]
+    },
+    "proxyAdmin": {
+        "latest": "0xf6587b32266f75F0658a81fEFB675663Bf4C9BeA",
+        "all": [
+            {
+                "address": "0x328BcE26fa1c85Cb8B0DBa823623cA0A39c131Cf",
+                "timestamp": 1688374231
+            },
+            {
+                "address": "0x6987f2A1ff39DbF369A0629c06bf529327ebea25",
+                "timestamp": 1688375836
+            },
+            {
+                "address": "0xf6587b32266f75F0658a81fEFB675663Bf4C9BeA",
+                "timestamp": 1688375952
+            }
+        ]
+    },
+    "saleImplementation": {
+        "latest": "0x5cCD0610d63b0b25568d0049a7282c2f969F7884",
+        "all": [
+            {
+                "address": "0x857b63C556466D3bA31381234f7e800eC83a38d4",
+                "timestamp": 1688374659
+            },
+            {
+                "address": "0x5cCD0610d63b0b25568d0049a7282c2f969F7884",
+                "timestamp": 1688376176
+            }
+        ]
+    },
+    "saleProxy": {
+        "latest": "0x9C0c8dFeb2C8a066D8233CB6b4CD2B63Fd489521",
+        "all": [
+            {
+                "address": "0x34ccAB89934927d36A8204dB3B92Fac1Ebd97FE6",
+                "timestamp": 1688374659
+            },
+            {
+                "address": "0x9C0c8dFeb2C8a066D8233CB6b4CD2B63Fd489521",
+                "timestamp": 1688376176
+            }
+        ]
+    }
+}
